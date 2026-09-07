@@ -24,8 +24,6 @@ const customerSchema = z.object({
     .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Ugyldig e-mail')
 });
 
-export type CustomerInput = z.input<typeof customerSchema>;
-
 function parse(input: unknown) {
   const r = customerSchema.safeParse(input);
   if (!r.success) throw badRequest(r.error.issues.map((i) => i.message).join('; '));

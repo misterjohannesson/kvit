@@ -6,7 +6,7 @@ import { db } from '../db';
 import { expense, type Expense } from '../schema';
 import { audit } from '../audit';
 import { badRequest, notFound } from '../errors';
-import { DATA_DIR, EXPENSE_FILES_DIR } from '../env';
+import { DATA_DIR } from '../env';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd');
 
@@ -24,10 +24,9 @@ const expenseSchema = z.object({
     .transform((v) => (v ? v : null))
 });
 
-export type ExpenseInput = z.input<typeof expenseSchema>;
-
 export interface UploadFile {
   name: string;
+  /** Client-declared MIME type: informational only, the bytes decide (see sniffUploadExt). */
   type: string;
   bytes: Buffer;
 }
@@ -150,7 +149,6 @@ export function uploadExpenseFile(id: number, file: UploadFile): Expense {
     const relPath = path.posix.join('files', 'expenses', `${e.voucherNumber}.${ext}`);
     const abs = path.join(DATA_DIR, relPath);
     const old = expenseFileAbsolutePath(e);
-    fs.mkdirSync(EXPENSE_FILES_DIR, { recursive: true });
     // Write the new file first; only remove the old one (different extension) once the new one exists.
     fs.writeFileSync(abs, file.bytes);
     const row = db.update(expense).set({ filePath: relPath }).where(eq(expense.id, id)).returning().get();

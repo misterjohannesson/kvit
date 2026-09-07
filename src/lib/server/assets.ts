@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PROJECT_ROOT } from './env';
 
-export const DESIGN_ASSETS = ['tokens.css', 'style.md', 'example.html'] as const;
+const DESIGN_ASSETS = ['tokens.css', 'style.md', 'example.html'] as const;
 
 /** The three design files are mandatory. Halt with an error if any is missing. */
 export function assertDesignAssets(): void {

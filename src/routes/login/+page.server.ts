@@ -15,6 +15,7 @@ export const actions: Actions = {
     } catch {
       /* no address available */
     }
+    for (const [k, v] of failures) if (Date.now() >= v.until) failures.delete(k); // prune expired
     const state = failures.get(ip);
     if (state && state.count >= MAX_FAILURES && Date.now() < state.until) {
       return fail(429, { error: 'For mange forsøg. Vent 30 sekunder.' });

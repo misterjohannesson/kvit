@@ -84,9 +84,11 @@ export const actions: Actions = {
       setPaidDate(routeId(params), paidDate);
     }),
 
-  credit: async ({ params }) =>
+  credit: async ({ params, request }) =>
     run(async () => {
-      const note = await creditInvoice(routeId(params));
+      const form = await request.formData();
+      const expected = Number(form.get('expectedNumber'));
+      const note = await creditInvoice(routeId(params), Number.isInteger(expected) && expected > 0 ? expected : undefined);
       redirect(303, `/fakturaer/${note.id}`);
     })
 };

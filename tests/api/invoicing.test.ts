@@ -235,6 +235,30 @@ describe('confirm step number', () => {
   });
 });
 
+describe('integer line math', () => {
+  it('computes 0,29 x 0,50 kr as 15 oere and rejects quantities with more than two decimals', async () => {
+    const d = await makeDraft([{ description: 'Small', quantity: 0.29, unit: 'stk.', unitPriceOre: 50 }]);
+    expect(d.lines[0].lineTotalOre).toBe(15);
+    const r = await c.json<{ error: string }>('PUT', `/api/invoices/${d.id}`, {
+      customerId, issueDate: '2026-09-07', dueDate: '2026-09-21', paymentReference: 'x',
+      lines: [{ description: 'A', quantity: 1.005, unit: 'stk.', unitPriceOre: 100 }]
+    });
+    expect(r.status).toBe(400);
+  });
+
+  it('refuses to credit with a stale confirmed number (409) and consumes nothing', async () => {
+    const d = await makeDraft();
+    const orig = (await c.json<Inv>('POST', `/api/invoices/${d.id}/issue`)).data;
+    const next = Number((await c.json<Record<string, string>>('GET', '/api/settings')).data.next_invoice_number);
+    const stale = await c.json('POST', `/api/invoices/${orig.id}/credit`, { expectedNumber: next + 3 });
+    expect(stale.status).toBe(409);
+    expect((await c.json<Inv>('GET', `/api/invoices/${orig.id}`)).data.status).toBe('issued');
+    const ok = await c.json<Inv>('POST', `/api/invoices/${orig.id}/credit`, { expectedNumber: next });
+    expect(ok.status).toBe(201);
+    expect(ok.data.invoiceNumber).toBe(next);
+  });
+});
+
 describe('legal invoice PDF (seed invoice 1001)', () => {
   it('contains every statutory field', async () => {
     const list = await c.json<Inv[]>('GET', '/api/invoices');

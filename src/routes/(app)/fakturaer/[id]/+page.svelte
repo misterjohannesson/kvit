@@ -114,6 +114,7 @@
             <p class="confirmbox__title" id="credit-title">Opret kreditnota?</p>
             <p class="hint">Der oprettes en kreditnota med nummer <span class="mono">{data.nextNumber}</span>, som modposterer alle linjer, og faktura <span class="mono">{inv.invoiceNumber}</span> markeres som krediteret. Begge dokumenter forbliver i nummerserien.</p>
             <form method="POST" action="?/credit" class="confirmbox__actions">
+              <input type="hidden" name="expectedNumber" value={data.nextNumber} />
               <button type="button" class="btn" onclick={() => (confirmCredit = false)}>Annullér</button>
               <button type="submit" class="btn btn--danger">Opret kreditnota {data.nextNumber}</button>
             </form>

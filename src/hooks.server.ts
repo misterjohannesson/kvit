@@ -5,10 +5,15 @@ import { isValidSession, SESSION_COOKIE } from '$lib/server/auth';
 import { appPassword } from '$lib/server/env';
 import { sqlite } from '$lib/server/db';
 import { closeBrowser } from '$lib/server/pdf';
+import { repairArchivedPdfs } from '$lib/server/services/invoices';
 
 // Halt at startup if the design authority files or the password are missing.
 assertDesignAssets();
 appPassword();
+{
+  const repaired = repairArchivedPdfs();
+  if (repaired > 0) console.warn(`Renamed ${repaired} archived PDF(s) left as .tmp by an interrupted issue`);
+}
 
 // adapter-node emits this on SIGINT/SIGTERM once in-flight requests are done.
 process.on('sveltekit:shutdown', async () => {
@@ -28,7 +33,9 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 function originMismatch(request: Request, url: URL): boolean {
   if (!MUTATING.has(request.method)) return false;
   const origin = request.headers.get('origin');
-  if (!origin || origin === 'null') return false;
+  if (!origin) return false;
+  // "null" is what sandboxed iframes and data: pages send; never a legitimate same-site form.
+  if (origin === 'null') return true;
   try {
     return new URL(origin).host !== url.host;
   } catch {

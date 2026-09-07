@@ -16,11 +16,6 @@ export function getSettings(): Settings {
   return out;
 }
 
-export function getSetting(key: string): string {
-  const row = db.select().from(setting).where(eq(setting.key, key)).get();
-  return row?.value ?? DEFAULT_SETTINGS[key] ?? '';
-}
-
 export function setSettingRaw(key: string, value: string): void {
   db.insert(setting)
     .values({ key, value })
@@ -56,8 +51,6 @@ const settingsSchema = z.object({
     .transform((v) => (v === true || v === '1' || v === 'on' ? '1' : '0'))
     .optional()
 });
-
-export type SettingsInput = z.input<typeof settingsSchema>;
 
 /**
  * Update settings. next_invoice_number may only move upward and the change is

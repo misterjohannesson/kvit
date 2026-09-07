@@ -37,7 +37,7 @@ export default async function setup(project: TestProject) {
     APP_PASSWORD: TEST_PASSWORD,
     PORT: String(port),
     HOST: '127.0.0.1',
-    BODY_SIZE_LIMIT: '20M',
+    BODY_SIZE_LIMIT: '25M',
     PROJECT_ROOT: process.cwd()
   };
 

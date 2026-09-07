@@ -15,6 +15,13 @@
       "when": 1788818234833,
       "tag": "0001_indexes_and_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788819751177,
+      "tag": "0002_status_guard",
+      "breakpoints": true
     }
   ]
 }

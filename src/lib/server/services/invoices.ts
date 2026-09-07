@@ -16,7 +16,10 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være ååå�
 
 const lineSchema = z.object({
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
-  quantity: z.coerce.number().refine((n) => Number.isFinite(n) && n !== 0 && Math.abs(n) <= 1e9, 'Antal skal være forskelligt fra 0'),
+  quantity: z.coerce
+    .number()
+    .refine((n) => Number.isFinite(n) && n !== 0 && Math.abs(n) <= 1e9, 'Antal skal være forskelligt fra 0')
+    .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, 'Antal kan højst have to decimaler'),
   unit: z.string().trim().min(1, 'Enhed er påkrævet').max(30),
   unitPriceOre: z.coerce.number().int('Pris skal være hele øre').max(1e13).min(-1e13)
 });
@@ -36,8 +39,6 @@ const draftSchema = z.object({
   lines: z.array(lineSchema).max(200).default([])
 });
 
-export type DraftInput = z.input<typeof draftSchema>;
-
 export const VAT_RATE_BP = 2500;
 
 export interface InvoiceListRow extends Invoice {
@@ -54,8 +55,14 @@ export interface InvoiceDetail extends InvoiceListRow {
   creditsInvoiceId: number | null;
 }
 
+/**
+ * Line total in whole øre. Quantities carry at most two decimals, so the product
+ * is computed on integers (hundredths × øre) and only the final /100 is rounded,
+ * half away from zero. No binary-float noise: 0,29 × 0,50 kr = 15 øre, not 14.
+ */
 export function computeLineTotalOre(quantity: number, unitPriceOre: number): number {
-  return roundOre(quantity * unitPriceOre);
+  const hundredths = Math.round(quantity * 100);
+  return roundOre((hundredths * unitPriceOre) / 100);
 }
 
 export function computeTotals(lines: { lineTotalOre: number }[], vatExempt: boolean) {
@@ -140,12 +147,6 @@ export function getInvoice(id: number): InvoiceDetail {
   return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null };
 }
 
-export function getInvoiceByNumber(n: number): InvoiceDetail {
-  const r = db.select({ id: invoice.id }).from(invoice).where(eq(invoice.invoiceNumber, n)).get();
-  if (!r) throw notFound('Faktura findes ikke');
-  return getInvoice(r.id);
-}
-
 function assertDraft(inv: Invoice): void {
   if (inv.status !== 'draft') {
     throw conflict(`Faktura ${inv.invoiceNumber ?? inv.id} er udstedt og kan ikke ændres. Opret en kreditnota i stedet.`);
@@ -182,7 +183,7 @@ export function createDraft(input: { customerId: number }): InvoiceDetail {
  * Runs under the issue lock so an edit can never interleave with an issue in
  * progress (PDF rendered from one state, number assigned to another).
  */
-export function updateDraft(id: number, input: unknown): Promise<InvoiceDetail> {
+export async function updateDraft(id: number, input: unknown): Promise<InvoiceDetail> {
   // Immutability is checked before anything else: an issued invoice answers 409
   // to every mutation attempt, whatever the body looks like.
   const existing = db.select().from(invoice).where(eq(invoice.id, id)).get();
@@ -260,6 +261,24 @@ function contentFingerprint(inv: InvoiceDetail): string {
     vatRateBp: inv.vatRateBp,
     lines: inv.lines.map((l) => [l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre])
   });
+}
+
+/**
+ * Startup repair for the one remaining crash window: the transaction committed
+ * but the process died before the .tmp was renamed. The committed row is the
+ * truth, so the file simply gets its final name.
+ */
+export function repairArchivedPdfs(): number {
+  let repaired = 0;
+  const rows = db.select({ pdfPath: invoice.pdfPath }).from(invoice).where(sql`${invoice.pdfPath} IS NOT NULL`).all();
+  for (const r of rows) {
+    const abs = path.join(DATA_DIR, r.pdfPath as string);
+    if (!fs.existsSync(abs) && fs.existsSync(abs + '.tmp')) {
+      fs.renameSync(abs + '.tmp', abs);
+      repaired++;
+    }
+  }
+  return repaired;
 }
 
 /**
@@ -361,7 +380,7 @@ export function setPaidDate(id: number, paidDate: string): InvoiceDetail {
  * same series, issued immediately and referencing the original, whose status
  * becomes 'credited'. Everything happens under the issue lock.
  */
-export function creditInvoice(id: number): Promise<InvoiceDetail> {
+export function creditInvoice(id: number, expectedNumber?: number): Promise<InvoiceDetail> {
   return withIssueLock(async () => {
     const orig = getInvoice(id);
     if (orig.status === 'draft') throw conflict('Kladder krediteres ikke; slet kladden i stedet');
@@ -373,6 +392,9 @@ export function creditInvoice(id: number): Promise<InvoiceDetail> {
     if (missing.length) throw badRequest(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
 
     const number = Number(settings.next_invoice_number);
+    if (expectedNumber !== undefined && expectedNumber !== number) {
+      throw conflict(`Næste nummer er ${number}, ikke ${expectedNumber}. Genindlæs siden og bekræft igen.`);
+    }
     const relPath = path.posix.join('files', 'invoices', `${number}.pdf`);
     const absPath = path.join(INVOICE_FILES_DIR, `${number}.pdf`);
     if (fs.existsSync(absPath)) throw conflict(`Filen ${relPath} findes allerede`);
