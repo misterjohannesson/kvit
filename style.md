@@ -52,7 +52,7 @@ Desktop-first, 1440px design target, usable from 1152px. No mobile layout — th
 └────────────┴──────────────────────────────────────────────┘
 ```
 
-- Content area is a 12-column grid (`--layout-columns`) with `--layout-column-gap`. Only three column splits are sanctioned: **12** (tables, full-width), **8 / 4** (form + summary sidebar), **6 / 6** (paired panels, e.g. VAT sales vs. purchases).
+- Content area is a 12-column grid (`--layout-columns`) with `--layout-column-gap`. Only three column splits are sanctioned: **12** (tables, full-width), **8 / 4** (form + summary sidebar), **6 / 6** (paired panels, e.g. VAT sales vs. purchases). An 8 / 4 that holds a line-item editor (`layout-8-4--lines`) stacks to one column below 1420px; plain 8 / 4 detail pages stay side by side down to 1152px.
 - Vertical rhythm is a multiple of `--space-2`. Section spacing: `--space-8` between major sections, `--space-6` between a heading and its content, `--space-4` inside a panel.
 - Panels are `--bg-surface` on `--bg-canvas`, `--border-default-style`, `--radius-md`, **no shadow**. Shadows are reserved for things that float: dropdowns, modals, sticky bars.
 - Page header pattern: eyebrow (`--text-xs`, `--text-secondary`) → title (`--text-2xl`) → the primary action, right-aligned on the same baseline as the title.

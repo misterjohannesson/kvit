@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, uniqueIndex, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 
 export const customer = sqliteTable('customer', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -39,7 +40,9 @@ export const invoice = sqliteTable(
     uniqueIndex('invoice_number_unique').on(t.invoiceNumber),
     index('invoice_customer_idx').on(t.customerId),
     index('invoice_issue_date_idx').on(t.issueDate),
-    index('invoice_status_idx').on(t.status)
+    index('invoice_status_idx').on(t.status),
+    // one credit note credits exactly one original
+    uniqueIndex('invoice_credited_by_unique').on(t.creditedByInvoiceId).where(sql`credited_by_invoice_id IS NOT NULL`)
   ]
 );
 

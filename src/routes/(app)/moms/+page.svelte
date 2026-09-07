@@ -132,6 +132,5 @@
 
 <style>
   .kpis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  table.data td.wrap { white-space: normal; }
   .prose { max-width: var(--layout-prose-max); margin: 0; }
 </style>

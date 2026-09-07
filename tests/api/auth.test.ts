@@ -54,8 +54,13 @@ describe('single-password login', () => {
     expect((await attempt('forkert')).status).toBe(429);
     // Even the right password is refused while locked; other addresses are unaffected.
     expect((await attempt(inject('password'))).status).toBe(429);
-    const other = new Client();
-    expect((await other.login()).status).toBe(303);
+    const other = await fetch(base + '/login', {
+      method: 'POST',
+      body: new URLSearchParams({ password: inject('password') }),
+      redirect: 'manual',
+      headers: { accept: 'text/html', origin: base, 'x-forwarded-for': '10.99.0.8' }
+    });
+    expect(other.status).toBe(303);
   });
 
   it('rejects an unparsable JSON body on issue/credit instead of ignoring it', async () => {

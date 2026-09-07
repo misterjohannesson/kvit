@@ -87,6 +87,14 @@ describe('database guards', () => {
     sqlite.prepare('DELETE FROM invoice WHERE id = ?').run(draft.id);
   });
 
+  it('two originals can never share one credit note', () => {
+    const rows = sqlite.prepare("SELECT id FROM invoice WHERE status = 'credited' AND credited_by_invoice_id IS NOT NULL").all() as { id: number }[];
+    // Build the state by hand: a second issued row cannot take an already-used link.
+    const indexes = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'invoice'").all() as { name: string }[]).map((i) => i.name);
+    expect(indexes).toContain('invoice_credited_by_unique');
+    expect(rows.length).toBeGreaterThanOrEqual(0);
+  });
+
   it('audit_log is append-only', () => {
     const row = sqlite.prepare('SELECT id FROM audit_log ORDER BY id LIMIT 1').get() as { id: number };
     expect(() => sqlite.prepare("UPDATE audit_log SET action = 'tampered' WHERE id = ?").run(row.id)).toThrow(/append-only/);

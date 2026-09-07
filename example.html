@@ -474,6 +474,8 @@ table.data tbody tr[aria-selected="true"] {
 }
 .num--neg { color: var(--text-negative); }
 .mono { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
+.nowrap { white-space: nowrap; }          /* grouped IDs such as CVR "12 34 56 78" */
+table.data td.wrap { white-space: normal; } /* prose column in an otherwise nowrap table */
 .col-status { width: 152px; }
 .col-actions { width: 1%; }
 .cell-sub { display: block; font-size: var(--text-2xs); color: var(--text-secondary); }
@@ -788,7 +790,7 @@ table.data td.empty, .empty { text-align: center; color: var(--text-secondary); 
           <p>Én kolonne pr. felt­gruppe, label over feltet, feltbredde efter indhold. Beløb og datoer i monospace.</p>
         </div>
 
-        <div class="layout-8-4">
+        <div class="layout-8-4 layout-8-4--lines">
           <div class="panel">
             <div class="panel__head">
               <h3 class="panel__title">Fakturaoplysninger</h3>

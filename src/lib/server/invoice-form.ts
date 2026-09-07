@@ -38,11 +38,10 @@ export function formDataToDraft(form: FormData) {
         return [];
       }
     });
-  if (lineErrors.length) throw badRequest(lineErrors.join('; '), { lines: lineErrors.join('; ') });
-
-  // Header fields are all validated before throwing so every bad field is marked at once.
+  // Header fields and lines are all validated before throwing so every problem is reported in one round.
   const fields: Record<string, string> = {};
-  const messages: string[] = [];
+  const messages: string[] = [...lineErrors];
+  if (lineErrors.length) fields.lines = lineErrors.join('; ');
   const vatExempt = form.get('vatExempt') === 'on';
   const reason = str('vatExemptReason');
   if (vatExempt && !reason) {

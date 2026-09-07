@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `invoice_credited_by_unique` ON `invoice` (`credited_by_invoice_id`) WHERE credited_by_invoice_id IS NOT NULL;
