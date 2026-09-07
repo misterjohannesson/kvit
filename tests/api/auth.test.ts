@@ -23,7 +23,7 @@ describe('single-password login', () => {
     const r = await c.login();
     expect(r.status).toBe(303);
     expect(r.headers.get('set-cookie')).toMatch(/HttpOnly/);
-    for (const path of ['/', '/fakturaer', '/udgifter', '/moms', '/kunder', '/indstillinger']) {
+    for (const path of ['/', '/fakturaer', '/udgifter', '/moms', '/kunder', '/indstillinger', '/eksport']) {
       const p = await c.raw('GET', path);
       expect(p.status, path).toBe(200);
       expect(await p.text()).toContain('<html');
