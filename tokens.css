@@ -1,0 +1,283 @@
+/* ==========================================================================
+   tokens.css — Design tokens
+   Danish invoicing / bookkeeping app. Sober Scandinavian utility.
+   Custom properties only. No selectors other than :root (+ one print block
+   that only re-points token values, never styles elements).
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------ *
+   * 1. PALETTE — raw ramps. Do not use directly in components;
+   *    use the semantic tokens in section 2.
+   * ------------------------------------------------------------------ */
+
+  /* Neutral ramp: very slightly cool paper, warmer at the dark end.
+     Chroma stays <= 0.006 so whites read as paper, not as tinted UI. */
+  --grey-0:    oklch(99.2% 0.002 250);   /* page above surface        */
+  --grey-25:   oklch(98.0% 0.003 250);   /* app canvas                */
+  --grey-50:   oklch(96.4% 0.004 250);   /* sunken rows, table zebra  */
+  --grey-100:  oklch(93.6% 0.005 250);   /* hairlines, dividers       */
+  --grey-200:  oklch(89.0% 0.006 250);   /* input borders             */
+  --grey-300:  oklch(80.0% 0.007 250);   /* strong borders, disabled  */
+  --grey-400:  oklch(68.0% 0.008 255);   /* placeholder text          */
+  --grey-500:  oklch(56.0% 0.009 255);   /* secondary text            */
+  --grey-600:  oklch(46.0% 0.010 255);   /* labels, muted headings    */
+  --grey-700:  oklch(36.0% 0.011 258);   /* body on light             */
+  --grey-800:  oklch(27.0% 0.012 258);   /* headings                  */
+  --grey-900:  oklch(19.0% 0.013 260);   /* ink, primary button fill  */
+
+  /* Accent — one only. Deep ink-blue: institutional, not "brand-y". */
+  --accent-50:  oklch(96.5% 0.017 250);
+  --accent-100: oklch(92.0% 0.035 250);
+  --accent-200: oklch(84.0% 0.055 250);
+  --accent-500: oklch(52.0% 0.110 250);
+  --accent-600: oklch(45.0% 0.105 250);
+  --accent-700: oklch(38.0% 0.090 252);
+
+  /* Status ramps. All four share chroma/lightness discipline so no single
+     state shouts: surface ~96%, border ~86%, ink ~46-50%. Hue carries
+     the meaning; hue alone is never the only cue (see style.md). */
+
+  /* åben — sent, not yet due. Neutral-informational. */
+  --status-open-surface: oklch(96.5% 0.017 250);
+  --status-open-border:  oklch(86.0% 0.045 250);
+  --status-open-ink:     oklch(46.0% 0.095 250);
+
+  /* forfalden — past due. The only red in the system. */
+  --status-overdue-surface: oklch(96.5% 0.022 25);
+  --status-overdue-border:  oklch(86.0% 0.055 25);
+  --status-overdue-ink:     oklch(48.0% 0.150 25);
+
+  /* betalt — settled. Deliberately quiet; the resting state. */
+  --status-paid-surface: oklch(96.5% 0.020 155);
+  --status-paid-border:  oklch(86.0% 0.048 155);
+  --status-paid-ink:     oklch(45.0% 0.095 155);
+
+  /* krediteret — credit note issued. Reads as "voided", low energy. */
+  --status-credited-surface: oklch(96.5% 0.014 305);
+  --status-credited-border:  oklch(86.0% 0.035 305);
+  --status-credited-ink:     oklch(47.0% 0.070 305);
+
+  /* kladde — draft. Pure neutral, no hue: not yet a real document. */
+  --status-draft-surface: var(--grey-50);
+  --status-draft-border:  var(--grey-200);
+  --status-draft-ink:     var(--grey-600);
+
+  /* ------------------------------------------------------------------ *
+   * 2. SEMANTIC COLOR
+   * ------------------------------------------------------------------ */
+
+  --bg-canvas:        var(--grey-25);
+  --bg-surface:       var(--grey-0);
+  --bg-surface-sunk:  var(--grey-50);
+  --bg-row-alt:       var(--grey-25);
+  --bg-row-hover:     var(--accent-50);
+  --bg-row-selected:  var(--accent-50);
+  --bg-header:        var(--grey-0);
+  --bg-disabled:      var(--grey-50);
+
+  --text-primary:     var(--grey-800);
+  --text-body:        var(--grey-700);
+  --text-secondary:   var(--grey-500);
+  --text-label:       var(--grey-600);
+  --text-placeholder: var(--grey-400);
+  --text-disabled:    var(--grey-400);
+  --text-inverse:     var(--grey-0);
+  --text-link:        var(--accent-600);
+  --text-negative:    var(--status-overdue-ink);
+
+  --border-hairline:  var(--grey-100);   /* table rules, section rules */
+  --border-default:   var(--grey-200);   /* inputs, cards             */
+  --border-strong:    var(--grey-300);   /* input hover, table head   */
+  --border-ink:       var(--grey-900);
+
+  --focus-ring:       var(--accent-500);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 1px;
+
+  /* ------------------------------------------------------------------ *
+   * 3. TYPOGRAPHY
+   * ------------------------------------------------------------------ */
+
+  --font-ui: "Helvetica Neue", Helvetica, "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+               "Liberation Mono", monospace;
+  --font-numeric: var(--font-mono);   /* all amounts, dates, invoice nos. */
+
+  /* Modular-ish scale, hand-corrected to whole px at small sizes.
+     Base = 13px: dense enough for tables, still comfortable at 100% zoom. */
+  --text-3xs: 0.625rem;  /* 10px — print small print only        */
+  --text-2xs: 0.6875rem; /* 11px — table meta, column units      */
+  --text-xs:  0.75rem;   /* 12px — labels, badges, captions      */
+  --text-sm:  0.8125rem; /* 13px — BASE: tables, forms, body     */
+  --text-md:  0.875rem;  /* 14px — long-form paragraphs          */
+  --text-lg:  1rem;      /* 16px — card titles, totals           */
+  --text-xl:  1.1875rem; /* 19px — section headings              */
+  --text-2xl: 1.4375rem; /* 23px — page title                    */
+  --text-3xl: 1.75rem;   /* 28px — KPI figures, invoice total     */
+  --text-4xl: 2.25rem;   /* 36px — invoice document header only  */
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  --leading-tight:  1.15;  /* headings, KPI figures   */
+  --leading-snug:   1.35;  /* table cells, form rows  */
+  --leading-normal: 1.5;   /* body                    */
+  --leading-loose:  1.65;  /* long prose, help text   */
+
+  --tracking-tight:  -0.01em;  /* >= 23px                     */
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;   /* uppercase column heads      */
+  --tracking-wider:  0.08em;   /* uppercase eyebrow / badges  */
+
+  /* ------------------------------------------------------------------ *
+   * 4. SPACING — 4px base, no half steps
+   * ------------------------------------------------------------------ */
+
+  --space-0:  0;
+  --space-1:  0.25rem;  /*  4px */
+  --space-2:  0.5rem;   /*  8px */
+  --space-3:  0.75rem;  /* 12px */
+  --space-4:  1rem;     /* 16px */
+  --space-5:  1.25rem;  /* 20px */
+  --space-6:  1.5rem;   /* 24px */
+  --space-8:  2rem;     /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+
+  /* ------------------------------------------------------------------ *
+   * 5. LAYOUT
+   * ------------------------------------------------------------------ */
+
+  --layout-sidebar-width: 224px;
+  --layout-topbar-height: 52px;
+  --layout-content-max:   1280px;   /* list/detail work area   */
+  --layout-prose-max:     68ch;     /* help text, empty states */
+  --layout-gutter:        var(--space-8);
+  --layout-column-gap:    var(--space-6);
+  --layout-columns:       12;
+
+  /* Table density */
+  --table-row-height:      36px;  /* default (comfortable)   */
+  --table-row-height-dense: 30px; /* compact toggle          */
+  --table-head-height:     32px;
+  --table-cell-pad-x:      var(--space-3);
+  --table-cell-pad-y:      var(--space-2);
+  --table-rule:            1px solid var(--border-hairline);
+
+  /* Controls */
+  --control-height-sm: 26px;
+  --control-height:    32px;
+  --control-height-lg: 38px;
+  --control-pad-x:     var(--space-3);
+  --field-max-width:   360px;
+
+  /* ------------------------------------------------------------------ *
+   * 6. RADII — small and consistent. Nothing pill-shaped except badges.
+   * ------------------------------------------------------------------ */
+
+  --radius-none: 0;
+  --radius-xs:   2px;   /* badges, tags, checkboxes */
+  --radius-sm:   3px;   /* inputs, buttons          */
+  --radius-md:   5px;   /* cards, panels            */
+  --radius-lg:   8px;   /* modals, popovers         */
+  --radius-full: 999px;
+
+  /* ------------------------------------------------------------------ *
+   * 7. BORDERS
+   * ------------------------------------------------------------------ */
+
+  --border-width:       1px;
+  --border-width-thick: 2px;
+  --border-hairline-style: var(--border-width) solid var(--border-hairline);
+  --border-default-style:  var(--border-width) solid var(--border-default);
+  --border-strong-style:   var(--border-width) solid var(--border-strong);
+
+  /* ------------------------------------------------------------------ *
+   * 8. SHADOWS — borders do the structural work; shadows only signal
+   *    "floating above the page". Never on cards or table rows.
+   * ------------------------------------------------------------------ */
+
+  --shadow-none:    none;
+  --shadow-raised:  0 1px 1px oklch(19% 0.013 260 / 0.04);
+  --shadow-dropdown: 0 1px 2px oklch(19% 0.013 260 / 0.06),
+                     0 6px 16px -4px oklch(19% 0.013 260 / 0.12);
+  --shadow-modal:   0 2px 4px oklch(19% 0.013 260 / 0.06),
+                    0 18px 40px -8px oklch(19% 0.013 260 / 0.20);
+  --shadow-sticky:  0 1px 0 var(--border-hairline),
+                    0 4px 8px -6px oklch(19% 0.013 260 / 0.18);
+
+  /* ------------------------------------------------------------------ *
+   * 9. MOTION — utility app: fast, or not at all.
+   * ------------------------------------------------------------------ */
+
+  --duration-instant: 80ms;
+  --duration-fast:    140ms;
+  --ease-standard:    cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* ------------------------------------------------------------------ *
+   * 10. Z-INDEX
+   * ------------------------------------------------------------------ */
+
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 100;
+  --z-modal: 1000;
+  --z-toast: 2000;
+
+  /* ------------------------------------------------------------------ *
+   * 11. PRINT — page geometry for the invoice document
+   * ------------------------------------------------------------------ */
+
+  --print-page-width:  210mm;   /* A4 */
+  --print-page-height: 297mm;
+  --print-margin-top:    18mm;
+  --print-margin-side:   18mm;
+  --print-margin-bottom: 22mm;  /* room for repeating footer */
+  --print-text-size:   9.5pt;
+  --print-text-small:  8pt;
+  --print-leading:     1.4;
+  --print-rule:        0.5pt solid #6b6b6b;
+}
+
+/* Print re-points tokens to ink-on-paper values so component CSS that
+   references tokens needs no print overrides of its own. */
+@media print {
+  :root {
+    --bg-canvas: #fff;
+    --bg-surface: #fff;
+    --bg-surface-sunk: #fff;
+    --bg-row-alt: #fff;
+    --bg-row-hover: #fff;
+    --bg-row-selected: #fff;
+    --bg-header: #fff;
+
+    --text-primary: #000;
+    --text-body: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-label: #4a4a4a;
+
+    --border-hairline: #c9c9c9;
+    --border-default: #9a9a9a;
+    --border-strong: #6b6b6b;
+
+    --status-open-surface: #fff;
+    --status-overdue-surface: #fff;
+    --status-paid-surface: #fff;
+    --status-credited-surface: #fff;
+    --status-draft-surface: #fff;
+    --status-open-ink: #000;
+    --status-overdue-ink: #000;
+    --status-paid-ink: #000;
+    --status-credited-ink: #000;
+    --status-draft-ink: #000;
+
+    --shadow-raised: none;
+    --shadow-dropdown: none;
+    --shadow-modal: none;
+    --shadow-sticky: none;
+  }
+}
