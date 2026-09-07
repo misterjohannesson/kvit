@@ -1,10 +1,13 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
+import AlphabeticalSequencer from './tests/sequencer';
 
 export default defineConfig({
   plugins: [sveltekit()],
   server: { port: 3000 },
   test: {
+    // Filename order: tests/api/00-finance.test.ts must see the untouched seed data.
+    sequence: { sequencer: AlphabeticalSequencer },
     // Unit tests run in-process; API tests need the built server (global setup seeds and boots it).
     projects: [
       {

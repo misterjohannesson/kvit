@@ -10,6 +10,9 @@
     { href: '/udgifter', label: 'Udgifter', count: () => data.counts.expenses },
     { group: 'Rapporter' },
     { href: '/moms', label: 'Momsindberetning' },
+    { href: '/resultat', label: 'Resultat' },
+    { href: '/cashflow', label: 'Cashflow' },
+    { href: '/balance', label: 'Balance' },
     { group: 'System' },
     { href: '/indstillinger', label: 'Indstillinger' },
     { href: '/eksport', label: 'Eksport' }
