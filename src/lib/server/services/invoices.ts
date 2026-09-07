@@ -1,0 +1,418 @@
+import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import fs from 'node:fs';
+import path from 'node:path';
+import { z } from 'zod';
+import { db } from '../db';
+import { customer, invoice, invoiceLine, type Customer, type Invoice, type InvoiceLine } from '../schema';
+import { audit } from '../audit';
+import { badRequest, conflict, notFound } from '../errors';
+import { DATA_DIR, INVOICE_FILES_DIR } from '../env';
+import { addDays, todayIso } from '../../format';
+import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
+import { withIssueLock } from './issue-lock';
+import { renderInvoicePdf } from '../pdf';
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd');
+
+const lineSchema = z.object({
+  description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
+  quantity: z.coerce.number().refine((n) => Number.isFinite(n) && n !== 0, 'Antal skal være forskelligt fra 0'),
+  unit: z.string().trim().min(1, 'Enhed er påkrævet').max(30),
+  unitPriceOre: z.coerce.number().int('Pris skal være hele øre')
+});
+
+const draftSchema = z.object({
+  customerId: z.coerce.number().int().positive(),
+  issueDate: isoDate,
+  dueDate: isoDate,
+  vatExemptReason: z
+    .string()
+    .trim()
+    .max(300)
+    .nullable()
+    .optional()
+    .transform((v) => (v ? v : null)),
+  paymentReference: z.string().trim().max(300).default(''),
+  lines: z.array(lineSchema).max(200).default([])
+});
+
+export type DraftInput = z.input<typeof draftSchema>;
+
+export const VAT_RATE_BP = 2500;
+
+export interface InvoiceListRow extends Invoice {
+  customerName: string;
+  isCreditNote: boolean;
+  /** Original invoice number if this is a credit note. */
+  creditsInvoiceNumber: number | null;
+  creditedByNumber: number | null;
+}
+
+export interface InvoiceDetail extends InvoiceListRow {
+  customer: Customer;
+  lines: InvoiceLine[];
+  creditsInvoiceId: number | null;
+}
+
+export function computeLineTotalOre(quantity: number, unitPriceOre: number): number {
+  return Math.round(quantity * unitPriceOre);
+}
+
+export function computeTotals(lines: { lineTotalOre: number }[], vatExempt: boolean) {
+  const subtotalOre = lines.reduce((s, l) => s + l.lineTotalOre, 0);
+  const vatRateBp = vatExempt ? 0 : VAT_RATE_BP;
+  const vatOre = vatExempt ? 0 : Math.round((subtotalOre * VAT_RATE_BP) / 10000);
+  return { subtotalOre, vatOre, totalOre: subtotalOre + vatOre, vatRateBp };
+}
+
+const original = sql`(select o.invoice_number from invoice o where o.credited_by_invoice_id = ${invoice.id})`;
+const creditedBy = sql`(select c.invoice_number from invoice c where c.id = ${invoice.creditedByInvoiceId})`;
+
+function listQuery() {
+  return db
+    .select({
+      inv: invoice,
+      customerName: customer.name,
+      creditsInvoiceNumber: sql<number | null>`${original}`,
+      creditedByNumber: sql<number | null>`${creditedBy}`
+    })
+    .from(invoice)
+    .innerJoin(customer, eq(customer.id, invoice.customerId));
+}
+
+function toRow(r: {
+  inv: Invoice;
+  customerName: string;
+  creditsInvoiceNumber: number | null;
+  creditedByNumber: number | null;
+}): InvoiceListRow {
+  return {
+    ...r.inv,
+    customerName: r.customerName,
+    isCreditNote: r.creditsInvoiceNumber !== null,
+    creditsInvoiceNumber: r.creditsInvoiceNumber,
+    creditedByNumber: r.creditedByNumber
+  };
+}
+
+export function listInvoices(filter: { status?: string; year?: number; unpaidOnly?: boolean } = {}): InvoiceListRow[] {
+  const conds = [];
+  if (filter.status && ['draft', 'issued', 'credited'].includes(filter.status)) {
+    conds.push(eq(invoice.status, filter.status as Invoice['status']));
+  }
+  if (filter.year) {
+    conds.push(gte(invoice.issueDate, `${filter.year}-01-01`));
+    conds.push(lte(invoice.issueDate, `${filter.year}-12-31`));
+  }
+  const rows = listQuery()
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(invoice.issueDate), desc(invoice.invoiceNumber), desc(invoice.id))
+    .all()
+    .map(toRow);
+  if (filter.unpaidOnly) {
+    return rows.filter((r) => r.status === 'issued' && !r.isCreditNote && !r.paidDate);
+  }
+  return rows;
+}
+
+export function listInvoiceYears(): number[] {
+  const rows = db
+    .select({ y: sql<string>`substr(${invoice.issueDate}, 1, 4)` })
+    .from(invoice)
+    .groupBy(sql`substr(${invoice.issueDate}, 1, 4)`)
+    .orderBy(desc(sql`substr(${invoice.issueDate}, 1, 4)`))
+    .all();
+  return rows.map((r) => Number(r.y));
+}
+
+export function getInvoice(id: number): InvoiceDetail {
+  const r = listQuery().where(eq(invoice.id, id)).get();
+  if (!r) throw notFound('Faktura findes ikke');
+  const row = toRow(r);
+  const cust = db.select().from(customer).where(eq(customer.id, row.customerId)).get();
+  if (!cust) throw notFound('Kunde findes ikke');
+  const lines = db.select().from(invoiceLine).where(eq(invoiceLine.invoiceId, id)).orderBy(asc(invoiceLine.id)).all();
+  const orig = db
+    .select({ id: invoice.id })
+    .from(invoice)
+    .where(eq(invoice.creditedByInvoiceId, id))
+    .get();
+  return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null };
+}
+
+export function getInvoiceByNumber(n: number): InvoiceDetail {
+  const r = db.select({ id: invoice.id }).from(invoice).where(eq(invoice.invoiceNumber, n)).get();
+  if (!r) throw notFound('Faktura findes ikke');
+  return getInvoice(r.id);
+}
+
+function assertDraft(inv: Invoice): void {
+  if (inv.status !== 'draft') {
+    throw conflict(`Faktura ${inv.invoiceNumber ?? inv.id} er udstedt og kan ikke ændres. Opret en kreditnota i stedet.`);
+  }
+}
+
+export function createDraft(input: { customerId: number }): InvoiceDetail {
+  const s = getSettings();
+  const cust = db.select().from(customer).where(eq(customer.id, Number(input.customerId))).get();
+  if (!cust) throw badRequest('Vælg en kunde');
+  const today = todayIso();
+  const terms = Number(s.payment_terms_days) || 0;
+  const paymentReference = s.bank_reg && s.bank_account ? `Reg. ${s.bank_reg} Konto ${s.bank_account}` : '';
+  return db.transaction(() => {
+    const row = db
+      .insert(invoice)
+      .values({
+        status: 'draft',
+        customerId: cust.id,
+        issueDate: today,
+        dueDate: addDays(today, terms),
+        paymentReference,
+        createdAt: new Date().toISOString()
+      })
+      .returning()
+      .get();
+    audit('invoice', row.id, 'create', { customerId: cust.id });
+    return getInvoice(row.id);
+  });
+}
+
+/** Replace draft fields and lines. 409 if the invoice is not a draft. */
+export function updateDraft(id: number, input: unknown): InvoiceDetail {
+  // Immutability is checked before anything else: an issued invoice answers 409
+  // to every mutation attempt, whatever the body looks like.
+  const existing = db.select().from(invoice).where(eq(invoice.id, id)).get();
+  if (!existing) throw notFound('Faktura findes ikke');
+  assertDraft(existing);
+
+  const parsed = draftSchema.safeParse(input);
+  if (!parsed.success) throw badRequest(parsed.error.issues.map((i) => i.message).join('; '));
+  const data = parsed.data;
+  if (data.dueDate < data.issueDate) throw badRequest('Forfaldsdato kan ikke ligge før fakturadatoen');
+
+  return db.transaction(() => {
+    const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
+    if (!inv) throw notFound('Faktura findes ikke');
+    assertDraft(inv);
+    const cust = db.select().from(customer).where(eq(customer.id, data.customerId)).get();
+    if (!cust) throw badRequest('Kunden findes ikke');
+
+    const lines = data.lines.map((l) => ({
+      invoiceId: id,
+      description: l.description,
+      quantity: l.quantity,
+      unit: l.unit,
+      unitPriceOre: l.unitPriceOre,
+      lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre)
+    }));
+    const totals = computeTotals(lines, data.vatExemptReason !== null);
+
+    db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
+    if (lines.length) db.insert(invoiceLine).values(lines).run();
+    db.update(invoice)
+      .set({
+        customerId: data.customerId,
+        issueDate: data.issueDate,
+        dueDate: data.dueDate,
+        vatExemptReason: data.vatExemptReason,
+        paymentReference: data.paymentReference,
+        ...totals
+      })
+      .where(eq(invoice.id, id))
+      .run();
+    audit('invoice', id, 'update', { ...data, ...totals });
+    return getInvoice(id);
+  });
+}
+
+/** Drafts may be deleted. Issued invoices cannot: there is no code path for it. */
+export function deleteDraft(id: number): void {
+  db.transaction(() => {
+    const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
+    if (!inv) throw notFound('Faktura findes ikke');
+    assertDraft(inv);
+    db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
+    db.delete(invoice).where(eq(invoice.id, id)).run();
+    audit('invoice', id, 'delete_draft', {});
+  });
+}
+
+export function validateForIssue(inv: InvoiceDetail, settings: Record<string, string>): string[] {
+  const problems: string[] = [];
+  if (inv.lines.length === 0) problems.push('Fakturaen har ingen linjer');
+  if (inv.dueDate < inv.issueDate) problems.push('Forfaldsdato ligger før fakturadatoen');
+  if (!inv.paymentReference) problems.push('Betalingsreference mangler');
+  const missing = companyDetailsComplete(settings);
+  if (missing.length) problems.push(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
+  return problems;
+}
+
+export function nextInvoiceNumber(): number {
+  return Number(getSettings().next_invoice_number);
+}
+
+export function invoicePdfAbsolutePath(inv: Invoice): string | null {
+  return inv.pdfPath ? path.join(DATA_DIR, inv.pdfPath) : null;
+}
+
+/**
+ * Issue a draft: assigns the next number and flips status inside ONE
+ * transaction, after the PDF (which carries the number) has been rendered
+ * under the issue lock. The number series therefore never has a gap.
+ */
+export function issueInvoice(id: number): Promise<InvoiceDetail> {
+  return withIssueLock(async () => {
+    const inv = getInvoice(id);
+    assertDraft(inv);
+    const settings = getSettings();
+    const problems = validateForIssue(inv, settings);
+    if (problems.length) throw badRequest(problems.join('. '));
+
+    const number = Number(settings.next_invoice_number);
+    const relPath = path.posix.join('files', 'invoices', `${number}.pdf`);
+    const absPath = path.join(INVOICE_FILES_DIR, `${number}.pdf`);
+    if (fs.existsSync(absPath)) throw conflict(`Filen ${relPath} findes allerede`);
+
+    const pdf = await renderInvoicePdf({ ...inv, invoiceNumber: number, status: 'issued' }, settings);
+    fs.writeFileSync(absPath, pdf);
+
+    try {
+      db.transaction(() => {
+        const fresh = db.select().from(invoice).where(eq(invoice.id, id)).get();
+        if (!fresh) throw notFound('Faktura findes ikke');
+        assertDraft(fresh);
+        if (Number(getSettings().next_invoice_number) !== number) {
+          throw conflict('Nummerserien blev ændret undervejs. Prøv igen.');
+        }
+        db.update(invoice)
+          .set({ invoiceNumber: number, status: 'issued', pdfPath: relPath })
+          .where(eq(invoice.id, id))
+          .run();
+        setSettingRaw('next_invoice_number', String(number + 1));
+        audit('invoice', id, 'issue', { invoiceNumber: number, pdfPath: relPath, totalOre: inv.totalOre });
+      });
+    } catch (e) {
+      fs.rmSync(absPath, { force: true });
+      throw e;
+    }
+    return getInvoice(id);
+  });
+}
+
+/** Set (or clear with null) paid_date on an issued, non-credit-note invoice. */
+export function setPaidDate(id: number, paidDate: string | null): InvoiceDetail {
+  if (paidDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) throw badRequest('Ugyldig dato');
+  return db.transaction(() => {
+    const inv = getInvoice(id);
+    if (inv.status !== 'issued') throw conflict('Kun udstedte fakturaer kan markeres som betalt');
+    if (inv.isCreditNote) throw conflict('En kreditnota kan ikke markeres som betalt');
+    db.update(invoice).set({ paidDate }).where(eq(invoice.id, id)).run();
+    audit('invoice', id, paidDate ? 'mark_paid' : 'unmark_paid', { paidDate });
+    return getInvoice(id);
+  });
+}
+
+/**
+ * Credit note: a new invoice with negated quantities, its own number from the
+ * same series, issued immediately and referencing the original, whose status
+ * becomes 'credited'. Everything happens under the issue lock.
+ */
+export function creditInvoice(id: number): Promise<InvoiceDetail> {
+  return withIssueLock(async () => {
+    const orig = getInvoice(id);
+    if (orig.status === 'draft') throw conflict('Kladder krediteres ikke; slet kladden i stedet');
+    if (orig.status === 'credited') throw conflict('Fakturaen er allerede krediteret');
+    if (orig.isCreditNote) throw conflict('En kreditnota kan ikke krediteres');
+
+    const settings = getSettings();
+    const missing = companyDetailsComplete(settings);
+    if (missing.length) throw badRequest(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
+
+    const number = Number(settings.next_invoice_number);
+    const relPath = path.posix.join('files', 'invoices', `${number}.pdf`);
+    const absPath = path.join(INVOICE_FILES_DIR, `${number}.pdf`);
+    if (fs.existsSync(absPath)) throw conflict(`Filen ${relPath} findes allerede`);
+
+    const today = todayIso();
+    const lines: InvoiceLine[] = orig.lines.map((l) => ({
+      ...l,
+      quantity: -l.quantity,
+      lineTotalOre: -l.lineTotalOre
+    }));
+    const totals = computeTotals(lines, orig.vatExemptReason !== null);
+    const creditDetail: InvoiceDetail = {
+      ...orig,
+      id: 0,
+      invoiceNumber: number,
+      status: 'issued',
+      issueDate: today,
+      dueDate: today,
+      paidDate: null,
+      pdfPath: relPath,
+      creditedByInvoiceId: null,
+      lines,
+      ...totals,
+      isCreditNote: true,
+      creditsInvoiceNumber: orig.invoiceNumber,
+      creditsInvoiceId: orig.id,
+      creditedByNumber: null
+    };
+
+    const pdf = await renderInvoicePdf(creditDetail, settings);
+    fs.writeFileSync(absPath, pdf);
+
+    let newId = 0;
+    try {
+      db.transaction(() => {
+        const fresh = db.select().from(invoice).where(eq(invoice.id, id)).get();
+        if (!fresh || fresh.status !== 'issued') throw conflict('Fakturaen kan ikke krediteres');
+        if (Number(getSettings().next_invoice_number) !== number) {
+          throw conflict('Nummerserien blev ændret undervejs. Prøv igen.');
+        }
+        const row = db
+          .insert(invoice)
+          .values({
+            invoiceNumber: number,
+            status: 'issued',
+            customerId: orig.customerId,
+            issueDate: today,
+            dueDate: today,
+            subtotalOre: totals.subtotalOre,
+            vatOre: totals.vatOre,
+            totalOre: totals.totalOre,
+            vatRateBp: totals.vatRateBp,
+            vatExemptReason: orig.vatExemptReason,
+            paymentReference: orig.paymentReference,
+            pdfPath: relPath,
+            createdAt: new Date().toISOString()
+          })
+          .returning()
+          .get();
+        newId = row.id;
+        db.insert(invoiceLine)
+          .values(
+            lines.map((l) => ({
+              invoiceId: row.id,
+              description: l.description,
+              quantity: l.quantity,
+              unit: l.unit,
+              unitPriceOre: l.unitPriceOre,
+              lineTotalOre: l.lineTotalOre
+            }))
+          )
+          .run();
+        db.update(invoice)
+          .set({ status: 'credited', creditedByInvoiceId: row.id })
+          .where(eq(invoice.id, id))
+          .run();
+        setSettingRaw('next_invoice_number', String(number + 1));
+        audit('invoice', row.id, 'issue_credit_note', { invoiceNumber: number, creditsInvoiceId: id, pdfPath: relPath });
+        audit('invoice', id, 'credited', { creditedByInvoiceId: row.id, creditNoteNumber: number });
+      });
+    } catch (e) {
+      fs.rmSync(absPath, { force: true });
+      throw e;
+    }
+    return getInvoice(newId);
+  });
+}
