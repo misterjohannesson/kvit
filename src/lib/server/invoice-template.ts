@@ -157,6 +157,7 @@ td.unit { color: var(--text-secondary); }
   page-break-inside: avoid;
 }
 .foot p { margin: 0; }
+.foot > div:last-child { flex-shrink: 0; white-space: nowrap; }
 .foot .mono { color: var(--text-body); }
 </style>
 </head>

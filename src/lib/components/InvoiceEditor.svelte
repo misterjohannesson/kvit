@@ -48,7 +48,8 @@
 
   function lineTotal(l: Line): number | null {
     try {
-      return roundOre(parseQuantity(l.quantity) * parseKrToOre(l.unitPrice));
+      // Same integer math as the server: hundredths x oere, one final rounding.
+      return roundOre((Math.round(parseQuantity(l.quantity) * 100) * parseKrToOre(l.unitPrice)) / 100);
     } catch {
       return null;
     }
@@ -106,7 +107,7 @@
     </div>
 
     <div class="panel__body">
-      {#if error}
+      {#if error && Object.keys(fieldErrors).length === 0}
         <p class="error formerror">{error}</p>
       {/if}
       <div class="form-grid">
@@ -247,6 +248,11 @@
 
 <style>
   .input--cell { height: var(--control-height-sm); padding: 0 var(--space-2); }
+  /* fixed widths so the auto-layout table cannot squeeze the numeric inputs at 1152px */
+  .input--cell.input--xs { width: var(--field-width-xs); min-width: var(--field-width-xs); }
+  .input--cell.input--short { width: var(--field-width-sm); min-width: var(--field-width-sm); }
+  table.lines td:first-child { width: 100%; }
+  table.lines td:first-child .input--cell { min-width: var(--field-width-md); }
   table.lines td { padding-top: var(--space-1); padding-bottom: var(--space-1); }
   .addline { margin-top: var(--space-3); }
   .summaryhint { margin: var(--space-4) 0 0; }

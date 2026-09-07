@@ -42,22 +42,32 @@ export function formDataToDraft(form: FormData) {
       }
     });
 
+  // Header fields are all validated before throwing so every bad field is marked at once.
+  const fields: Record<string, string> = {};
+  const messages: string[] = [];
   const vatExempt = form.get('vatExempt') === 'on';
   const reason = str('vatExemptReason');
-  if (vatExempt && !reason) throw badRequest('Angiv årsag til momsfritagelse', { vatExemptReason: 'Skal udfyldes' });
-
-  const date = (k: string, label: string) => {
+  if (vatExempt && !reason) {
+    fields.vatExemptReason = 'Skal udfyldes';
+    messages.push('Angiv årsag til momsfritagelse');
+  }
+  const date = (k: string, label: string): string => {
     try {
       return parseDateInput(str(k));
     } catch {
-      throw badRequest(`${label}: ugyldig dato – brug dd.mm.åååå`, { [k]: 'Ugyldig dato – brug dd.mm.åååå' });
+      fields[k] = 'Ugyldig dato – brug dd.mm.åååå';
+      messages.push(`${label}: ugyldig dato – brug dd.mm.åååå`);
+      return '';
     }
   };
+  const issueDate = date('issueDate', 'Fakturadato');
+  const dueDate = date('dueDate', 'Forfaldsdato');
+  if (messages.length) throw badRequest(messages.join('; '), fields);
 
   return {
     customerId: Number(str('customerId')),
-    issueDate: date('issueDate', 'Fakturadato'),
-    dueDate: date('dueDate', 'Forfaldsdato'),
+    issueDate,
+    dueDate,
     paymentReference: str('paymentReference'),
     vatExemptReason: vatExempt ? reason : null,
     lines

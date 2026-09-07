@@ -521,7 +521,7 @@ table.data--dense td { padding-top: var(--space-1); padding-bottom: var(--space-
 .totals__row--sum-sm dd { font-size: var(--text-lg); }
 
 /* empty state: one centred line + one secondary button */
-.empty { text-align: center; color: var(--text-secondary); padding: var(--space-6) var(--table-cell-pad-x); }
+table.data td.empty, .empty { text-align: center; color: var(--text-secondary); padding: var(--space-6) var(--table-cell-pad-x); }
 .empty .btn { margin-left: var(--space-3); }
 
 /* whole row is the click target for the detail view */

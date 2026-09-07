@@ -5,7 +5,8 @@
 </script>
 
 <form method="POST" action="/density" class="segment" role="group" aria-label="Tæthed">
-  <input type="hidden" name="back" value={back} />
   <button type="submit" name="value" value="normal" aria-pressed={!dense}>Normal</button>
   <button type="submit" name="value" value="dense" aria-pressed={dense}>Kompakt</button>
+  <!-- last so the first button keeps the segment's no-left-border rule -->
+  <input type="hidden" name="back" value={back} />
 </form>

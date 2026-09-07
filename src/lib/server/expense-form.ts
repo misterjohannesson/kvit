@@ -16,36 +16,42 @@ const LABELS: Record<string, string> = {
 
 /**
  * Shared by the API (multipart) and the form actions: form fields -> service input.
- * Errors carry the offending field so the form can mark it (style.md §4).
+ * Every field is validated before throwing, so the form can mark all offending
+ * fields at once (style.md §4).
  */
 export function formDataToExpense(form: FormData) {
   const str = (k: string) => String(form.get(k) ?? '').trim();
-  const fail = (field: string, msg: string) => badRequest(`${LABELS[field]}: ${msg}`, { [field]: msg });
-  const money = (k: string) => {
+  const fields: Record<string, string> = {};
+  const money = (k: string): number => {
     const v = str(k);
-    if (v === '') throw fail(k, 'Skal udfyldes');
+    if (v === '') {
+      fields[k] = 'Skal udfyldes';
+      return 0;
+    }
     try {
       return parseKrToOre(v);
     } catch {
-      throw fail(k, 'Ugyldigt beløb – brug fx 1.234,56');
+      fields[k] = 'Ugyldigt beløb – brug fx 1.234,56';
+      return 0;
     }
   };
-  const date = (k: string, required: boolean) => {
+  const date = (k: string, required: boolean): string | null => {
     const v = str(k);
     if (v === '') {
-      if (required) throw fail(k, 'Skal udfyldes');
+      if (required) fields[k] = 'Skal udfyldes';
       return null;
     }
     try {
       return parseDateInput(v);
     } catch {
-      throw fail(k, 'Ugyldig dato – brug dd.mm.åååå');
+      fields[k] = 'Ugyldig dato – brug dd.mm.åååå';
+      return null;
     }
   };
   for (const k of ['supplier', 'description', 'category']) {
-    if (str(k) === '') throw fail(k, 'Skal udfyldes');
+    if (str(k) === '') fields[k] = 'Skal udfyldes';
   }
-  return {
+  const result = {
     date: date('date', true) as string,
     supplier: str('supplier'),
     description: str('description'),
@@ -54,6 +60,11 @@ export function formDataToExpense(form: FormData) {
     vatOre: money('vat'),
     paidDate: date('paidDate', false)
   };
+  const keys = Object.keys(fields);
+  if (keys.length > 0) {
+    throw badRequest(keys.map((k) => `${LABELS[k]}: ${fields[k]}`).join('; '), fields);
+  }
+  return result;
 }
 
 export async function uploadFromForm(form: FormData, field = 'file'): Promise<UploadFile | null> {
