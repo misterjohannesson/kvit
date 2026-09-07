@@ -50,7 +50,7 @@
   Beregnet direkte fra data: fakturaer efter fakturadato (kreditnotaer modregnes), udgifter efter bilagsdato.
 </p>
 
-<section class="layout-6-6">
+<section class="layout-6-6 layout-6-6--tables">
   <div class="panel">
     <div class="panel__head">
       <h3 class="panel__title">Salg</h3>

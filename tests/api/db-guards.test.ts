@@ -88,11 +88,16 @@ describe('database guards', () => {
   });
 
   it('two originals can never share one credit note', () => {
-    const rows = sqlite.prepare("SELECT id FROM invoice WHERE status = 'credited' AND credited_by_invoice_id IS NOT NULL").all() as { id: number }[];
-    // Build the state by hand: a second issued row cannot take an already-used link.
-    const indexes = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'invoice'").all() as { name: string }[]).map((i) => i.name);
-    expect(indexes).toContain('invoice_credited_by_unique');
-    expect(rows.length).toBeGreaterThanOrEqual(0);
+    // Raw issued rows (no lines needed) so the constraint is exercised directly.
+    const ins = sqlite.prepare(
+      "INSERT INTO invoice (invoice_number, status, customer_id, issue_date, due_date, payment_reference, created_at) VALUES (?, 'issued', 1, '2026-09-01', '2026-09-15', 'x', 'x') RETURNING id"
+    );
+    const note = (ins.get(990001) as { id: number }).id;
+    const a = (ins.get(990002) as { id: number }).id;
+    const b = (ins.get(990003) as { id: number }).id;
+    const credit = sqlite.prepare("UPDATE invoice SET status = 'credited', credited_by_invoice_id = ? WHERE id = ?");
+    expect(() => credit.run(note, a)).not.toThrow();
+    expect(() => credit.run(note, b)).toThrow(/UNIQUE constraint failed: invoice.credited_by_invoice_id/);
   });
 
   it('audit_log is append-only', () => {

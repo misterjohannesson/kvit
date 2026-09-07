@@ -41,7 +41,7 @@
       </div>
       <div class="panel__body">
         <dl class="facts">
-          <div><dt>Kunde</dt><dd>{inv.customer.name}<span class="cell-sub">{inv.customer.address}, {inv.customer.zip} {inv.customer.city}{#if inv.customer.cvr} · CVR <span class="mono nowrap">{formatCvr(inv.customer.cvr)}</span>{/if}</span></dd></div>
+          <div><dt>Kunde</dt><dd>{inv.customer.name}<span class="cell-sub">{inv.customer.address}, {inv.customer.zip} {inv.customer.city}{#if inv.customer.cvr}{' · CVR '}<span class="mono nowrap">{formatCvr(inv.customer.cvr)}</span>{/if}</span></dd></div>
           <div><dt>{inv.isCreditNote ? 'Dato' : 'Fakturadato'}</dt><dd class="mono">{formatDate(inv.issueDate)}</dd></div>
           {#if !inv.isCreditNote}
             <div><dt>Forfaldsdato</dt><dd class="mono">{formatDate(inv.dueDate)}</dd></div>

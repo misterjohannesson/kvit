@@ -102,6 +102,21 @@ describe('invoice editor form actions', () => {
     expect(again.status).toBe(409);
   });
 
+  it('reports a bad line and a bad date together', async () => {
+    const created = await action('/fakturaer?/create', { customerId: String(customerId) });
+    const id = Number(created.headers.get('location')!.split('/').pop());
+    const bad = await action(`/fakturaer/${id}?/save`, {
+      customerId: String(customerId), issueDate: '2026-13-40', dueDate: '21.09.2026', paymentReference: 'x',
+      lines: JSON.stringify([{ description: 'A', quantity: 'abc', unit: 'stk.', unitPrice: '1' }, { description: 'B', quantity: '1', unit: 'stk.', unitPrice: 'xx' }])
+    });
+    expect(bad.status).toBe(400);
+    const html = await bad.text();
+    expect(html).toContain('Linje 1');
+    expect(html).toContain('Linje 2');
+    expect(html).toContain('Ugyldig dato');
+    expect((await c.json('DELETE', `/api/invoices/${id}`)).status).toBe(200);
+  });
+
   it('rejects an invalid date with a field error and keeps the draft', async () => {
     const created = await action('/fakturaer?/create', { customerId: String(customerId) });
     const id = Number(created.headers.get('location')!.split('/').pop());

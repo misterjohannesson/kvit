@@ -137,6 +137,7 @@
 
         <fieldset class="field--span-12">
           <legend>Fakturalinjer</legend>
+          {#if err('lines')}<p class="error formerror">{err('lines')}</p>{/if}
           <div class="table-wrap">
             <table class="data data--dense lines">
               <thead>

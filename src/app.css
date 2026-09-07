@@ -563,6 +563,10 @@ table.data td.empty, .empty { text-align: center; color: var(--text-secondary); 
 @media (max-width: 1419px) {
   .layout-8-4--lines { grid-template-columns: minmax(0, 1fr); }
 }
+/* paired data tables (VAT sales vs. purchases) need 1280px to sit side by side */
+@media (max-width: 1279px) {
+  .layout-6-6--tables { grid-template-columns: minmax(0, 1fr); }
+}
 
 @media print {
   .sidebar, .topbar, .toolbar, .pagehead__actions, .panel__foot, .row-actions, .col-actions { display: none !important; }
