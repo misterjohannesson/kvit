@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: faktura
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # The single shared password. Set it in .env or export it before `docker compose up`.
+      APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD}
+      TZ: Europe/Copenhagen
+    volumes:
+      # The only state: SQLite database (app.db) and all PDFs/receipts (files/).
+      - ./data:/data
