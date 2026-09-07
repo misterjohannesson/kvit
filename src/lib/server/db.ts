@@ -34,7 +34,9 @@ export const REQUIRED_TRIGGERS = [
   'invoice_line_no_insert_issued',
   'invoice_line_no_update_issued',
   'invoice_line_no_delete_issued',
-  'invoice_credited_by_insert'
+  'invoice_credited_by_insert',
+  'invoice_credited_by_draft',
+  'invoice_credited_by_target'
 ] as const;
 
 // Migrations that rebuild a table drop and re-create it while other tables (and

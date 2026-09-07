@@ -7,7 +7,7 @@ import { customer, invoice, invoiceLine, type Customer, type Invoice, type Invoi
 import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 import { DATA_DIR, INVOICE_FILES_DIR } from '../env';
-import { addDays, roundOre, todayIso } from '../../format';
+import { addDays, lineTotalOre, roundOre, todayIso } from '../../format';
 import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
 import { renderInvoicePdf } from '../pdf';
@@ -55,15 +55,7 @@ export interface InvoiceDetail extends InvoiceListRow {
   creditsInvoiceId: number | null;
 }
 
-/**
- * Line total in whole øre. Quantities carry at most two decimals, so the product
- * is computed on integers (hundredths × øre) and only the final /100 is rounded,
- * half away from zero. No binary-float noise: 0,29 × 0,50 kr = 15 øre, not 14.
- */
-export function computeLineTotalOre(quantity: number, unitPriceOre: number): number {
-  const hundredths = Math.round(quantity * 100);
-  return roundOre((hundredths * unitPriceOre) / 100);
-}
+export const computeLineTotalOre = lineTotalOre;
 
 export function computeTotals(lines: { lineTotalOre: number }[], vatExempt: boolean) {
   const subtotalOre = lines.reduce((s, l) => s + l.lineTotalOre, 0);

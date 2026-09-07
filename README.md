@@ -68,7 +68,7 @@ kan få et hul: en bevidst, logget opjustering. Appen selv springer aldrig et nu
 når PDF'en er genereret, og hele skiftet (nummer, status, filsti) sker i én transaktion; slår den fejl, forbliver
 kladden uden nummer, og den midlertidige PDF slettes.
 
-Uforanderligheden håndhæves også i selve databasen: triggere afviser `UPDATE`/`DELETE` på `audit_log`, sletning af
+Uforanderligheden håndhæves også i selve databasen (triggerne er oplistet i `REQUIRED_TRIGGERS` i `src/lib/server/db.ts`; en fremtidig migrering, der genopbygger `invoice`-tabellen, skal genskabe dem – appen nægter at starte, hvis én mangler): triggere afviser `UPDATE`/`DELETE` på `audit_log`, sletning af
 udstedte fakturaer, ændring af udstedte fakturaers indhold og ændring af deres linjer – uanset hvilken kode eller
 hvilket SQL-værktøj der forsøger.
 

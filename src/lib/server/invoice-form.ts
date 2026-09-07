@@ -21,6 +21,7 @@ export function formDataToDraft(form: FormData) {
     throw badRequest('Fakturalinjer kunne ikke læses');
   }
 
+  const lineErrors: string[] = [];
   const lines = (rawLines as Partial<EditorLine>[])
     .map((l) => ({
       description: String(l.description ?? '').trim(),
@@ -29,18 +30,15 @@ export function formDataToDraft(form: FormData) {
       unitPrice: String(l.unitPrice ?? '').trim()
     }))
     .filter((l) => l.description !== '' || l.quantity !== '' || l.unitPrice !== '')
-    .map((l, i) => {
+    .flatMap((l, i) => {
       try {
-        return {
-          description: l.description,
-          quantity: parseQuantity(l.quantity),
-          unit: l.unit,
-          unitPriceOre: parseKrToOre(l.unitPrice)
-        };
+        return [{ description: l.description, quantity: parseQuantity(l.quantity), unit: l.unit, unitPriceOre: parseKrToOre(l.unitPrice) }];
       } catch (e) {
-        throw badRequest(`Linje ${i + 1}: ${(e as Error).message}`);
+        lineErrors.push(`Linje ${i + 1}: ${(e as Error).message}`);
+        return [];
       }
     });
+  if (lineErrors.length) throw badRequest(lineErrors.join('; '), { lines: lineErrors.join('; ') });
 
   // Header fields are all validated before throwing so every bad field is marked at once.
   const fields: Record<string, string> = {};

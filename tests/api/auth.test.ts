@@ -41,6 +41,36 @@ describe('single-password login', () => {
     expect(ok.status).toBe(200);
   });
 
+  it('locks an address for 30 s after five wrong passwords', async () => {
+    const base = inject('baseUrl');
+    const attempt = (password: string) =>
+      fetch(base + '/login', {
+        method: 'POST',
+        body: new URLSearchParams({ password }),
+        redirect: 'manual',
+        headers: { accept: 'text/html', origin: base, 'x-forwarded-for': '10.99.0.7' }
+      });
+    for (let i = 0; i < 5; i++) expect((await attempt('forkert')).status).toBe(401);
+    expect((await attempt('forkert')).status).toBe(429);
+    // Even the right password is refused while locked; other addresses are unaffected.
+    expect((await attempt(inject('password'))).status).toBe(429);
+    const other = new Client();
+    expect((await other.login()).status).toBe(303);
+  });
+
+  it('rejects an unparsable JSON body on issue/credit instead of ignoring it', async () => {
+    const c = new Client();
+    await c.login();
+    const r = await c.raw('POST', '/api/invoices/1/issue', undefined, { 'content-type': 'application/json' });
+    expect(r.status).not.toBe(400); // empty body is fine (no expectedNumber) -> 409/404, not a parse error
+    const bad = await fetch(inject('baseUrl') + '/api/invoices/1/issue', {
+      method: 'POST',
+      headers: { cookie: c.cookie, 'content-type': 'application/json' },
+      body: '{not json'
+    });
+    expect(bad.status).toBe(400);
+  });
+
   it('logs out', async () => {
     const c = new Client();
     await c.login();

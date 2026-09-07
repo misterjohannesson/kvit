@@ -75,8 +75,16 @@ describe('database guards', () => {
         .prepare("INSERT INTO invoice (status, customer_id, issue_date, due_date, credited_by_invoice_id, created_at) VALUES ('draft', 1, '2026-09-01', '2026-09-15', ?, 'x')")
         .run(issuedId)
     ).toThrow(/crediting only/);
-    expect(() => sqlite.prepare("UPDATE invoice SET status = 'credited' WHERE id = ?").run(issuedId)).toThrow(/immutable/);
+    expect(() => sqlite.prepare("UPDATE invoice SET status = 'credited' WHERE id = ?").run(issuedId)).toThrow(/immutable|issued credit note/);
     expect(() => sqlite.prepare("UPDATE invoice SET status = 'bogus' WHERE id = ?").run(issuedId)).toThrow(/immutable|invalid/);
+    // A draft cannot pre-set the link, and the link can never point at a draft or at the row itself.
+    const draft = sqlite
+      .prepare("INSERT INTO invoice (status, customer_id, issue_date, due_date, created_at) VALUES ('draft', 1, '2026-09-01', '2026-09-15', 'x') RETURNING id")
+      .get() as { id: number };
+    expect(() => sqlite.prepare('UPDATE invoice SET credited_by_invoice_id = ? WHERE id = ?').run(issuedId, draft.id)).toThrow(/crediting only/);
+    expect(() => sqlite.prepare("UPDATE invoice SET status = 'credited', credited_by_invoice_id = ? WHERE id = ?").run(draft.id, issuedId)).toThrow(/issued credit note/);
+    expect(() => sqlite.prepare("UPDATE invoice SET status = 'credited', credited_by_invoice_id = id WHERE id = ?").run(issuedId)).toThrow(/issued credit note/);
+    sqlite.prepare('DELETE FROM invoice WHERE id = ?').run(draft.id);
   });
 
   it('audit_log is append-only', () => {

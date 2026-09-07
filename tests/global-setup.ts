@@ -38,6 +38,9 @@ export default async function setup(project: TestProject) {
     PORT: String(port),
     HOST: '127.0.0.1',
     BODY_SIZE_LIMIT: '25M',
+    // Lets the login-limiter test present distinct client addresses.
+    ADDRESS_HEADER: 'x-forwarded-for',
+    XFF_DEPTH: '1',
     PROJECT_ROOT: process.cwd()
   };
 

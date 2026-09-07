@@ -95,6 +95,16 @@ export function formatVatRate(bp: number): string {
   return `${Number.isInteger(pct) ? pct : pct.toFixed(2).replace('.', ',')} %`;
 }
 
+/**
+ * Line total in whole øre. Quantities carry at most two decimals, so the product
+ * is computed on integers (hundredths × øre) and only the final /100 is rounded,
+ * half away from zero. Shared by the server and the editor preview.
+ */
+export function lineTotalOre(quantity: number, unitPriceOre: number): number {
+  const hundredths = Math.round(quantity * 100);
+  return roundOre((hundredths * unitPriceOre) / 100);
+}
+
 /** Round to whole øre, half away from zero, so negation is exact: round(-x) === -round(x). */
 export function roundOre(n: number): number {
   return n < 0 ? -Math.round(-n) : Math.round(n);

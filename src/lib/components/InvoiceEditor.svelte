@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { formatDate, formatOre, formatQuantity, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
+  import { formatDate, formatOre, formatQuantity, lineTotalOre, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
 
   type Line = { description: string; quantity: string; unit: string; unitPrice: string };
   type Customer = { id: number; name: string };
@@ -48,8 +48,7 @@
 
   function lineTotal(l: Line): number | null {
     try {
-      // Same integer math as the server: hundredths x oere, one final rounding.
-      return roundOre((Math.round(parseQuantity(l.quantity) * 100) * parseKrToOre(l.unitPrice)) / 100);
+      return lineTotalOre(parseQuantity(l.quantity), parseKrToOre(l.unitPrice));
     } catch {
       return null;
     }
@@ -86,7 +85,7 @@
 <form
   method="POST"
   action="?/save"
-  class="layout-8-4"
+  class="layout-8-4 layout-8-4--lines"
   use:enhance={() => {
     submitting = true;
     return async ({ update }) => {

@@ -45,13 +45,26 @@ export async function readJson(request: Request): Promise<unknown> {
   }
 }
 
+/** JSON body that may be absent (empty) but, when present, must parse: {} or the object, 400 otherwise. */
+export async function readOptionalJson(request: Request): Promise<Record<string, unknown>> {
+  const text = (await request.text()).trim();
+  if (text === '') return {};
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+    return parsed as Record<string, unknown>;
+  } catch {
+    throw new HttpError(400, 'Ugyldig JSON');
+  }
+}
+
 /**
  * Optional "the number the user confirmed" from a JSON body or form field.
  * Absent -> undefined (no check); present but not a positive integer -> 400.
  */
 export function expectedNumberFrom(raw: unknown): number | undefined {
   if (raw === undefined || raw === null || raw === '') return undefined;
-  const n = Number(raw);
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw.trim()) ? Number(raw) : NaN;
   if (!Number.isInteger(n) || n <= 0) throw new HttpError(400, 'expectedNumber skal være et positivt heltal');
   return n;
 }
