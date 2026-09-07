@@ -15,6 +15,9 @@ const PNG = Buffer.from(
   'base64'
 );
 
+/** Rendered markup only: SvelteKit also serialises the action result into a hydration <script>. */
+const rendered = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '');
+
 /** POST a form action like a browser: multipart body, text/html accept, follow nothing. */
 async function action(path: string, fields: Record<string, string | Blob>) {
   const fd = new FormData();
@@ -110,10 +113,9 @@ describe('invoice editor form actions', () => {
       lines: JSON.stringify([{ description: 'A', quantity: 'abc', unit: 'stk.', unitPrice: '1' }, { description: 'B', quantity: '1', unit: 'stk.', unitPrice: 'xx' }])
     });
     expect(bad.status).toBe(400);
-    const html = await bad.text();
-    expect(html).toContain('Linje 1');
-    expect(html).toContain('Linje 2');
-    expect(html).toContain('Ugyldig dato');
+    const html = rendered(await bad.text());
+    expect(html).toMatch(/formerror">Linje 1: [^<]*Linje 2:/);
+    expect(html).toMatch(/class="error">Ugyldig dato/);
     expect((await c.json('DELETE', `/api/invoices/${id}`)).status).toBe(200);
   });
 
@@ -125,7 +127,7 @@ describe('invoice editor form actions', () => {
       lines: JSON.stringify([{ description: 'A', quantity: '1', unit: 'stk.', unitPrice: '1' }])
     });
     expect(bad.status).toBe(400);
-    expect(await bad.text()).toContain('Ugyldig dato');
+    expect(rendered(await bad.text())).toMatch(/class="error">Ugyldig dato/);
     expect((await c.json('DELETE', `/api/invoices/${id}`)).status).toBe(200);
   });
 });
@@ -148,7 +150,7 @@ describe('expense, settings and customer form actions', () => {
       date: '05.09.2026', supplier: 'X', description: 'Y', category: 'Z', amountExVat: 'abc', vat: '0'
     });
     expect(bad.status).toBe(400);
-    expect(await bad.text()).toContain('amountExVat');
+    expect(rendered(await bad.text())).toMatch(/field--error[^>]*>\s*<label class="label" for="amountExVat"/);
   });
 
   it('saves settings and refuses to lower the next number', async () => {
