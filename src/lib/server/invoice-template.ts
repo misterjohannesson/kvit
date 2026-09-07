@@ -133,13 +133,12 @@ td.unit { color: var(--text-secondary); }
 
 .totals-wrap { display: flex; justify-content: flex-end; margin-top: var(--space-6); page-break-inside: avoid; }
 .totals { width: 70mm; max-width: 70mm; margin: 0; }
-.totals .row { display: grid; grid-template-columns: 1fr auto var(--space-8); column-gap: var(--space-2); align-items: baseline; padding: var(--space-1) var(--space-2); }
+.totals .row { display: grid; grid-template-columns: 1fr auto; column-gap: var(--space-4); align-items: baseline; padding: var(--space-1) var(--space-2); }
 .totals .row dt { color: var(--text-secondary); }
 .totals .row dd { margin: 0; text-align: right; }
 .totals .row--sum { border-top: var(--print-rule); margin-top: var(--space-1); padding-top: var(--space-2); }
 .totals .row--sum dt, .totals .row--sum dd { font-weight: var(--weight-semibold); color: var(--text-primary); }
 .totals .row--sum dd { font-size: var(--text-lg); }
-.currency { color: var(--text-secondary); font-weight: var(--weight-regular); font-size: var(--print-text-size); text-align: left; }
 
 .statutory { font-size: var(--print-text-small); color: var(--text-body); margin: var(--space-4) 0 0; text-align: right; orphans: 3; widows: 3; }
 
@@ -205,9 +204,9 @@ td.unit { color: var(--text-secondary); }
 
   <div class="totals-wrap">
     <dl class="totals">
-      <div class="row"><dt>Subtotal ekskl. moms</dt><dd>${amount(inv.subtotalOre)}</dd><span class="currency"></span></div>
-      <div class="row"><dt>${esc(vatLabel)}</dt><dd>${amount(inv.vatOre)}</dd><span class="currency"></span></div>
-      <div class="row row--sum"><dt>I alt inkl. moms</dt><dd>${amount(inv.totalOre)}</dd><span class="currency">DKK</span></div>
+      <div class="row"><dt>Subtotal ekskl. moms</dt><dd>${amount(inv.subtotalOre)}</dd></div>
+      <div class="row"><dt>${esc(vatLabel)}</dt><dd>${amount(inv.vatOre)}</dd></div>
+      <div class="row row--sum"><dt>I alt inkl. moms, DKK</dt><dd>${amount(inv.totalOre)}</dd></div>
     </dl>
   </div>
   ${exemptNote}
