@@ -252,6 +252,7 @@ describe('integer line math', () => {
     const next = Number((await c.json<Record<string, string>>('GET', '/api/settings')).data.next_invoice_number);
     const stale = await c.json('POST', `/api/invoices/${orig.id}/credit`, { expectedNumber: next + 3 });
     expect(stale.status).toBe(409);
+    expect((await c.json('POST', `/api/invoices/${orig.id}/credit`, { expectedNumber: 'abc' })).status).toBe(400);
     expect((await c.json<Inv>('GET', `/api/invoices/${orig.id}`)).data.status).toBe('issued');
     const ok = await c.json<Inv>('POST', `/api/invoices/${orig.id}/credit`, { expectedNumber: next });
     expect(ok.status).toBe(201);

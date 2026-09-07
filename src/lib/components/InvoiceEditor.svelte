@@ -252,7 +252,6 @@
   .input--cell.input--xs { width: var(--field-width-xs); min-width: var(--field-width-xs); }
   .input--cell.input--short { width: var(--field-width-sm); min-width: var(--field-width-sm); }
   table.lines td:first-child { width: 100%; }
-  table.lines td:first-child .input--cell { min-width: var(--field-width-md); }
   table.lines td { padding-top: var(--space-1); padding-bottom: var(--space-1); }
   .addline { margin-top: var(--space-3); }
   .summaryhint { margin: var(--space-4) 0 0; }

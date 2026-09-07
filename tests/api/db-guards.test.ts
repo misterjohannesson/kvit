@@ -68,6 +68,17 @@ describe('database guards', () => {
     ).toThrow(/immutable/);
   });
 
+  it('credited_by_invoice_id cannot be set, cleared or repointed by raw SQL', () => {
+    expect(() => sqlite.prepare('UPDATE invoice SET credited_by_invoice_id = 1 WHERE id = ?').run(issuedId)).toThrow(/immutable/);
+    expect(() =>
+      sqlite
+        .prepare("INSERT INTO invoice (status, customer_id, issue_date, due_date, credited_by_invoice_id, created_at) VALUES ('draft', 1, '2026-09-01', '2026-09-15', ?, 'x')")
+        .run(issuedId)
+    ).toThrow(/crediting only/);
+    expect(() => sqlite.prepare("UPDATE invoice SET status = 'credited' WHERE id = ?").run(issuedId)).toThrow(/immutable/);
+    expect(() => sqlite.prepare("UPDATE invoice SET status = 'bogus' WHERE id = ?").run(issuedId)).toThrow(/immutable|invalid/);
+  });
+
   it('audit_log is append-only', () => {
     const row = sqlite.prepare('SELECT id FROM audit_log ORDER BY id LIMIT 1').get() as { id: number };
     expect(() => sqlite.prepare("UPDATE audit_log SET action = 'tampered' WHERE id = ?").run(row.id)).toThrow(/append-only/);

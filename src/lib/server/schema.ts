@@ -96,6 +96,7 @@ export const setting = sqliteTable('setting', {
   value: text('value').notNull()
 });
 
+export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog;
 export type Customer = typeof customer.$inferSelect;
 export type Invoice = typeof invoice.$inferSelect;
 export type InvoiceLine = typeof invoiceLine.$inferSelect;

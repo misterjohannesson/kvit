@@ -55,8 +55,9 @@ describe('migrating a populated database', () => {
       expect(sqlite.pragma('foreign_key_check')).toEqual([]);
       expect(sqlite.pragma('foreign_keys', { simple: true })).toBe(1);
       const triggers = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as { name: string }[]).map((t) => t.name);
-      expect(triggers).toContain('audit_log_no_update');
-      expect(triggers).toContain('invoice_no_delete_issued');
+      const { REQUIRED_TRIGGERS } = await import('../../src/lib/server/db');
+      for (const t of REQUIRED_TRIGGERS) expect(triggers).toContain(t);
+      expect(REQUIRED_TRIGGERS.length).toBe(10);
       // Guards are live on the migrated data too.
       expect(() => sqlite.prepare('DELETE FROM invoice WHERE id = 1').run()).toThrow(/cannot be deleted/);
       expect(() => sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id = 2').run()).not.toThrow();

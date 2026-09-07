@@ -35,6 +35,8 @@ describe('single-password login', () => {
     await c.login();
     const r = await c.raw('POST', '/api/customers', { name: 'Evil' }, { origin: 'https://evil.example' });
     expect(r.status).toBe(403);
+    const nul = await c.raw('POST', '/api/customers', { name: 'Evil' }, { origin: 'null' });
+    expect(nul.status).toBe(403);
     const ok = await c.raw('GET', '/api/customers', undefined, { origin: 'https://evil.example' });
     expect(ok.status).toBe(200);
   });

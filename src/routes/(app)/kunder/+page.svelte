@@ -1,5 +1,6 @@
 <script lang="ts">
   import CustomerFields from '$lib/components/CustomerFields.svelte';
+  import { formatCvr } from '$lib/format';
   let { data, form } = $props();
 </script>
 
@@ -35,7 +36,7 @@
             <tr class="rowlink" onclick={() => (location.href = `/kunder/${c.id}`)}>
               <td>{c.name}</td>
               <td>{c.address}<span class="cell-sub">{c.zip} {c.city}{c.country !== 'DK' ? `, ${c.country}` : ''}</span></td>
-              <td class="mono">{c.cvr ?? '—'}</td>
+              <td class="mono">{c.cvr ? formatCvr(c.cvr) : '—'}</td>
               <td>{c.email || '—'}</td>
               <td class="num">{c.invoiceCount}</td>
               <td><div class="row-actions"><a class="btn btn--ghost btn--sm" href="/kunder/{c.id}" onclick={(e) => e.stopPropagation()}>Redigér</a></div></td>

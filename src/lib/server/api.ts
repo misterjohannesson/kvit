@@ -1,11 +1,9 @@
 import { json, type RequestEvent } from '@sveltejs/kit';
 import { HttpError } from './errors';
-import { z } from 'zod';
 
 /** Map a service error to a JSON response with the right status. */
 export function errorResponse(e: unknown): Response {
-  if (e instanceof HttpError) return json({ error: e.message }, { status: e.status });
-  if (e instanceof z.ZodError) return json({ error: e.issues.map((i) => i.message).join('; ') }, { status: 400 });
+  if (e instanceof HttpError) return json({ error: e.message, fields: e.fields }, { status: e.status });
   console.error(e);
   return json({ error: 'Der opstod en fejl' }, { status: 500 });
 }
@@ -45,6 +43,24 @@ export async function readJson(request: Request): Promise<unknown> {
   } catch {
     throw new HttpError(400, 'Ugyldig JSON');
   }
+}
+
+/**
+ * Optional "the number the user confirmed" from a JSON body or form field.
+ * Absent -> undefined (no check); present but not a positive integer -> 400.
+ */
+export function expectedNumberFrom(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) throw new HttpError(400, 'expectedNumber skal være et positivt heltal');
+  return n;
+}
+
+/** Keep the user's typed values when re-rendering a failed form. */
+export function formValues(form: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [k, v] of form.entries()) if (typeof v === 'string') values[k] = v;
+  return values;
 }
 
 /** Human-readable message for form actions. */

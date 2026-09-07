@@ -15,7 +15,9 @@ export const actions: Actions = {
     } catch {
       /* no address available */
     }
-    for (const [k, v] of failures) if (Date.now() >= v.until) failures.delete(k); // prune expired
+    // Forget partial counts once their window passed; locked entries stay until a success clears them.
+    for (const [k, v] of failures) if (v.count < MAX_FAILURES && Date.now() >= v.until) failures.delete(k);
+    if (failures.size > 10_000) failures.clear();
     const state = failures.get(ip);
     if (state && state.count >= MAX_FAILURES && Date.now() < state.until) {
       return fail(429, { error: 'For mange forsøg. Vent 30 sekunder.' });

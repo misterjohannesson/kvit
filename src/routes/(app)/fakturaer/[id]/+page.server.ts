@@ -12,7 +12,7 @@ import {
 } from '$lib/server/services/invoices';
 import { listCustomers } from '$lib/server/services/customers';
 import { getSettings } from '$lib/server/services/settings';
-import { errorMessage, isRedirect, routeId } from '$lib/server/api';
+import { errorMessage, expectedNumberFrom, isRedirect, routeId } from '$lib/server/api';
 import { formDataToDraft } from '$lib/server/invoice-form';
 import { HttpError } from '$lib/server/errors';
 import { parseDateInput, todayIso } from '$lib/format';
@@ -58,8 +58,7 @@ export const actions: Actions = {
       const invoiceId = routeId(params);
       const form = await request.formData();
       await updateDraft(invoiceId, formDataToDraft(form));
-      const expected = Number(form.get('expectedNumber'));
-      await issueInvoice(invoiceId, Number.isInteger(expected) && expected > 0 ? expected : undefined);
+      await issueInvoice(invoiceId, expectedNumberFrom(form.get('expectedNumber')));
       redirect(303, `/fakturaer/${invoiceId}?udstedt=1`);
     }),
 
@@ -87,8 +86,7 @@ export const actions: Actions = {
   credit: async ({ params, request }) =>
     run(async () => {
       const form = await request.formData();
-      const expected = Number(form.get('expectedNumber'));
-      const note = await creditInvoice(routeId(params), Number.isInteger(expected) && expected > 0 ? expected : undefined);
+      const note = await creditInvoice(routeId(params), expectedNumberFrom(form.get('expectedNumber')));
       redirect(303, `/fakturaer/${note.id}`);
     })
 };

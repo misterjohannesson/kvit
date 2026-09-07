@@ -74,9 +74,3 @@ export async function uploadFromForm(form: FormData, field = 'file'): Promise<Up
   return { name: f.name, type: f.type, bytes: Buffer.from(await f.arrayBuffer()) };
 }
 
-/** Keep the user's typed values when re-rendering a failed form. */
-export function formValues(form: FormData): Record<string, string> {
-  const values: Record<string, string> = {};
-  for (const [k, v] of form.entries()) if (typeof v === 'string') values[k] = v;
-  return values;
-}

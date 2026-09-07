@@ -85,6 +85,16 @@ describe('invoice editor form actions', () => {
     expect(paid.status).toBe(200);
     expect((await c.json<Inv>('GET', `/api/invoices/${id}`)).data.paidDate).toBe('2026-09-22');
 
+    // Credit through the form with a stale, then the right, confirmed number.
+    const settings2 = await c.json<Record<string, string>>('GET', '/api/settings');
+    const nextCredit = Number(settings2.data.next_invoice_number);
+    const staleCredit = await action(`/fakturaer/${id}?/credit`, { expectedNumber: String(nextCredit + 1) });
+    expect(staleCredit.status).toBe(409);
+    const credited = await action(`/fakturaer/${id}?/credit`, { expectedNumber: String(nextCredit) });
+    expect(credited.status).toBe(303);
+    expect(credited.headers.get('location')).toMatch(/^\/fakturaer\/\d+$/);
+    expect((await c.json<Inv>('GET', `/api/invoices/${id}`)).data.status).toBe('credited');
+
     // Saving an issued invoice through the form is refused too.
     const again = await action(`/fakturaer/${id}?/save`, {
       customerId: String(customerId), issueDate: '07.09.2026', dueDate: '21.09.2026', paymentReference: 'x', lines
