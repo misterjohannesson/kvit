@@ -1,6 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
-import AlphabeticalSequencer from './tests/sequencer';
+import AlphabeticalSequencer from './vitest.sequencer';
 
 export default defineConfig({
   plugins: [sveltekit()],
