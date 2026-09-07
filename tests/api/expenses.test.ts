@@ -40,7 +40,7 @@ describe('expenses', () => {
       date: '2026-09-05',
       supplier: 'Udenlandsk leverandør',
       description: 'SaaS',
-      category: 'Software',
+      accountId: 4, // 2000 Software og hosting
       amountExVatOre: 10000,
       vatOre: 0
     });
@@ -68,7 +68,7 @@ describe('expenses', () => {
     fd.set('date', '2026-09-06');
     fd.set('supplier', 'Café');
     fd.set('description', 'Møde');
-    fd.set('category', 'Repræsentation');
+    fd.set('accountId', '6'); // 2200 Repræsentation
     fd.set('amountExVat', '1.000,00');
     fd.set('vat', '62,50');
     fd.set('file', new Blob([PNG], { type: 'image/png' }), 'bon.png');
@@ -86,7 +86,7 @@ describe('expenses', () => {
     fd0.set('date', '2026-09-06');
     fd0.set('supplier', 'X');
     fd0.set('description', 'Y');
-    fd0.set('category', 'Z');
+    fd0.set('accountId', '11');
     fd0.set('amountExVat', '1');
     fd0.set('vat', '0');
     fd0.set('file', new Blob(['not a pdf'], { type: 'application/pdf' }), 'fake.pdf');
@@ -99,7 +99,7 @@ describe('expenses', () => {
     fd.set('date', '2026-09-06');
     fd.set('supplier', 'X');
     fd.set('description', 'Y');
-    fd.set('category', 'Z');
+    fd.set('accountId', '11');
     fd.set('amountExVat', '1');
     fd.set('vat', '0');
     fd.set('file', new Blob(['hello'], { type: 'text/plain' }), 'x.txt');
@@ -107,9 +107,9 @@ describe('expenses', () => {
     expect(r.status).toBe(400);
   });
 
-  it('lists categories from prior values', async () => {
-    const r = await c.json<string[]>('GET', '/api/expenses/categories');
-    expect(r.data).toContain('Software');
-    expect(r.data).toContain('Repræsentation');
+  it('stores the cost account on the expense', async () => {
+    const list = await c.json<{ accountId: number; supplier: string }[]>('GET', '/api/expenses');
+    const adobe = list.data.find((e) => e.supplier.startsWith('Adobe'))!;
+    expect(adobe.accountId).toBe(4);
   });
 });

@@ -135,7 +135,7 @@ describe('invoice editor form actions', () => {
 describe('expense, settings and customer form actions', () => {
   it('books an expense with Danish amounts, a Danish date and a sniffed PNG', async () => {
     const r = await action('/udgifter?/create', {
-      date: '05.09.2026', supplier: 'Formleverandør', description: 'Kabler', category: 'IT-udstyr',
+      date: '05.09.2026', supplier: 'Formleverandør', description: 'Kabler', accountId: '5',
       amountExVat: '199,20', vat: '49,80', paidDate: '', file: new Blob([PNG], { type: 'application/octet-stream' })
     });
     expect(r.status).toBe(303);
@@ -147,7 +147,7 @@ describe('expense, settings and customer form actions', () => {
     expect(e.filePath).toMatch(/\.png$/);
 
     const bad = await action('/udgifter?/create', {
-      date: '05.09.2026', supplier: 'X', description: 'Y', category: 'Z', amountExVat: 'abc', vat: '0'
+      date: '05.09.2026', supplier: 'X', description: 'Y', accountId: '11', amountExVat: 'abc', vat: '0'
     });
     expect(bad.status).toBe(400);
     expect(rendered(await bad.text())).toMatch(/field--error[^>]*>\s*<label class="label" for="amountExVat"/);
@@ -158,20 +158,20 @@ describe('expense, settings and customer form actions', () => {
     const ok = await action('/indstillinger?/save', {
       company_name: before.company_name, company_address: before.company_address, company_zip: before.company_zip,
       company_city: before.company_city, company_cvr: before.company_cvr, bank_reg: before.bank_reg,
-      bank_account: before.bank_account, payment_terms_days: '30', next_invoice_number: before.next_invoice_number, vat_registered: 'on'
+      bank_account: before.bank_account, payment_terms_days: '30', next_invoice_number: before.next_invoice_number, vat_registered: 'on', opening_balance: '50.000,00', opening_balance_date: '01.01.2026'
     });
     expect(ok.status).toBe(200);
     expect((await c.json<Record<string, string>>('GET', '/api/settings')).data.payment_terms_days).toBe('30');
     const lower = await action('/indstillinger?/save', {
       company_name: before.company_name, company_address: before.company_address, company_zip: before.company_zip,
       company_city: before.company_city, company_cvr: before.company_cvr, bank_reg: before.bank_reg,
-      bank_account: before.bank_account, payment_terms_days: '14', next_invoice_number: String(Number(before.next_invoice_number) - 1), vat_registered: 'on'
+      bank_account: before.bank_account, payment_terms_days: '14', next_invoice_number: String(Number(before.next_invoice_number) - 1), vat_registered: 'on', opening_balance: '50.000,00', opening_balance_date: '01.01.2026'
     });
     expect(lower.status).toBe(400);
     await action('/indstillinger?/save', {
       company_name: before.company_name, company_address: before.company_address, company_zip: before.company_zip,
       company_city: before.company_city, company_cvr: before.company_cvr, bank_reg: before.bank_reg,
-      bank_account: before.bank_account, payment_terms_days: before.payment_terms_days, next_invoice_number: before.next_invoice_number, vat_registered: 'on'
+      bank_account: before.bank_account, payment_terms_days: before.payment_terms_days, next_invoice_number: before.next_invoice_number, vat_registered: 'on', opening_balance: '50.000,00', opening_balance_date: '01.01.2026'
     });
   });
 

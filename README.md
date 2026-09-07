@@ -1,7 +1,7 @@
 # Faktura
 
-Fakturering og bogholderi for én person: fakturaer, kreditnotaer, udgifter med bilag, kvartalsvis moms og en
-komplet eksport til revisor. Ét brugernavn-løst kodeord, én container, én mappe med alle data.
+Fakturering og bogholderi for én person: fakturaer, kreditnotaer, udgifter med bilag, kvartalsvis moms, en flad
+mini-kontoplan med resultat-, cashflow- og balancevisninger, og en komplet eksport til revisor. Ét brugernavn-løst kodeord, én container, én mappe med alle data.
 
 Erstatter HurtigFaktura og Excel-arket. Bygget til at kunne forsvares over for en revisor: ubrudt fakturanummerserie,
 uforanderlige udstedte dokumenter, hver post sporbar til en gemt PDF, og fem års opbevaring.
@@ -89,7 +89,7 @@ rm data/app.db.backup
 ```
 
 Alternativt er **Eksport**-knappen i appen den revisor-venlige variant: én zip med `invoices.csv`,
-`invoice_lines.csv`, `expenses.csv`, `audit_log.csv` og alle filer under `files/`.
+`invoice_lines.csv`, `expenses.csv`, `cash_movements.csv`, `accounts.csv`, `audit_log.csv` og alle filer under `files/`.
 
 ### Cron: natlig kopi til et andet sted
 
@@ -117,6 +117,21 @@ Test jævnligt, at en kopi kan gendannes.
 
 Ved gendannelse fra eksport-zippen (uden databasen) genskabes databasen ikke automatisk – zippen er til
 revisor og dokumentation, `data`-mappen er den egentlige backup.
+
+## Kontoplan og finansvisninger
+
+Der er ingen posteringsmotor. Fakturaer, udgifter og bankbevægelser er kilderne; **Resultat**, **Cashflow** og
+**Balance** er forespørgsler over dem. To grundlag lever bevidst side om side: resultat og momsrapport bruger
+periodiseringsdatoer (fakturadato / bilagsdato), kassevisningerne bruger betalingsdato og bevægelsesdato.
+
+- Kontoplanen er flad og lille (1000 Konsulentydelser … 2900 Øvrige omkostninger). Fakturalinjer bogføres på en
+  salgskonto (standard 1000), udgifter på en omkostningskonto. Konti kan tilføjes og omdøbes under **Indstillinger**,
+  men aldrig slettes, mens de er i brug.
+- **Bankbevægelser** (momsbetalinger, ejerindskud/-hævninger, skat, korrektioner, andet) oprettes fra
+  Cashflow-skærmen. De rettes aldrig – en fejl modposteres med en korrektion.
+- **Åbningssaldo** (Indstillinger) er den banksaldo, cashflow og balance tæller fra.
+- **Afstemning** på Balance-skærmen: indtast bankens saldo; afviger den fra Likvider, bogføres forskellen som en
+  korrektion med det indtastede tal i revisionssporet.
 
 ## Regler, der er bygget ind
 

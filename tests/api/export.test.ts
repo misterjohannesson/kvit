@@ -17,7 +17,7 @@ describe('export zip', () => {
     const zip = new AdmZip(Buffer.from(await r.arrayBuffer()));
     const names = zip.getEntries().map((e) => e.entryName.replace(/\\/g, '/'));
 
-    for (const csv of ['invoices.csv', 'invoice_lines.csv', 'expenses.csv', 'audit_log.csv']) {
+    for (const csv of ['invoices.csv', 'invoice_lines.csv', 'expenses.csv', 'cash_movements.csv', 'accounts.csv', 'audit_log.csv']) {
       expect(names).toContain(csv);
     }
 
@@ -42,12 +42,21 @@ describe('export zip', () => {
     expect(cols[header.split(';').indexOf('kunde')]).toBe('Nordhavn Arkitekter ApS');
 
     const expenses = zip.readAsText('expenses.csv').replace(/^\uFEFF/, '');
-    expect(expenses).toContain('Repræsentation');
+    expect(expenses).toContain('2200;Repræsentation');
     expect(expenses).toContain('74,75');
+    const lines = zip.readAsText('invoice_lines.csv').replace(/^\uFEFF/, '');
+    expect(lines.split(/\r?\n/)[0].split(';')).toEqual(expect.arrayContaining(['konto', 'kontonavn']));
+    expect(lines).toContain(';1200;Momsfrit salg');
+    const movements = zip.readAsText('cash_movements.csv').replace(/^\uFEFF/, '');
+    expect(movements).toContain(';-14550,25;vat_payment;');
+    const accounts = zip.readAsText('accounts.csv').replace(/^\uFEFF/, '');
+    expect(accounts.trim().split(/\r?\n/).length).toBeGreaterThanOrEqual(12);
+    expect(accounts).toContain('1000;Konsulentydelser;salg');
 
     const audit = zip.readAsText('audit_log.csv').replace(/^\uFEFF/, '');
     expect(audit).toContain(';issue;');
     expect(audit).toContain(';issue_credit_note;');
     expect(audit).toContain(';upload;');
+    expect(audit).toContain(';cash_movement;');
   });
 });

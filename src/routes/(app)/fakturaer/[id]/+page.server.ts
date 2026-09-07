@@ -12,6 +12,7 @@ import {
 } from '$lib/server/services/invoices';
 import { listCustomers } from '$lib/server/services/customers';
 import { getSettings } from '$lib/server/services/settings';
+import { listAccounts } from '$lib/server/services/accounts';
 import { errorMessage, expectedNumberFrom, isRedirect, routeId } from '$lib/server/api';
 import { formDataToDraft } from '$lib/server/invoice-form';
 import { HttpError } from '$lib/server/errors';
@@ -25,6 +26,7 @@ export const load: PageServerLoad = ({ params }) => {
       today: todayIso(),
       invoice: inv,
       customers: listCustomers(),
+      accounts: listAccounts(),
       nextNumber: nextInvoiceNumber(),
       problems: inv.status === 'draft' ? validateForIssue(inv, settings) : []
     };

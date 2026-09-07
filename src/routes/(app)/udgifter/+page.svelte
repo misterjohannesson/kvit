@@ -4,6 +4,7 @@
   let { data, form } = $props();
   const v = (k: string, fallback = '') => form?.values?.[k] ?? fallback;
   const err = (k: string): string | undefined => form?.fields?.[k];
+  const acc = (id: number) => data.accounts.find((a) => a.id === id);
   const sum = (k: 'amountExVatOre' | 'vatOre' | 'amountInclOre') => data.rows.reduce((s, r) => s + r[k], 0);
 </script>
 
@@ -39,7 +40,7 @@
             <th scope="col">Bilag</th>
             <th scope="col">Dato</th>
             <th scope="col">Leverandør</th>
-            <th scope="col">Kategori</th>
+            <th scope="col">Konto</th>
             <th scope="col">Betalt</th>
             <th scope="col" class="num">Beløb ekskl.</th>
             <th scope="col" class="num">Moms</th>
@@ -61,7 +62,7 @@
               <td class="mono">{r.voucherNumber}</td>
               <td class="mono">{formatDate(r.date)}</td>
               <td>{r.supplier}<span class="cell-sub">{r.description}</span></td>
-              <td>{r.category}</td>
+              <td><span class="mono">{acc(r.accountId)?.number ?? ''}</span> {acc(r.accountId)?.name ?? ''}</td>
               <td class="mono">{r.paidDate ? formatDate(r.paidDate) : '—'}</td>
               <td class="num">{formatOre(r.amountExVatOre, false)}</td>
               <td class="num">{formatOre(r.vatOre, false)}</td>
@@ -93,7 +94,7 @@
 <section id="ny-udgift">
   <div class="section__head">
     <h2>Ny udgift</h2>
-    <p>Bilaget får næste bilagsnummer ved oprettelse. Momsen indtastes manuelt fra bilaget – udenlandske køb og repræsentation følger ikke 25 %.</p>
+    <p>Bilaget får næste bilagsnummer ved oprettelse og bogføres på en omkostningskonto. Momsen indtastes manuelt fra bilaget – udenlandske køb og repræsentation følger ikke 25 %.</p>
   </div>
   <form class="panel" method="POST" action="?/create" enctype="multipart/form-data">
     <div class="panel__body">
@@ -111,13 +112,14 @@
           <input class="input" id="supplier" name="supplier" value={v('supplier')} required />
           {#if err('supplier')}<span class="error">{err('supplier')}</span>{/if}
         </div>
-        <div class="field field--span-4 {err('category') ? 'field--error' : ''}">
-          <label class="label" for="category">Kategori</label>
-          <input class="input" id="category" name="category" list="categories" value={v('category')} required autocomplete="off" />
-          <datalist id="categories">
-            {#each data.categories as c (c)}<option value={c}></option>{/each}
-          </datalist>
-          {#if err('category')}<span class="error">{err('category')}</span>{/if}
+        <div class="field field--span-4 {err('accountId') ? 'field--error' : ''}">
+          <label class="label" for="accountId">Konto</label>
+          <select class="select" id="accountId" name="accountId" required>
+            {#each data.accounts.filter((a) => a.type === 'cost') as a (a.id)}
+              <option value={a.id} selected={v('accountId') === String(a.id)}>{a.number} {a.name}</option>
+            {/each}
+          </select>
+          {#if err('accountId')}<span class="error">{err('accountId')}</span>{/if}
         </div>
         <div class="field field--span-12 {err('description') ? 'field--error' : ''}">
           <label class="label" for="description">Beskrivelse</label>

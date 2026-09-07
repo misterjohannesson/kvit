@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import { expense, type Expense } from '../schema';
 import { audit } from '../audit';
 import { badRequest, notFound } from '../errors';
 import { DATA_DIR } from '../env';
+import { requireAccountOfType } from './accounts';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd');
 
@@ -14,7 +15,8 @@ const expenseSchema = z.object({
   date: isoDate,
   supplier: z.string().trim().min(1, 'Leverandør er påkrævet').max(200),
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
-  category: z.string().trim().min(1, 'Kategori er påkrævet').max(100),
+  /** Cost account (kontoplan); the free-text note is `description`. */
+  accountId: z.coerce.number().int().positive(),
   amountExVatOre: z.coerce.number().int('Beløb skal være hele øre').max(1e13).min(-1e13),
   /** Entered manually, never derived: foreign purchases and repræsentation break 25 %. */
   vatOre: z.coerce.number().int('Moms skal være hele øre').max(1e13).min(-1e13),
@@ -72,16 +74,6 @@ export function listExpenseYears(): number[] {
     .map((r) => Number(r.y));
 }
 
-export function listCategories(): string[] {
-  return db
-    .select({ c: expense.category })
-    .from(expense)
-    .groupBy(expense.category)
-    .orderBy(asc(expense.category))
-    .all()
-    .map((r) => r.c);
-}
-
 export function getExpense(id: number): Expense {
   const e = db.select().from(expense).where(eq(expense.id, id)).get();
   if (!e) throw notFound('Udgift findes ikke');
@@ -97,6 +89,7 @@ export function createExpense(input: unknown, file?: UploadFile | null): Expense
   const data = parse(input);
   const ext = file ? extFor(file) : null;
   return db.transaction(() => {
+    requireAccountOfType(data.accountId, 'cost');
     const max = db.select({ m: sql<number | null>`max(${expense.voucherNumber})` }).from(expense).get();
     const voucherNumber = (max?.m ?? 0) + 1;
     const relPath = ext ? path.posix.join('files', 'expenses', `${voucherNumber}.${ext}`) : null;
@@ -107,7 +100,7 @@ export function createExpense(input: unknown, file?: UploadFile | null): Expense
         date: data.date,
         supplier: data.supplier,
         description: data.description,
-        category: data.category,
+        accountId: data.accountId,
         amountExVatOre: data.amountExVatOre,
         vatOre: data.vatOre,
         amountInclOre: data.amountExVatOre + data.vatOre,
@@ -130,6 +123,7 @@ export function updateExpense(id: number, input: unknown): Expense {
   const data = parse(input);
   return db.transaction(() => {
     getExpense(id);
+    requireAccountOfType(data.accountId, 'cost');
     const row = db
       .update(expense)
       .set({ ...data, amountInclOre: data.amountExVatOre + data.vatOre })

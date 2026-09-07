@@ -68,13 +68,14 @@
           <input class="input" id="description" name="description" value={v('description', e.description)} required />
           {#if err('description')}<span class="error">{err('description')}</span>{/if}
         </div>
-        <div class="field {err('category') ? 'field--error' : ''}">
-          <label class="label" for="category">Kategori</label>
-          <input class="input" id="category" name="category" list="categories" value={v('category', e.category)} required autocomplete="off" />
-          <datalist id="categories">
-            {#each data.categories as c (c)}<option value={c}></option>{/each}
-          </datalist>
-          {#if err('category')}<span class="error">{err('category')}</span>{/if}
+        <div class="field {err('accountId') ? 'field--error' : ''}">
+          <label class="label" for="accountId">Konto</label>
+          <select class="select" id="accountId" name="accountId" required>
+            {#each data.accounts as a (a.id)}
+              <option value={a.id} selected={Number(v('accountId', String(e.accountId))) === a.id}>{a.number} {a.name}</option>
+            {/each}
+          </select>
+          {#if err('accountId')}<span class="error">{err('accountId')}</span>{/if}
         </div>
         <div class="field {err('amountExVat') ? 'field--error' : ''}">
           <label class="label" for="amountExVat">Beløb ekskl. moms</label>

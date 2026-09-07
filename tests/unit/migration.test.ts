@@ -53,6 +53,11 @@ describe('migrating a populated database', () => {
       expect(count('expense')).toBe(1);
       expect(count('audit_log')).toBe(1);
       expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+      // Accounts were seeded by migration 0006 and existing rows got the defaults.
+      expect((sqlite.prepare('SELECT count(*) AS n FROM account').get() as { n: number }).n).toBe(11);
+      expect(sqlite.prepare('SELECT account_id FROM expense WHERE voucher_number = 1').get()).toEqual({ account_id: 11 });
+      expect(sqlite.prepare('SELECT account_id FROM invoice_line WHERE invoice_id = 1').get()).toEqual({ account_id: 1 });
+      expect((sqlite.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'category'").get() as { n: number }).n).toBe(0);
       expect(sqlite.pragma('foreign_keys', { simple: true })).toBe(1);
       const triggers = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as { name: string }[]).map((t) => t.name);
       const { REQUIRED_TRIGGERS } = await import('../../src/lib/server/db');

@@ -8,7 +8,7 @@ const LABELS: Record<string, string> = {
   date: 'Dato',
   supplier: 'Leverandør',
   description: 'Beskrivelse',
-  category: 'Kategori',
+  accountId: 'Konto',
   amountExVat: 'Beløb ekskl. moms',
   vat: 'Moms',
   paidDate: 'Betalt'
@@ -48,14 +48,16 @@ export function formDataToExpense(form: FormData) {
       return null;
     }
   };
-  for (const k of ['supplier', 'description', 'category']) {
+  for (const k of ['supplier', 'description']) {
     if (str(k) === '') fields[k] = 'Skal udfyldes';
   }
+  const accountId = Number(str('accountId'));
+  if (!Number.isInteger(accountId) || accountId <= 0) fields.accountId = 'Vælg en konto';
   const result = {
     date: date('date', true) as string,
     supplier: str('supplier'),
     description: str('description'),
-    category: str('category'),
+    accountId,
     amountExVatOre: money('amountExVat'),
     vatOre: money('vat'),
     paidDate: date('paidDate', false)

@@ -11,6 +11,7 @@ import { addDays, lineTotalOre, roundOre, todayIso } from '../../format';
 import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
 import { renderInvoicePdf } from '../pdf';
+import { requireAccountOfType } from './accounts';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd');
 
@@ -21,7 +22,9 @@ const lineSchema = z.object({
     .refine((n) => Number.isFinite(n) && n !== 0 && Math.abs(n) <= 1e9, 'Antal skal være forskelligt fra 0')
     .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, 'Antal kan højst have to decimaler'),
   unit: z.string().trim().min(1, 'Enhed er påkrævet').max(30),
-  unitPriceOre: z.coerce.number().int('Pris skal være hele øre').max(1e13).min(-1e13)
+  unitPriceOre: z.coerce.number().int('Pris skal være hele øre').max(1e13).min(-1e13),
+  /** Revenue account; defaults to 1000 Konsulentydelser (seeded id 1). */
+  accountId: z.coerce.number().int().positive().default(1)
 });
 
 const draftSchema = z.object({
@@ -195,13 +198,15 @@ export async function updateDraft(id: number, input: unknown): Promise<InvoiceDe
     const cust = db.select().from(customer).where(eq(customer.id, data.customerId)).get();
     if (!cust) throw badRequest('Kunden findes ikke');
 
+    for (const l of data.lines) requireAccountOfType(l.accountId, 'revenue');
     const lines = data.lines.map((l) => ({
       invoiceId: id,
       description: l.description,
       quantity: l.quantity,
       unit: l.unit,
       unitPriceOre: l.unitPriceOre,
-      lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre)
+      lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre),
+      accountId: l.accountId
     }));
     const totals = computeTotals(lines, data.vatExemptReason !== null);
 
@@ -251,7 +256,7 @@ function contentFingerprint(inv: InvoiceDetail): string {
     vatOre: inv.vatOre,
     totalOre: inv.totalOre,
     vatRateBp: inv.vatRateBp,
-    lines: inv.lines.map((l) => [l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre])
+    lines: inv.lines.map((l) => [l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre, l.accountId])
   });
 }
 
@@ -459,7 +464,8 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
               quantity: l.quantity,
               unit: l.unit,
               unitPriceOre: l.unitPriceOre,
-              lineTotalOre: l.lineTotalOre
+              lineTotalOre: l.lineTotalOre,
+              accountId: l.accountId
             }))
           )
           .run();

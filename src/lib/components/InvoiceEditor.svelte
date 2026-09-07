@@ -2,8 +2,9 @@
   import { enhance } from '$app/forms';
   import { formatDate, formatOre, formatQuantity, lineTotalOre, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
 
-  type Line = { description: string; quantity: string; unit: string; unitPrice: string };
+  type Line = { description: string; quantity: string; unit: string; unitPrice: string; accountId: number };
   type Customer = { id: number; name: string };
+  type Account = { id: number; number: number; name: string };
   type Invoice = {
     id: number;
     customerId: number;
@@ -11,12 +12,13 @@
     dueDate: string;
     paymentReference: string;
     vatExemptReason: string | null;
-    lines: { description: string; quantity: number; unit: string; unitPriceOre: number }[];
+    lines: { description: string; quantity: number; unit: string; unitPriceOre: number; accountId: number }[];
   };
 
   let {
     invoice,
     customers,
+    accounts,
     nextNumber,
     problems,
     error,
@@ -24,6 +26,7 @@
   }: {
     invoice: Invoice;
     customers: Customer[];
+    accounts: Account[];
     nextNumber: number;
     problems: string[];
     error?: string;
@@ -34,11 +37,14 @@
     description: l.description,
     quantity: formatQuantity(l.quantity),
     unit: l.unit,
-    unitPrice: formatOre(l.unitPriceOre, false)
+    unitPrice: formatOre(l.unitPriceOre, false),
+    accountId: l.accountId
   });
+  // svelte-ignore state_referenced_locally
+  const defaultAccountId = accounts[0]?.id ?? 1;
 
   // svelte-ignore state_referenced_locally
-  let lines = $state<Line[]>(invoice.lines.length ? invoice.lines.map(toLine) : [{ description: '', quantity: '1,00', unit: 'time', unitPrice: '' }]);
+  let lines = $state<Line[]>(invoice.lines.length ? invoice.lines.map(toLine) : [{ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: defaultAccountId }]);
   // svelte-ignore state_referenced_locally
   let vatExempt = $state(invoice.vatExemptReason !== null);
   // svelte-ignore state_referenced_locally
@@ -66,7 +72,7 @@
   const canIssue = $derived(totals.valid && problems.filter((p) => !p.startsWith('Fakturaen har ingen linjer')).length === 0);
 
   function addLine() {
-    lines.push({ description: '', quantity: '1,00', unit: 'time', unitPrice: '' });
+    lines.push({ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: lines[lines.length - 1]?.accountId ?? defaultAccountId });
   }
   function removeLine(i: number) {
     lines.splice(i, 1);
@@ -147,6 +153,7 @@
                   <th scope="col">Enhed</th>
                   <th scope="col" class="num">Pris ekskl. moms</th>
                   <th scope="col" class="num">Beløb</th>
+                  <th scope="col">Konto</th>
                   <th scope="col" class="col-actions"><span hidden>Fjern</span></th>
                 </tr>
               </thead>
@@ -159,6 +166,11 @@
                     <td><input class="input input--cell input--xs" aria-label="Enhed, linje {i + 1}" bind:value={line.unit} placeholder="time" /></td>
                     <td><input class="input input--cell input--num input--short" aria-label="Pris, linje {i + 1}" bind:value={line.unitPrice} inputmode="decimal" placeholder="0,00" /></td>
                     <td class="num {t !== null && t < 0 ? 'num--neg' : ''}">{t === null ? '—' : formatOre(t, false)}</td>
+                    <td>
+                      <select class="select input--cell input--account" aria-label="Konto, linje {i + 1}" bind:value={line.accountId}>
+                        {#each accounts as a (a.id)}<option value={a.id}>{a.number} {a.name}</option>{/each}
+                      </select>
+                    </td>
                     <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm" onclick={() => removeLine(i)}>Fjern</button></div></td>
                   </tr>
                 {/each}
@@ -251,6 +263,7 @@
   /* fixed widths so the auto-layout table cannot squeeze the numeric inputs at 1152px */
   .input--cell.input--xs { width: var(--field-width-xs); min-width: var(--field-width-xs); }
   .input--cell.input--short { width: var(--field-width-sm); min-width: var(--field-width-sm); }
+  .input--account { width: var(--field-width-md); min-width: var(--field-width-md); max-width: var(--field-width-md); }
   table.lines td:first-child { width: 100%; }
   table.lines th, table.lines td { padding: var(--space-1) var(--space-2); }
   .addline { margin-top: var(--space-3); }

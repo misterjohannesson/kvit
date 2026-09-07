@@ -14,7 +14,7 @@
 <svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Faktura</title></svelte:head>
 
 {#if inv.status === 'draft'}
-  <InvoiceEditor invoice={inv} customers={data.customers} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
+  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.accounts.filter((a) => a.type === 'revenue')} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
 {:else}
   <div class="pagehead">
     <div>
@@ -66,16 +66,19 @@
               <th scope="col">Enhed</th>
               <th scope="col" class="num">Pris</th>
               <th scope="col" class="num">Beløb</th>
+              <th scope="col">Konto</th>
             </tr>
           </thead>
           <tbody>
             {#each inv.lines as l (l.id)}
+              {@const acc = data.accounts.find((a) => a.id === l.accountId)}
               <tr>
                 <td>{l.description}</td>
                 <td class={neg(l.quantity)}>{formatQuantity(l.quantity)}</td>
                 <td>{l.unit}</td>
                 <td class="num">{formatOre(l.unitPriceOre, false)}</td>
                 <td class={neg(l.lineTotalOre)}>{formatOre(l.lineTotalOre, false)}</td>
+                <td><span class="mono">{acc?.number ?? ''}</span> {acc?.name ?? ''}</td>
               </tr>
             {/each}
           </tbody>

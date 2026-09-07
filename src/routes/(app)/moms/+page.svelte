@@ -3,6 +3,10 @@
   let { data } = $props();
   const r = $derived(data.report);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
+  const accountName = (id: number) => {
+    const a = data.accounts.find((x) => x.id === id);
+    return a ? `${a.number} ${a.name}` : '';
+  };
 </script>
 
 <svelte:head><title>Momsindberetning · Faktura</title></svelte:head>
@@ -112,7 +116,7 @@
             <tr>
               <td class="mono"><a href="/udgifter/{e.id}">{e.voucherNumber}</a></td>
               <td class="mono">{formatDate(e.date)}</td>
-              <td class="wrap">{e.supplier}<span class="cell-sub">{e.category}</span></td>
+              <td class="wrap">{e.supplier}<span class="cell-sub">{accountName(e.accountId)}</span></td>
               <td class="num">{formatOre(e.amountExVatOre, false)}</td>
               <td class="num">{formatOre(e.vatOre, false)}</td>
             </tr>

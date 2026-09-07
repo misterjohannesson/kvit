@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { asc } from 'drizzle-orm';
 import { db } from '../db';
-import { auditLog, customer, expense, invoice, invoiceLine } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceLine } from '../schema';
 import { FILES_DIR } from '../env';
 import { audit } from '../audit';
 
@@ -32,6 +32,10 @@ export function toCsv(header: string[], rows: unknown[][]): string {
   return BOM + lines.join('\r\n') + '\r\n';
 }
 
+function accountMap() {
+  return new Map(db.select().from(account).all().map((a) => [a.id, a]));
+}
+
 export function invoicesCsv(): string {
   const custs = new Map(db.select().from(customer).all().map((c) => [c.id, c]));
   const rows = db.select().from(invoice).orderBy(asc(invoice.id)).all();
@@ -51,25 +55,40 @@ export function invoicesCsv(): string {
 
 export function invoiceLinesCsv(): string {
   const numbers = new Map(db.select().from(invoice).all().map((i) => [i.id, i.invoiceNumber]));
+  const accounts = accountMap();
   const rows = db.select().from(invoiceLine).orderBy(asc(invoiceLine.id)).all();
   return toCsv(
-    ['id', 'faktura_id', 'fakturanr', 'beskrivelse', 'antal', 'enhed', 'enhedspris_ekskl_moms', 'linjetotal'],
+    ['id', 'faktura_id', 'fakturanr', 'beskrivelse', 'antal', 'enhed', 'enhedspris_ekskl_moms', 'linjetotal', 'konto', 'kontonavn'],
     rows.map((r) => [
       r.id, r.invoiceId, numbers.get(r.invoiceId), r.description, decimalToCsv(r.quantity), r.unit,
-      oreToCsv(r.unitPriceOre), oreToCsv(r.lineTotalOre)
+      oreToCsv(r.unitPriceOre), oreToCsv(r.lineTotalOre), accounts.get(r.accountId)?.number, accounts.get(r.accountId)?.name
     ])
   );
 }
 
 export function expensesCsv(): string {
+  const accounts = accountMap();
   const rows = db.select().from(expense).orderBy(asc(expense.voucherNumber)).all();
   return toCsv(
-    ['id', 'bilagsnr', 'dato', 'leverandoer', 'beskrivelse', 'kategori', 'beloeb_ekskl_moms', 'moms', 'beloeb_inkl_moms', 'betalt_dato', 'fil', 'oprettet'],
+    ['id', 'bilagsnr', 'dato', 'leverandoer', 'beskrivelse', 'konto', 'kontonavn', 'beloeb_ekskl_moms', 'moms', 'beloeb_inkl_moms', 'betalt_dato', 'fil', 'oprettet'],
     rows.map((r) => [
-      r.id, r.voucherNumber, r.date, r.supplier, r.description, r.category, oreToCsv(r.amountExVatOre),
-      oreToCsv(r.vatOre), oreToCsv(r.amountInclOre), r.paidDate, r.filePath, r.createdAt
+      r.id, r.voucherNumber, r.date, r.supplier, r.description, accounts.get(r.accountId)?.number, accounts.get(r.accountId)?.name,
+      oreToCsv(r.amountExVatOre), oreToCsv(r.vatOre), oreToCsv(r.amountInclOre), r.paidDate, r.filePath, r.createdAt
     ])
   );
+}
+
+export function cashMovementsCsv(): string {
+  const rows = db.select().from(cashMovement).orderBy(asc(cashMovement.date), asc(cashMovement.id)).all();
+  return toCsv(
+    ['id', 'dato', 'beskrivelse', 'beloeb', 'type', 'oprettet'],
+    rows.map((r) => [r.id, r.date, r.description, oreToCsv(r.amountOre), r.kind, r.createdAt])
+  );
+}
+
+export function accountsCsv(): string {
+  const rows = db.select().from(account).orderBy(asc(account.number)).all();
+  return toCsv(['id', 'kontonr', 'navn', 'type'], rows.map((r) => [r.id, r.number, r.name, r.type === 'revenue' ? 'salg' : 'omkostning']));
 }
 
 export function auditLogCsv(): string {
@@ -80,7 +99,9 @@ export function auditLogCsv(): string {
   );
 }
 
-/** Zip with the four CSVs and every file under /data/files/. Streams to the returned readable. */
+export const EXPORT_CSVS = ['invoices.csv', 'invoice_lines.csv', 'expenses.csv', 'cash_movements.csv', 'accounts.csv', 'audit_log.csv'] as const;
+
+/** Zip with the six CSVs and every file under /data/files/. Streams to the returned readable. */
 export function exportZipStream(): PassThrough {
   const out = new PassThrough();
   const zip = new ZipArchive({ zlib: { level: 6 } });
@@ -90,6 +111,8 @@ export function exportZipStream(): PassThrough {
   zip.append(invoicesCsv(), { name: 'invoices.csv' });
   zip.append(invoiceLinesCsv(), { name: 'invoice_lines.csv' });
   zip.append(expensesCsv(), { name: 'expenses.csv' });
+  zip.append(cashMovementsCsv(), { name: 'cash_movements.csv' });
+  zip.append(accountsCsv(), { name: 'accounts.csv' });
   zip.append(auditLogCsv(), { name: 'audit_log.csv' });
   if (fs.existsSync(FILES_DIR)) {
     zip.directory(FILES_DIR, 'files');
@@ -102,4 +125,3 @@ export function exportZipStream(): PassThrough {
 export function exportFileName(): string {
   return `faktura-eksport-${new Date().toISOString().slice(0, 10)}.zip`;
 }
-

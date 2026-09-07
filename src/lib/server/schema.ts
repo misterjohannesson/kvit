@@ -13,6 +13,18 @@ export const customer = sqliteTable('customer', {
   createdAt: text('created_at').notNull()
 });
 
+/** Flat mini-kontoplan. Seeded by migration 0006; accounts can be added and renamed, never deleted while referenced. */
+export const account = sqliteTable(
+  'account',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    number: integer('number').notNull(),
+    name: text('name').notNull(),
+    type: text('type', { enum: ['revenue', 'cost'] }).notNull()
+  },
+  (t) => [uniqueIndex('account_number_unique').on(t.number)]
+);
+
 export const invoice = sqliteTable(
   'invoice',
   {
@@ -57,9 +69,14 @@ export const invoiceLine = sqliteTable(
     quantity: real('quantity').notNull(),
     unit: text('unit').notNull(),
     unitPriceOre: integer('unit_price_ore').notNull(),
-    lineTotalOre: integer('line_total_ore').notNull()
+    lineTotalOre: integer('line_total_ore').notNull(),
+    /** Revenue account; 1 = 1000 Konsulentydelser (seeded id). */
+    accountId: integer('account_id')
+      .notNull()
+      .default(1)
+      .references(() => account.id)
   },
-  (t) => [index('invoice_line_invoice_idx').on(t.invoiceId)]
+  (t) => [index('invoice_line_invoice_idx').on(t.invoiceId), index('invoice_line_account_idx').on(t.accountId)]
 );
 
 export const expense = sqliteTable(
@@ -70,7 +87,11 @@ export const expense = sqliteTable(
     date: text('date').notNull(),
     supplier: text('supplier').notNull(),
     description: text('description').notNull(),
-    category: text('category').notNull(),
+    /** Cost account; 11 = 2900 Øvrige omkostninger (seeded id). */
+    accountId: integer('account_id')
+      .notNull()
+      .default(11)
+      .references(() => account.id),
     amountExVatOre: integer('amount_ex_vat_ore').notNull(),
     vatOre: integer('vat_ore').notNull(),
     amountInclOre: integer('amount_incl_ore').notNull(),
@@ -78,7 +99,21 @@ export const expense = sqliteTable(
     filePath: text('file_path'),
     createdAt: text('created_at').notNull()
   },
-  (t) => [uniqueIndex('expense_voucher_unique').on(t.voucherNumber), index('expense_date_idx').on(t.date)]
+  (t) => [uniqueIndex('expense_voucher_unique').on(t.voucherNumber), index('expense_date_idx').on(t.date), index('expense_account_idx').on(t.accountId)]
+);
+
+/** Every bank movement that is not an invoice payment or an expense. Signed øre, positive = in. */
+export const cashMovement = sqliteTable(
+  'cash_movement',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    date: text('date').notNull(),
+    description: text('description').notNull(),
+    amountOre: integer('amount_ore').notNull(),
+    kind: text('kind', { enum: ['vat_payment', 'owner', 'tax', 'correction', 'other'] }).notNull(),
+    createdAt: text('created_at').notNull()
+  },
+  (t) => [index('cash_movement_date_idx').on(t.date)]
 );
 
 export const auditLog = sqliteTable(
@@ -99,8 +134,10 @@ export const setting = sqliteTable('setting', {
   value: text('value').notNull()
 });
 
-export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog;
+export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement;
 export type Customer = typeof customer.$inferSelect;
+export type Account = typeof account.$inferSelect;
+export type CashMovement = typeof cashMovement.$inferSelect;
 export type Invoice = typeof invoice.$inferSelect;
 export type InvoiceLine = typeof invoiceLine.$inferSelect;
 export type Expense = typeof expense.$inferSelect;

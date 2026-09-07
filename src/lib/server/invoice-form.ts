@@ -6,6 +6,7 @@ export interface EditorLine {
   quantity: string;
   unit: string;
   unitPrice: string;
+  accountId?: string | number;
 }
 
 /** Form fields of the draft editor -> service input for updateDraft(). */
@@ -27,12 +28,14 @@ export function formDataToDraft(form: FormData) {
       description: String(l.description ?? '').trim(),
       quantity: String(l.quantity ?? '').trim(),
       unit: String(l.unit ?? '').trim(),
-      unitPrice: String(l.unitPrice ?? '').trim()
+      unitPrice: String(l.unitPrice ?? '').trim(),
+      accountId: Number(l.accountId ?? 1)
     }))
     .filter((l) => l.description !== '' || l.quantity !== '' || l.unitPrice !== '')
     .flatMap((l, i) => {
       try {
-        return [{ description: l.description, quantity: parseQuantity(l.quantity), unit: l.unit, unitPriceOre: parseKrToOre(l.unitPrice) }];
+        if (!Number.isInteger(l.accountId) || l.accountId <= 0) throw new Error('Vælg en salgskonto');
+        return [{ description: l.description, quantity: parseQuantity(l.quantity), unit: l.unit, unitPriceOre: parseKrToOre(l.unitPrice), accountId: l.accountId }];
       } catch (e) {
         lineErrors.push(`Linje ${i + 1}: ${(e as Error).message}`);
         return [];

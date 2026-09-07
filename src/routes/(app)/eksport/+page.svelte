@@ -33,6 +33,8 @@
             <tr><td class="mono">invoices.csv</td><td class="wrap">Fakturaer og kreditnotaer med nummer, status, beløb og PDF-sti</td><td class="num">{data.counts.invoices}</td></tr>
             <tr><td class="mono">invoice_lines.csv</td><td class="wrap">Fakturalinjer</td><td class="num">{data.counts.lines}</td></tr>
             <tr><td class="mono">expenses.csv</td><td class="wrap">Udgifter med bilagsnummer, moms og filsti</td><td class="num">{data.counts.expenses}</td></tr>
+            <tr><td class="mono">cash_movements.csv</td><td class="wrap">Bankbevægelser uden for fakturaer og udgifter (moms, ejer, skat, korrektioner)</td><td class="num">{data.counts.movements}</td></tr>
+            <tr><td class="mono">accounts.csv</td><td class="wrap">Kontoplan</td><td class="num">{data.counts.accounts}</td></tr>
             <tr><td class="mono">audit_log.csv</td><td class="wrap">Revisionsspor: alle oprettelser, udstedelser, krediteringer, ændringer og uploads</td><td class="num">{data.counts.audit}</td></tr>
             <tr><td class="mono">files/</td><td class="wrap">Alle faktura-PDF'er og udgiftsbilag</td><td class="num">{data.counts.files}</td></tr>
           </tbody>

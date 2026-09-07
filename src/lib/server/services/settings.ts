@@ -46,6 +46,12 @@ const settingsSchema = z.object({
     .transform(Number)
     .pipe(z.number().int().min(1))
     .optional(),
+  opening_balance_ore: z
+    .union([z.number(), z.string().regex(/^-?\d+$/, 'Åbningssaldo skal være hele øre')])
+    .transform(Number)
+    .pipe(z.number().int())
+    .optional(),
+  opening_balance_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').optional(),
   vat_registered: z
     .union([z.literal('1'), z.literal('0'), z.literal('on'), z.boolean()])
     .transform((v) => (v === true || v === '1' || v === 'on' ? '1' : '0'))

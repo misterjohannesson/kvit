@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { countRows } from '$lib/server/db';
-import { auditLog, expense, invoice, invoiceLine } from '$lib/server/schema';
+import { account, auditLog, cashMovement, expense, invoice, invoiceLine } from '$lib/server/schema';
 import fs from 'node:fs';
 import path from 'node:path';
 import { FILES_DIR } from '$lib/server/env';
@@ -15,6 +15,8 @@ export const load: PageServerLoad = () => ({
     invoices: countRows(invoice),
     lines: countRows(invoiceLine),
     expenses: countRows(expense),
+    movements: countRows(cashMovement),
+    accounts: countRows(account),
     audit: countRows(auditLog),
     files: countFiles(FILES_DIR)
   }

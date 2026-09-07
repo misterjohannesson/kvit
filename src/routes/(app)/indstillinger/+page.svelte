@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { formatDate, formatOre } from '$lib/format';
   let { data, form } = $props();
   const s = $derived(data.settings);
+  const err = (k: string): string | undefined => form?.fields?.[k];
 </script>
 
 <svelte:head><title>Indstillinger · Faktura</title></svelte:head>
@@ -12,7 +14,7 @@
   </div>
 </div>
 
-{#if form?.error}<p class="error">{form.error}</p>{/if}
+{#if form?.error && !form?.fields}<p class="error">{form.error}</p>{/if}
 {#if form?.saved}<p class="hint">Gemt.</p>{/if}
 
 <form class="panel" method="POST" action="?/save">
@@ -67,6 +69,22 @@
       </fieldset>
 
       <fieldset class="field--span-12">
+        <legend>Åbningssaldo</legend>
+        <div class="form-grid">
+          <div class="field field--span-3 {err('opening_balance') ? 'field--error' : ''}">
+            <label class="label" for="opening_balance">Banksaldo</label>
+            <input class="input input--num input--short" id="opening_balance" name="opening_balance" value={formatOre(Number(s.opening_balance_ore) || 0, false)} inputmode="decimal" required />
+            {#if err('opening_balance')}<span class="error">{err('opening_balance')}</span>{:else}<span class="hint">Saldoen, som cashflow og balance tæller fra.</span>{/if}
+          </div>
+          <div class="field field--span-3 {err('opening_balance_date') ? 'field--error' : ''}">
+            <label class="label" for="opening_balance_date">Pr. dato</label>
+            <input class="input input--date" id="opening_balance_date" name="opening_balance_date" inputmode="numeric" value={formatDate(s.opening_balance_date)} placeholder="dd.mm.åååå" required />
+            {#if err('opening_balance_date')}<span class="error">{err('opening_balance_date')}</span>{/if}
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="field--span-12">
         <legend>Nummerserie</legend>
         <div class="form-grid">
           <div class="field field--span-3">
@@ -83,6 +101,73 @@
   </div>
 </form>
 
+<section>
+  <div class="section__head">
+    <h2>Kontoplan</h2>
+    <p>Salgskonti bruges på fakturalinjer, omkostningskonti på udgifter. Konti kan tilføjes og omdøbes, men aldrig slettes, mens de er i brug.</p>
+  </div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table class="data {data.dense ? 'data--dense' : ''}">
+        <thead>
+          <tr>
+            <th scope="col">Konto</th>
+            <th scope="col">Type</th>
+            <th scope="col">Navn</th>
+            <th scope="col" class="num">I brug</th>
+            <th scope="col" class="col-actions"><span hidden>Handlinger</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each data.accounts as a (a.id)}
+            <tr>
+              <td class="mono">{a.number}</td>
+              <td>{a.type === 'revenue' ? 'Salg' : 'Omkostning'}</td>
+              <td>
+                <form method="POST" action="?/renameAccount" class="inline">
+                  <input type="hidden" name="id" value={a.id} />
+                  <label class="label" for="acc-{a.id}" hidden>Navn</label>
+                  <input class="input input--cell" id="acc-{a.id}" name="name" value={a.name} required />
+                  <button type="submit" class="btn btn--sm">Omdøb</button>
+                </form>
+              </td>
+              <td class="num">{a.usage}</td>
+              <td>
+                <div class="row-actions">
+                  {#if a.usage === 0}
+                    <form method="POST" action="?/deleteAccount">
+                      <input type="hidden" name="id" value={a.id} />
+                      <button type="submit" class="btn btn--ghost btn--sm btn--danger" onclick={(e) => { if (!confirm(`Slet konto ${a.number} ${a.name}?`)) e.preventDefault(); }}>Slet</button>
+                    </form>
+                  {/if}
+                </div>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+    <form class="panel__foot" method="POST" action="?/addAccount">
+      <div class="field spacer addaccount">
+        <label class="label" for="new-number">Ny konto</label>
+        <div class="addaccount__row">
+          <input class="input input--num input--xs mono" id="new-number" name="number" inputmode="numeric" placeholder="Nr." required />
+          <input class="input" name="name" placeholder="Navn" required aria-label="Navn på ny konto" />
+          <select class="select input--short" name="type" aria-label="Type">
+            <option value="cost">Omkostning</option>
+            <option value="revenue">Salg</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn">Tilføj konto</button>
+    </form>
+  </div>
+</section>
+
 <style>
   fieldset.first { border-top: 0; }
+  .inline { display: flex; align-items: center; gap: var(--space-2); }
+  .input--cell { height: var(--control-height-sm); padding: 0 var(--space-2); }
+  .addaccount { align-items: flex-start; }
+  .addaccount__row { display: flex; gap: var(--space-2); align-items: center; }
 </style>
