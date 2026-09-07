@@ -1,5 +1,11 @@
 import type { RequestHandler } from './$types';
-import { api, idParam } from '$lib/server/api';
+import { api, idParam, readJson } from '$lib/server/api';
 import { issueInvoice } from '$lib/server/services/invoices';
 
-export const POST: RequestHandler = (event) => api(() => issueInvoice(idParam(event)));
+/** Body (optional): { expectedNumber } — the number the user confirmed; 409 if the series moved. */
+export const POST: RequestHandler = (event) =>
+  api(async () => {
+    const body = (await readJson(event.request).catch(() => ({}))) as { expectedNumber?: unknown } | null;
+    const expected = body && body.expectedNumber !== undefined ? Number(body.expectedNumber) : undefined;
+    return issueInvoice(idParam(event), Number.isInteger(expected) ? expected : undefined);
+  });

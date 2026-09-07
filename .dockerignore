@@ -2,6 +2,9 @@ node_modules
 build
 .svelte-kit
 data
+data-*
+.env
+.env.*
 .git
 review
 tests

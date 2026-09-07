@@ -81,7 +81,7 @@ Tables are the product. They get the most attention.
 
 - One column. Label above field, always: `--text-xs`, `--weight-medium`, `--text-label`, `--space-1` below.
 - Field height `--control-height`, `--radius-sm`, `--border-default-style`, `--bg-surface`, padding `--control-pad-x`, text `--text-sm`.
-- Width follows content, capped at `--field-max-width`: amounts and dates get short fields (~120px), names get wide ones. Never stretch a date field across the panel.
+- Width follows content, capped at `--field-max-width`: amounts and dates get short fields (`--field-width-sm`), quantities and units the narrowest (`--field-width-xs`), file pickers `--field-width-md`, names get wide ones. Grid spans 2/3/4/5/6/8/12 are available so a name can be wider than the CVR next to it. Never stretch a date field across the panel.
 - Amount and date inputs use `--font-numeric` and `text-align: right` for amounts.
 - Hover `--border-strong`; focus `--focus-ring-width` outline in `--focus-ring` at `--focus-ring-offset`, border becomes `--accent-500`. Focus is always visible — keyboard entry is the primary input method for bookkeeping.
 - Disabled/read-only: `--bg-disabled`, `--text-disabled`, border `--border-default`.
@@ -103,6 +103,9 @@ Five states. Text label always present; hue is a reinforcement, never the messag
 | `Forfalden` | past due | `--status-overdue-*` |
 | `Betalt` | settled | `--status-paid-*` |
 | `Krediteret` | credit note issued | `--status-credited-*` |
+| `Kreditnota` | the credit-note document itself (it is neither open nor paid) | `--status-credited-*` |
+
+`Kreditnota` is a document type sitting in the status column: it reuses the credited tokens, never gets a paid date, and its `Kunde` cell names the invoice it credits.
 
 Construction: `--text-xs`, `--weight-medium`, `--radius-xs`, padding `--space-1` / `--space-2`, `1px` border in `*-border`, fill `*-surface`, text `*-ink`. Sentence case, one word. No dots, no icons, no pills.
 
@@ -121,7 +124,7 @@ Construction: `--text-xs`, `--weight-medium`, `--radius-xs`, padding `--space-1`
 - **Secondary** — `--bg-surface`, `--border-default-style`, `--text-primary`. Everything reversible: `Gem kladde`, `Forhåndsvis`, `Annullér`.
 - **Tertiary / link** — text only in `--text-link`, no border. Row actions and inline navigation.
 - **Destructive** — secondary shell with `--status-overdue-ink` text and border on hover. Never a red fill. `Slet kladde`, `Krediter faktura` — both behind confirmation.
-- Heights from `--control-height*`; padding `--control-pad-x` (×2 for the primary commit action). Icon-only buttons are square at the same height.
+- Heights from `--control-height*`; padding `--control-pad-x` (×2 for the primary commit action). Icon-only buttons are square at the same height. A primary that is merely the page's single save (`Gem`, `Opret kunde`, `Log ind`) takes the `btn--std` modifier: `--control-height`, normal padding.
 - Focus: same ring as fields. Disabled: `--bg-disabled` / `--text-disabled`, no border change.
 - `Udsted` is disabled until the invoice validates, and always confirms: *"Fakturaen får nummer 2026-0043 og kan herefter kun annulleres med en kreditnota."*
 - Order in a footer: destructive far left, then secondary, primary rightmost.
@@ -137,7 +140,7 @@ The printed/PDF invoice is a legal document, not a screenshot of the UI. `tokens
 - Hide: sidebar, topbar, all buttons, filters, row actions, hover affordances, badges' fills.
 - Header block: sender identity (name, address, CVR) top-left; document title `Faktura` and, on a credit note, `Kreditnota` at `--text-4xl` top-right, with number, issue date and due date in a mono key/value list beneath.
 - Line-item table: header row with a `--print-rule` above and below; rows separated by `--border-hairline`; no fill. `page-break-inside: avoid` on each row; `thead { display: table-header-group }` so headers repeat.
-- Totals block bottom-right, max 70mm wide: subtotal, VAT (`Moms 25%`), total. Total gets a `--print-rule` above and `--weight-semibold`. Amounts right-aligned to a shared edge with the line-item amounts.
+- Totals block bottom-right, max 70mm wide: subtotal, VAT (`Moms 25%`), total. Total gets a `--print-rule` above and `--weight-semibold` at `--text-lg` (the `--text-3xl` rule in §1 is for screen KPIs; at 9.5pt body copy the printed total stays at `--text-lg`). Amounts right-aligned to a shared edge with the line-item amounts; the currency suffix sits in its own column so it never pushes digits off that edge.
 - Footer repeats on every page (`position: fixed; bottom: 0` inside the print root): payment details (bank/konto, betalingsbetingelser), and `Side X af Y`.
 - Required Danish statutory content must be present and never clipped: sender name & address, CVR-nummer, invoice number, issue date, delivery date if different, buyer name & address, description, VAT rate and amount per rate, total ex. and incl. VAT, payment terms. Reverse-charge or exempt lines print their statutory note at `--print-text-small`.
 - No background images, no logos larger than 30mm wide, no colour beyond black/greys — the file must print correctly on a monochrome office printer.

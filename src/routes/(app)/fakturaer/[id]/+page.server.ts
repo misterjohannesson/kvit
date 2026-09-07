@@ -12,20 +12,14 @@ import {
 } from '$lib/server/services/invoices';
 import { listCustomers } from '$lib/server/services/customers';
 import { getSettings } from '$lib/server/services/settings';
-import { errorMessage } from '$lib/server/api';
+import { errorMessage, isRedirect, routeId } from '$lib/server/api';
 import { formDataToDraft } from '$lib/server/invoice-form';
 import { HttpError } from '$lib/server/errors';
-import { todayIso } from '$lib/format';
-
-function id(params: { id: string }): number {
-  const n = Number(params.id);
-  if (!Number.isInteger(n) || n <= 0) error(404, 'Faktura findes ikke');
-  return n;
-}
+import { parseDateInput, todayIso } from '$lib/format';
 
 export const load: PageServerLoad = ({ params }) => {
   try {
-    const inv = getInvoice(id(params));
+    const inv = getInvoice(routeId(params));
     const settings = getSettings();
     return {
       today: todayIso(),
@@ -40,17 +34,14 @@ export const load: PageServerLoad = ({ params }) => {
   }
 };
 
-function isRedirect(e: unknown): boolean {
-  return !!e && typeof e === 'object' && 'status' in e && 'location' in e;
-}
-
 async function run(fn: () => Promise<unknown> | unknown) {
   try {
     await fn();
   } catch (e) {
     if (isRedirect(e)) throw e;
     const { status, message } = errorMessage(e);
-    return fail(status, { error: message });
+    const fields = e instanceof HttpError && Object.keys(e.fields).length ? e.fields : undefined;
+    return fail(status, { error: message, fields });
   }
   return { ok: true };
 }
@@ -58,37 +49,44 @@ async function run(fn: () => Promise<unknown> | unknown) {
 export const actions: Actions = {
   save: async ({ params, request }) =>
     run(async () => {
-      updateDraft(id(params), formDataToDraft(await request.formData()));
+      await updateDraft(routeId(params), formDataToDraft(await request.formData()));
     }),
 
+  /** Saves the form, then issues with the number the user confirmed in the dialog. */
   issue: async ({ params, request }) =>
     run(async () => {
-      const invoiceId = id(params);
-      updateDraft(invoiceId, formDataToDraft(await request.formData()));
-      await issueInvoice(invoiceId);
+      const invoiceId = routeId(params);
+      const form = await request.formData();
+      await updateDraft(invoiceId, formDataToDraft(form));
+      const expected = Number(form.get('expectedNumber'));
+      await issueInvoice(invoiceId, Number.isInteger(expected) && expected > 0 ? expected : undefined);
       redirect(303, `/fakturaer/${invoiceId}?udstedt=1`);
     }),
 
   delete: async ({ params }) =>
-    run(() => {
-      deleteDraft(id(params));
+    run(async () => {
+      await deleteDraft(routeId(params));
       redirect(303, '/fakturaer');
     }),
 
   paid: async ({ params, request }) =>
     run(async () => {
       const form = await request.formData();
-      setPaidDate(id(params), String(form.get('paidDate') || todayIso()));
-    }),
-
-  unpaid: async ({ params }) =>
-    run(() => {
-      setPaidDate(id(params), null);
+      const raw = String(form.get('paidDate') ?? '').trim();
+      let paidDate = todayIso();
+      if (raw) {
+        try {
+          paidDate = parseDateInput(raw);
+        } catch {
+          throw new HttpError(400, 'Betalingsdato: ugyldig dato – brug dd.mm.åååå', { paidDate: 'Ugyldig dato' });
+        }
+      }
+      setPaidDate(routeId(params), paidDate);
     }),
 
   credit: async ({ params }) =>
     run(async () => {
-      const note = await creditInvoice(id(params));
+      const note = await creditInvoice(routeId(params));
       redirect(303, `/fakturaer/${note.id}`);
     })
 };

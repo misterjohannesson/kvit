@@ -25,7 +25,7 @@
       </div>
     </div>
     <div class="panel__foot">
-      <button type="submit" class="btn btn--primary">Log ind</button>
+      <button type="submit" class="btn btn--primary btn--std">Log ind</button>
     </div>
   </form>
 </div>

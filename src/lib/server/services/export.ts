@@ -94,7 +94,7 @@ export function exportZipStream(): PassThrough {
   if (fs.existsSync(FILES_DIR)) {
     zip.directory(FILES_DIR, 'files');
   }
-  audit('export', 0, 'export', { at: new Date().toISOString() });
+  zip.on('end', () => audit('export', 0, 'export', { at: new Date().toISOString() }));
   void zip.finalize();
   return out;
 }

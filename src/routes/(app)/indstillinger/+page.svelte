@@ -72,17 +72,17 @@
           <div class="field field--span-3">
             <label class="label" for="next_invoice_number">Næste fakturanummer</label>
             <input class="input input--num input--short" id="next_invoice_number" name="next_invoice_number" type="number" min={s.next_invoice_number} value={s.next_invoice_number} required />
-            <span class="hint">Kan kun sættes op. Ændringer logges i revisionssporet. Nummeret tildeles først, når en faktura udstedes.</span>
+            <span class="hint">Kan kun sættes op, og det er den eneste måde, serien kan få et hul. Ændringen logges i revisionssporet. Nummeret tildeles først, når en faktura udstedes.</span>
           </div>
         </div>
       </fieldset>
     </div>
   </div>
   <div class="panel__foot">
-    <button type="submit" class="btn btn--primary">Gem indstillinger</button>
+    <button type="submit" class="btn btn--primary btn--std">Gem indstillinger</button>
   </div>
 </form>
 
 <style>
-  fieldset.first { border-top: 0; padding-top: 0; }
+  fieldset.first { border-top: 0; }
 </style>

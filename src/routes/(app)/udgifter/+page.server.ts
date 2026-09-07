@@ -1,8 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { createExpense, listCategories, listExpenses, listExpenseYears } from '$lib/server/services/expenses';
-import { formDataToExpense, uploadFromForm } from '$lib/server/expense-form';
-import { errorMessage } from '$lib/server/api';
+import { formDataToExpense, formValues, uploadFromForm } from '$lib/server/expense-form';
+import { errorMessage, isRedirect } from '$lib/server/api';
+import { HttpError } from '$lib/server/errors';
 import { todayIso } from '$lib/format';
 
 export const load: PageServerLoad = ({ url }) => {
@@ -24,11 +25,10 @@ export const actions: Actions = {
       const e = createExpense(formDataToExpense(form), await uploadFromForm(form));
       redirect(303, `/udgifter/${e.id}`);
     } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && 'location' in e) throw e;
+      if (isRedirect(e)) throw e;
       const { status, message } = errorMessage(e);
-      const values: Record<string, string> = {};
-      for (const [k, v] of form.entries()) if (typeof v === 'string') values[k] = v;
-      return fail(status, { error: message, values });
+      const fields = e instanceof HttpError && Object.keys(e.fields).length ? e.fields : undefined;
+      return fail(status, { error: message, fields, values: formValues(form) });
     }
   }
 };

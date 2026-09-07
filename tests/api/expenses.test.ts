@@ -81,6 +81,19 @@ describe('expenses', () => {
     expect(e.filePath).toBe(`files/expenses/${e.voucherNumber}.png`);
   });
 
+  it('rejects a text file even when it is named .pdf and typed application/pdf (bytes are sniffed)', async () => {
+    const fd0 = new FormData();
+    fd0.set('date', '2026-09-06');
+    fd0.set('supplier', 'X');
+    fd0.set('description', 'Y');
+    fd0.set('category', 'Z');
+    fd0.set('amountExVat', '1');
+    fd0.set('vat', '0');
+    fd0.set('file', new Blob(['not a pdf'], { type: 'application/pdf' }), 'fake.pdf');
+    const r0 = await c.raw('POST', '/api/expenses', fd0);
+    expect(r0.status).toBe(400);
+  });
+
   it('rejects disallowed file types', async () => {
     const fd = new FormData();
     fd.set('date', '2026-09-06');

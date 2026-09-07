@@ -174,6 +174,9 @@
   --control-height-lg: 38px;
   --control-pad-x:     var(--space-3);
   --field-max-width:   360px;
+  --field-width-xs:    90px;   /* quantity, unit                  */
+  --field-width-sm:    130px;  /* dates, short amounts, CVR       */
+  --field-width-md:    260px;  /* file pickers, account numbers   */
 
   /* ------------------------------------------------------------------ *
    * 6. RADII — small and consistent. Nothing pill-shaped except badges.

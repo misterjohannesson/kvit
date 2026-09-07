@@ -16,7 +16,6 @@
     isCreditNote: boolean;
     creditsInvoiceNumber: number | null;
     creditedByNumber: number | null;
-    customer?: { cvr: string | null };
   };
 
   let {
@@ -24,15 +23,26 @@
     today,
     footer = '',
     empty = 'Ingen fakturaer.',
-    showTotals = true
-  }: { rows: Row[]; today: string; footer?: string; empty?: string; showTotals?: boolean } = $props();
+    emptyAction = null,
+    showTotals = true,
+    dense = false
+  }: {
+    rows: Row[];
+    today: string;
+    footer?: string;
+    empty?: string;
+    /** The one secondary button of the empty state (style.md §3). */
+    emptyAction?: { href: string; label: string } | null;
+    showTotals?: boolean;
+    dense?: boolean;
+  } = $props();
 
   const sum = (k: 'subtotalOre' | 'vatOre' | 'totalOre') => rows.reduce((s, r) => s + r[k], 0);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
 </script>
 
 <div class="table-wrap">
-  <table class="data">
+  <table class="data {dense ? 'data--dense' : ''}">
     <thead>
       <tr>
         <th scope="col">Nr.</th>
@@ -48,7 +58,12 @@
     </thead>
     <tbody>
       {#if rows.length === 0}
-        <tr><td colspan="9" class="empty">{empty}</td></tr>
+        <tr>
+          <td colspan="9" class="empty">
+            {empty}
+            {#if emptyAction}<a class="btn btn--sm" href={emptyAction.href}>{emptyAction.label}</a>{/if}
+          </td>
+        </tr>
       {/if}
       {#each rows as r (r.id)}
         <tr class="rowlink" onclick={() => (location.href = `/fakturaer/${r.id}`)}>
@@ -65,7 +80,10 @@
           </td>
           <td class="mono">{r.status === 'draft' ? '—' : formatDate(r.issueDate)}</td>
           <td class="mono">{r.status === 'draft' || r.isCreditNote ? '—' : formatDate(r.dueDate)}</td>
-          <td><Badge invoice={r} {today} /></td>
+          <td>
+            <Badge invoice={r} {today} />
+            {#if r.paidDate && r.status === 'issued' && !r.isCreditNote}<span class="badge-note">{formatDate(r.paidDate)}</span>{/if}
+          </td>
           <td class={neg(r.subtotalOre)}>{formatOre(r.subtotalOre, false)}</td>
           <td class={neg(r.vatOre)}>{formatOre(r.vatOre, false)}</td>
           <td class={neg(r.totalOre)}>{formatOre(r.totalOre, false)}</td>
@@ -92,8 +110,3 @@
     {/if}
   </table>
 </div>
-
-<style>
-  .rowlink { cursor: pointer; }
-  .empty { text-align: center; color: var(--text-secondary); padding: var(--space-6) var(--table-cell-pad-x); }
-</style>

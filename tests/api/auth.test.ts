@@ -30,6 +30,15 @@ describe('single-password login', () => {
     }
   });
 
+  it('refuses mutating requests whose Origin does not match the host (CSRF)', async () => {
+    const c = new Client();
+    await c.login();
+    const r = await c.raw('POST', '/api/customers', { name: 'Evil' }, { origin: 'https://evil.example' });
+    expect(r.status).toBe(403);
+    const ok = await c.raw('GET', '/api/customers', undefined, { origin: 'https://evil.example' });
+    expect(ok.status).toBe(200);
+  });
+
   it('logs out', async () => {
     const c = new Client();
     await c.login();

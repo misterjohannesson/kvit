@@ -15,12 +15,12 @@
   <div class="pagehead__actions">
     <div class="segment" role="group" aria-label="År">
       {#each data.years as y (y)}
-        <a href="/moms?year={y}&quarter={data.quarter}" aria-current={data.year === y ? 'true' : undefined} class="segment__link mono">{y}</a>
+        <a href="/moms?year={y}&quarter={data.quarter}" aria-current={data.year === y ? 'true' : undefined} class="mono">{y}</a>
       {/each}
     </div>
     <div class="segment" role="group" aria-label="Kvartal">
       {#each [1, 2, 3, 4] as q (q)}
-        <a href="/moms?year={data.year}&quarter={q}" aria-current={data.quarter === q ? 'true' : undefined} class="segment__link">{q}. kvartal</a>
+        <a href="/moms?year={data.year}&quarter={q}" aria-current={data.quarter === q ? 'true' : undefined}>{q}. kvartal</a>
       {/each}
     </div>
   </div>
@@ -57,7 +57,7 @@
       <span class="panel__meta">{r.salesRows.length} dokumenter</span>
     </div>
     <div class="table-wrap">
-      <table class="data">
+      <table class="data {data.dense ? 'data--dense' : ''}">
         <thead>
           <tr>
             <th scope="col">Nr.</th>
@@ -68,7 +68,7 @@
           </tr>
         </thead>
         <tbody>
-          {#if r.salesRows.length === 0}<tr><td colspan="5" class="empty">Ingen udstedte dokumenter i kvartalet.</td></tr>{/if}
+          {#if r.salesRows.length === 0}<tr><td colspan="5" class="empty">Ingen udstedte dokumenter i kvartalet. <a class="btn btn--sm" href="/fakturaer">Fakturaer</a></td></tr>{/if}
           {#each r.salesRows as s (s.id)}
             <tr>
               <td class="mono"><a href="/fakturaer/{s.id}">{s.invoiceNumber}</a></td>
@@ -96,7 +96,7 @@
       <span class="panel__meta">{r.purchaseRows.length} bilag</span>
     </div>
     <div class="table-wrap">
-      <table class="data">
+      <table class="data {data.dense ? 'data--dense' : ''}">
         <thead>
           <tr>
             <th scope="col">Bilag</th>
@@ -107,7 +107,7 @@
           </tr>
         </thead>
         <tbody>
-          {#if r.purchaseRows.length === 0}<tr><td colspan="5" class="empty">Ingen udgifter i kvartalet.</td></tr>{/if}
+          {#if r.purchaseRows.length === 0}<tr><td colspan="5" class="empty">Ingen udgifter i kvartalet. <a class="btn btn--sm" href="/udgifter">Udgifter</a></td></tr>{/if}
           {#each r.purchaseRows as e (e.id)}
             <tr>
               <td class="mono"><a href="/udgifter/{e.id}">{e.voucherNumber}</a></td>
@@ -132,10 +132,6 @@
 
 <style>
   .kpis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .layout-6-6 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--layout-column-gap); align-items: start; }
   table.data td.wrap { white-space: normal; }
   .prose { max-width: var(--layout-prose-max); margin: 0; }
-  .empty { text-align: center; color: var(--text-secondary); padding: var(--space-6) var(--table-cell-pad-x); }
-  .segment__link { display: inline-flex; align-items: center; text-decoration: none; }
-  .segment__link:hover { text-decoration: none; color: var(--text-primary); }
 </style>

@@ -21,7 +21,9 @@ export function parseKrToOre(input: string): number {
     .replace(/kr\.?$/i, '')
     .replace(new RegExp(MINUS, 'g'), '-');
   if (raw === '') throw new Error('Tomt beløb');
-  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw;
+  // "1.000" / "12.345.678" without a comma: dots are Danish thousands separators.
+  const thousandsOnly = !raw.includes(',') && /^-?\d{1,3}(\.\d{3})+$/.test(raw);
+  const normalized = raw.includes(',') || thousandsOnly ? raw.replace(/\./g, '').replace(',', '.') : raw;
   if (!/^-?\d+(\.\d{1,2})?$/.test(normalized)) throw new Error(`Ugyldigt beløb: ${input}`);
   const [intPart, decPart = ''] = normalized.replace('-', '').split('.');
   const ore = parseInt(intPart, 10) * 100 + parseInt((decPart + '00').slice(0, 2), 10);
@@ -40,7 +42,19 @@ export function parseQuantity(input: string): number {
   if (normalized === '' || !/^-?\d+(\.\d+)?$/.test(normalized)) {
     throw new Error(`Ugyldigt antal: ${input}`);
   }
-  return Math.round(Number(normalized) * 1000) / 1000;
+  // Two decimals (the precision the UI displays), rounded half away from zero on the
+  // decimal string so binary float noise (1.005 -> 1.00499…) cannot bite.
+  const negative = normalized.startsWith('-');
+  const [intPart, decPart = ''] = normalized.replace('-', '').split('.');
+  let cents = parseInt((decPart + '000').slice(0, 2), 10);
+  let whole = parseInt(intPart, 10);
+  if (parseInt((decPart + '000').charAt(2), 10) >= 5) cents += 1;
+  if (cents === 100) {
+    cents = 0;
+    whole += 1;
+  }
+  const abs = whole + cents / 100;
+  return negative ? -abs : abs;
 }
 
 /** ISO yyyy-mm-dd -> dd.mm.yyyy */
@@ -50,14 +64,45 @@ export function formatDate(iso: string | null | undefined): string {
   return `${d}.${m}.${y}`;
 }
 
+/** "07.09.2026" (Danish, also "7.9.2026") or ISO "2026-09-07" -> ISO. Throws on anything else. */
+export function parseDateInput(input: string): string {
+  const s = input.trim();
+  let y: number, m: number, d: number;
+  let match: RegExpMatchArray | null;
+  if ((match = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) {
+    [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  } else if ((match = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/))) {
+    [d, m, y] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  } else {
+    throw new Error(`Ugyldig dato: ${input} (brug dd.mm.åååå)`);
+  }
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) {
+    throw new Error(`Ugyldig dato: ${input}`);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+/** CVR grouped in pairs for reading: 12345678 -> "12 34 56 78". */
+export function formatCvr(cvr: string | null | undefined): string {
+  if (!cvr) return '';
+  return cvr.replace(/\s/g, '').replace(/(\d{2})(?=\d)/g, '$1 ');
+}
+
 /** Percentage from basis points, "25 %" */
 export function formatVatRate(bp: number): string {
   const pct = bp / 100;
   return `${Number.isInteger(pct) ? pct : pct.toFixed(2).replace('.', ',')} %`;
 }
 
-export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Round to whole øre, half away from zero, so negation is exact: round(-x) === -round(x). */
+export function roundOre(n: number): number {
+  return n < 0 ? -Math.round(-n) : Math.round(n);
+}
+
+/** Today's date in the business's time zone (DKK-only app: Europe/Copenhagen). */
+export function todayIso(now = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Copenhagen' }).format(now);
 }
 
 export function addDays(iso: string, days: number): string {
@@ -94,7 +139,7 @@ export function invoiceStatus(
 ): { label: InvoiceStatusLabel; cls: string; overdueDays?: number } {
   if (inv.status === 'draft') return { label: 'Kladde', cls: 'badge--kladde' };
   if (inv.status === 'credited') return { label: 'Krediteret', cls: 'badge--krediteret' };
-  if (inv.isCreditNote) return { label: 'Kreditnota', cls: 'badge--krediteret' };
+  if (inv.isCreditNote) return { label: 'Kreditnota', cls: 'badge--kreditnota' };
   if (inv.paidDate) return { label: 'Betalt', cls: 'badge--betalt' };
   if (inv.dueDate < today) {
     const days = Math.round((Date.parse(today) - Date.parse(inv.dueDate)) / 86400000);

@@ -53,7 +53,7 @@
     <p>Fakturaer uden registreret betaling. Forfaldne er markeret med status.</p>
   </div>
   <div class="panel">
-    <InvoiceTable rows={data.unpaid} today={data.today} footer="{data.unpaid.length} ubetalte" empty="Ingen ubetalte fakturaer." />
+    <InvoiceTable rows={data.unpaid} today={data.today} dense={data.dense} footer="{data.unpaid.length} ubetalte" empty="Ingen ubetalte fakturaer." emptyAction={{ href: '/fakturaer', label: 'Fakturaer' }} />
   </div>
 </section>
 
@@ -67,7 +67,7 @@
       <dl class="totals">
         <div class="totals__row"><dt>Salgsmoms</dt><dd>{formatOre(data.vat.salesVatOre)}</dd></div>
         <div class="totals__row"><dt>Købsmoms</dt><dd>{formatOre(data.vat.purchaseVatOre)}</dd></div>
-        <div class="totals__row totals__row--sum"><dt>Momstilsvar</dt><dd class={data.vat.netVatOre < 0 ? 'num--neg' : ''}>{formatOre(data.vat.netVatOre)}</dd></div>
+        <div class="totals__row totals__row--sum totals__row--sum-sm"><dt>Momstilsvar</dt><dd class={data.vat.netVatOre < 0 ? 'num--neg' : ''}>{formatOre(data.vat.netVatOre)}</dd></div>
       </dl>
     </div>
   </div>
@@ -82,17 +82,9 @@
         <div class="totals__row"><dt>Udgifter ({data.ytd.expenseCount} bilag)</dt><dd>{formatOre(data.ytd.expensesExVatOre)}</dd></div>
         <div class="totals__row"><dt>Salgsmoms i alt</dt><dd>{formatOre(data.ytd.salesVatOre)}</dd></div>
         <div class="totals__row"><dt>Købsmoms i alt</dt><dd>{formatOre(data.ytd.purchaseVatOre)}</dd></div>
-        <div class="totals__row totals__row--sum"><dt>Resultat</dt><dd class={data.ytd.resultExVatOre < 0 ? 'num--neg' : ''}>{formatOre(data.ytd.resultExVatOre)}</dd></div>
+        <div class="totals__row totals__row--sum totals__row--sum-sm"><dt>Resultat</dt><dd class={data.ytd.resultExVatOre < 0 ? 'num--neg' : ''}>{formatOre(data.ytd.resultExVatOre)}</dd></div>
       </dl>
     </div>
   </div>
 </section>
 
-<style>
-  .layout-6-6 {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--layout-column-gap);
-    align-items: start;
-  }
-</style>

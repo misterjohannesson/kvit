@@ -15,9 +15,9 @@ const expenseSchema = z.object({
   supplier: z.string().trim().min(1, 'Leverandør er påkrævet').max(200),
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
   category: z.string().trim().min(1, 'Kategori er påkrævet').max(100),
-  amountExVatOre: z.coerce.number().int('Beløb skal være hele øre'),
+  amountExVatOre: z.coerce.number().int('Beløb skal være hele øre').max(1e13).min(-1e13),
   /** Entered manually, never derived: foreign purchases and repræsentation break 25 %. */
-  vatOre: z.coerce.number().int('Moms skal være hele øre'),
+  vatOre: z.coerce.number().int('Moms skal være hele øre').max(1e13).min(-1e13),
   paidDate: z
     .union([isoDate, z.literal(''), z.null()])
     .optional()
@@ -25,12 +25,6 @@ const expenseSchema = z.object({
 });
 
 export type ExpenseInput = z.input<typeof expenseSchema>;
-
-export const ALLOWED_UPLOAD_EXT: Record<string, string> = {
-  'application/pdf': 'pdf',
-  'image/jpeg': 'jpg',
-  'image/png': 'png'
-};
 
 export interface UploadFile {
   name: string;
@@ -44,10 +38,16 @@ function parse(input: unknown) {
   return r.data;
 }
 
+/** File type from the bytes themselves; the declared MIME type and file name are not trusted. */
+export function sniffUploadExt(bytes: Buffer): string | null {
+  if (bytes.length >= 5 && bytes.subarray(0, 5).toString('latin1') === '%PDF-') return 'pdf';
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg';
+  return null;
+}
+
 function extFor(file: UploadFile): string {
-  const byType = ALLOWED_UPLOAD_EXT[file.type];
-  const byName = path.extname(file.name).toLowerCase().replace('.', '').replace('jpeg', 'jpg');
-  const ext = byType ?? (['pdf', 'jpg', 'png'].includes(byName) ? byName : null);
+  const ext = sniffUploadExt(file.bytes);
   if (!ext) throw badRequest('Kun PDF, JPG og PNG kan uploades');
   return ext;
 }
@@ -148,12 +148,14 @@ export function uploadExpenseFile(id: number, file: UploadFile): Expense {
   return db.transaction(() => {
     const e = getExpense(id);
     const relPath = path.posix.join('files', 'expenses', `${e.voucherNumber}.${ext}`);
+    const abs = path.join(DATA_DIR, relPath);
     const old = expenseFileAbsolutePath(e);
-    if (old && old !== path.join(DATA_DIR, relPath)) fs.rmSync(old, { force: true });
     fs.mkdirSync(EXPENSE_FILES_DIR, { recursive: true });
-    fs.writeFileSync(path.join(DATA_DIR, relPath), file.bytes);
+    // Write the new file first; only remove the old one (different extension) once the new one exists.
+    fs.writeFileSync(abs, file.bytes);
     const row = db.update(expense).set({ filePath: relPath }).where(eq(expense.id, id)).returning().get();
     audit('expense', id, 'upload', { filePath: relPath, size: file.bytes.length, replaced: e.filePath });
+    if (old && old !== abs) fs.rmSync(old, { force: true });
     return row;
   });
 }

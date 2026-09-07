@@ -186,6 +186,55 @@ describe('credit notes', () => {
   });
 });
 
+describe('credit note rounding', () => {
+  it('negates the original exactly even when VAT rounding is asymmetric (subtotal 100,02)', async () => {
+    const d = await makeDraft([{ description: 'Halv-oere', quantity: 1, unit: 'stk.', unitPriceOre: 10002 }]);
+    const orig = (await c.json<Inv>('POST', `/api/invoices/${d.id}/issue`)).data;
+    expect(orig.vatOre).toBe(2501); // 2500,5 rounds half away from zero
+    const cr = (await c.json<Inv>('POST', `/api/invoices/${orig.id}/credit`)).data;
+    expect(cr.vatOre).toBe(-2501);
+    expect(cr.subtotalOre + orig.subtotalOre).toBe(0);
+    expect(cr.vatOre + orig.vatOre).toBe(0);
+    expect(cr.totalOre + orig.totalOre).toBe(0);
+  });
+});
+
+describe('confirm step number', () => {
+  it('refuses to issue when the confirmed number is no longer the next one (409), consuming nothing', async () => {
+    const d = await makeDraft();
+    const next = Number((await c.json<Record<string, string>>('GET', '/api/settings')).data.next_invoice_number);
+    const stale = await c.json<{ error: string }>('POST', `/api/invoices/${d.id}/issue`, { expectedNumber: next - 1 });
+    expect(stale.status).toBe(409);
+    expect((await c.json<Inv>('GET', `/api/invoices/${d.id}`)).data.status).toBe('draft');
+    const ok = await c.json<Inv>('POST', `/api/invoices/${d.id}/issue`, { expectedNumber: next });
+    expect(ok.status).toBe(200);
+    expect(ok.data.invoiceNumber).toBe(next);
+  });
+
+  it('a draft edited after the confirm dialog opened cannot be issued from stale content (edits are serialised)', async () => {
+    const d = await makeDraft();
+    // Fire an edit and an issue concurrently: whichever runs second sees the other's result.
+    const [edit, issue] = await Promise.all([
+      c.json<Inv>('PUT', `/api/invoices/${d.id}`, {
+        customerId, issueDate: '2026-09-07', dueDate: '2026-09-21', paymentReference: 'Reg. 1234 Konto 1234567890',
+        lines: [{ description: 'Changed', quantity: 1, unit: 'stk.', unitPriceOre: 12345 }]
+      }),
+      c.json<Inv>('POST', `/api/invoices/${d.id}/issue`)
+    ]);
+    expect([edit.status, issue.status].sort()).toEqual(expect.arrayContaining([200]));
+    const final = (await c.json<Inv>('GET', `/api/invoices/${d.id}`)).data;
+    if (issue.status === 200) {
+      // Issue won: the PDF was rendered from exactly the content stored; the edit must have failed (409) or run first.
+      expect(final.status).toBe('issued');
+      expect(final.totalOre).toBe(issue.data.totalOre);
+      if (edit.status === 200) expect(issue.data.totalOre).toBe(edit.data.totalOre);
+      else expect(edit.status).toBe(409);
+    } else {
+      expect(final.status).toBe('draft');
+    }
+  });
+});
+
 describe('legal invoice PDF (seed invoice 1001)', () => {
   it('contains every statutory field', async () => {
     const list = await c.json<Inv[]>('GET', '/api/invoices');

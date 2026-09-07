@@ -10,7 +10,7 @@
     <h1>Eksport</h1>
   </div>
   <div class="pagehead__actions">
-    <a class="btn btn--primary" href="/api/export">Eksportér alt (zip)</a>
+    <a class="btn" href="/api/export">Eksportér alt (zip)</a>
   </div>
 </div>
 

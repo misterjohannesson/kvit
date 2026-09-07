@@ -108,7 +108,7 @@ export async function seed(): Promise<void> {
   const issued = [];
   for (const spec of SEED.invoices) {
     const draft = createDraft({ customerId: customers[spec.customer].id });
-    updateDraft(draft.id, {
+    await updateDraft(draft.id, {
       customerId: customers[spec.customer].id,
       issueDate: spec.issueDate,
       dueDate: spec.dueDate,

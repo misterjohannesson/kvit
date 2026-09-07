@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, uniqueIndex, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 
 export const customer = sqliteTable('customer', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -32,23 +32,32 @@ export const invoice = sqliteTable(
     paymentReference: text('payment_reference').notNull().default(''),
     paidDate: text('paid_date'),
     pdfPath: text('pdf_path'),
-    creditedByInvoiceId: integer('credited_by_invoice_id'),
+    creditedByInvoiceId: integer('credited_by_invoice_id').references((): AnySQLiteColumn => invoice.id),
     createdAt: text('created_at').notNull()
   },
-  (t) => [uniqueIndex('invoice_number_unique').on(t.invoiceNumber)]
+  (t) => [
+    uniqueIndex('invoice_number_unique').on(t.invoiceNumber),
+    index('invoice_customer_idx').on(t.customerId),
+    index('invoice_issue_date_idx').on(t.issueDate),
+    index('invoice_status_idx').on(t.status)
+  ]
 );
 
-export const invoiceLine = sqliteTable('invoice_line', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  invoiceId: integer('invoice_id')
-    .notNull()
-    .references(() => invoice.id),
-  description: text('description').notNull(),
-  quantity: real('quantity').notNull(),
-  unit: text('unit').notNull(),
-  unitPriceOre: integer('unit_price_ore').notNull(),
-  lineTotalOre: integer('line_total_ore').notNull()
-});
+export const invoiceLine = sqliteTable(
+  'invoice_line',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    invoiceId: integer('invoice_id')
+      .notNull()
+      .references(() => invoice.id),
+    description: text('description').notNull(),
+    quantity: real('quantity').notNull(),
+    unit: text('unit').notNull(),
+    unitPriceOre: integer('unit_price_ore').notNull(),
+    lineTotalOre: integer('line_total_ore').notNull()
+  },
+  (t) => [index('invoice_line_invoice_idx').on(t.invoiceId)]
+);
 
 export const expense = sqliteTable(
   'expense',
@@ -66,17 +75,21 @@ export const expense = sqliteTable(
     filePath: text('file_path'),
     createdAt: text('created_at').notNull()
   },
-  (t) => [uniqueIndex('expense_voucher_unique').on(t.voucherNumber)]
+  (t) => [uniqueIndex('expense_voucher_unique').on(t.voucherNumber), index('expense_date_idx').on(t.date)]
 );
 
-export const auditLog = sqliteTable('audit_log', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  timestamp: text('timestamp').notNull(),
-  entity: text('entity').notNull(),
-  entityId: integer('entity_id').notNull(),
-  action: text('action').notNull(),
-  detailJson: text('detail_json').notNull()
-});
+export const auditLog = sqliteTable(
+  'audit_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    timestamp: text('timestamp').notNull(),
+    entity: text('entity').notNull(),
+    entityId: integer('entity_id').notNull(),
+    action: text('action').notNull(),
+    detailJson: text('detail_json').notNull()
+  },
+  (t) => [index('audit_log_entity_idx').on(t.entity, t.entityId)]
+);
 
 export const setting = sqliteTable('setting', {
   key: text('key').primaryKey(),

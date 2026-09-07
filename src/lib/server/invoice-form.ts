@@ -1,4 +1,4 @@
-import { parseKrToOre, parseQuantity } from '../format';
+import { parseDateInput, parseKrToOre, parseQuantity } from '../format';
 import { badRequest } from './errors';
 
 export interface EditorLine {
@@ -11,23 +11,31 @@ export interface EditorLine {
 /** Form fields of the draft editor -> service input for updateDraft(). */
 export function formDataToDraft(form: FormData) {
   const str = (k: string) => String(form.get(k) ?? '').trim();
-  let rawLines: EditorLine[] = [];
+  let rawLines: unknown;
   try {
     rawLines = JSON.parse(str('lines') || '[]');
   } catch {
     throw badRequest('Fakturalinjer kunne ikke læses');
   }
-  if (!Array.isArray(rawLines)) throw badRequest('Fakturalinjer kunne ikke læses');
+  if (!Array.isArray(rawLines) || rawLines.some((l) => typeof l !== 'object' || l === null)) {
+    throw badRequest('Fakturalinjer kunne ikke læses');
+  }
 
-  const lines = rawLines
-    .filter((l) => (l.description ?? '').trim() !== '' || (l.quantity ?? '').trim() !== '' || (l.unitPrice ?? '').trim() !== '')
+  const lines = (rawLines as Partial<EditorLine>[])
+    .map((l) => ({
+      description: String(l.description ?? '').trim(),
+      quantity: String(l.quantity ?? '').trim(),
+      unit: String(l.unit ?? '').trim(),
+      unitPrice: String(l.unitPrice ?? '').trim()
+    }))
+    .filter((l) => l.description !== '' || l.quantity !== '' || l.unitPrice !== '')
     .map((l, i) => {
       try {
         return {
-          description: String(l.description ?? '').trim(),
-          quantity: parseQuantity(String(l.quantity ?? '')),
-          unit: String(l.unit ?? '').trim(),
-          unitPriceOre: parseKrToOre(String(l.unitPrice ?? ''))
+          description: l.description,
+          quantity: parseQuantity(l.quantity),
+          unit: l.unit,
+          unitPriceOre: parseKrToOre(l.unitPrice)
         };
       } catch (e) {
         throw badRequest(`Linje ${i + 1}: ${(e as Error).message}`);
@@ -36,12 +44,20 @@ export function formDataToDraft(form: FormData) {
 
   const vatExempt = form.get('vatExempt') === 'on';
   const reason = str('vatExemptReason');
-  if (vatExempt && !reason) throw badRequest('Angiv årsag til momsfritagelse');
+  if (vatExempt && !reason) throw badRequest('Angiv årsag til momsfritagelse', { vatExemptReason: 'Skal udfyldes' });
+
+  const date = (k: string, label: string) => {
+    try {
+      return parseDateInput(str(k));
+    } catch {
+      throw badRequest(`${label}: ugyldig dato – brug dd.mm.åååå`, { [k]: 'Ugyldig dato – brug dd.mm.åååå' });
+    }
+  };
 
   return {
     customerId: Number(str('customerId')),
-    issueDate: str('issueDate'),
-    dueDate: str('dueDate'),
+    issueDate: date('issueDate', 'Fakturadato'),
+    dueDate: date('dueDate', 'Forfaldsdato'),
     paymentReference: str('paymentReference'),
     vatExemptReason: vatExempt ? reason : null,
     lines

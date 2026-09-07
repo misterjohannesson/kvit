@@ -18,7 +18,7 @@
 <section>
   <div class="panel">
     <div class="table-wrap">
-      <table class="data">
+      <table class="data {data.dense ? 'data--dense' : ''}">
         <thead>
           <tr>
             <th scope="col">Navn</th>
@@ -30,7 +30,7 @@
           </tr>
         </thead>
         <tbody>
-          {#if data.customers.length === 0}<tr><td colspan="6" class="empty">Ingen kunder endnu.</td></tr>{/if}
+          {#if data.customers.length === 0}<tr><td colspan="6" class="empty">Ingen kunder endnu. <a class="btn btn--sm" href="#ny-kunde">Ny kunde</a></td></tr>{/if}
           {#each data.customers as c (c.id)}
             <tr class="rowlink" onclick={() => (location.href = `/kunder/${c.id}`)}>
               <td>{c.name}</td>
@@ -58,13 +58,8 @@
       <CustomerFields values={form?.values ?? {}} />
     </div>
     <div class="panel__foot">
-      <button type="submit" class="btn btn--primary">Opret kunde</button>
+      <button type="submit" class="btn btn--primary btn--std">Opret kunde</button>
     </div>
   </form>
 </section>
 
-<style>
-  .rowlink { cursor: pointer; }
-  .empty { text-align: center; color: var(--text-secondary); padding: var(--space-6) var(--table-cell-pad-x); }
-  .formerror { margin: 0 0 var(--space-4); }
-</style>

@@ -41,8 +41,16 @@ const settingsSchema = z.object({
     .optional(),
   bank_reg: z.string().trim().max(10).optional(),
   bank_account: z.string().trim().max(20).optional(),
-  payment_terms_days: z.coerce.number().int().min(0).max(365).optional(),
-  next_invoice_number: z.coerce.number().int().min(1).optional(),
+  payment_terms_days: z
+    .union([z.number(), z.string().regex(/^\d+$/, 'Betalingsfrist skal være et helt antal dage')])
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(365))
+    .optional(),
+  next_invoice_number: z
+    .union([z.number(), z.string().regex(/^\d+$/, 'Fakturanummer skal være et helt tal')])
+    .transform(Number)
+    .pipe(z.number().int().min(1))
+    .optional(),
   vat_registered: z
     .union([z.literal('1'), z.literal('0'), z.literal('on'), z.boolean()])
     .transform((v) => (v === true || v === '1' || v === 'on' ? '1' : '0'))

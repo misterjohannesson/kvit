@@ -27,6 +27,18 @@ export function idParam(event: RequestEvent, name = 'id'): number {
   return n;
 }
 
+/** Route param id for page loads/actions: 404 (not 400) when it is not a positive integer. */
+export function routeId(params: { id?: string }): number {
+  const n = Number(params.id);
+  if (!Number.isInteger(n) || n <= 0) throw new HttpError(404, 'Ikke fundet');
+  return n;
+}
+
+/** SvelteKit's redirect()/error() throw plain objects; let them pass through catch blocks. */
+export function isRedirect(e: unknown): boolean {
+  return !!e && typeof e === 'object' && 'status' in e && ('location' in e || 'body' in e);
+}
+
 export async function readJson(request: Request): Promise<unknown> {
   try {
     return await request.json();

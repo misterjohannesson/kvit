@@ -7,7 +7,7 @@ import { customer, invoice, invoiceLine, type Customer, type Invoice, type Invoi
 import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 import { DATA_DIR, INVOICE_FILES_DIR } from '../env';
-import { addDays, todayIso } from '../../format';
+import { addDays, roundOre, todayIso } from '../../format';
 import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
 import { renderInvoicePdf } from '../pdf';
@@ -16,9 +16,9 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være ååå�
 
 const lineSchema = z.object({
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
-  quantity: z.coerce.number().refine((n) => Number.isFinite(n) && n !== 0, 'Antal skal være forskelligt fra 0'),
+  quantity: z.coerce.number().refine((n) => Number.isFinite(n) && n !== 0 && Math.abs(n) <= 1e9, 'Antal skal være forskelligt fra 0'),
   unit: z.string().trim().min(1, 'Enhed er påkrævet').max(30),
-  unitPriceOre: z.coerce.number().int('Pris skal være hele øre')
+  unitPriceOre: z.coerce.number().int('Pris skal være hele øre').max(1e13).min(-1e13)
 });
 
 const draftSchema = z.object({
@@ -55,13 +55,13 @@ export interface InvoiceDetail extends InvoiceListRow {
 }
 
 export function computeLineTotalOre(quantity: number, unitPriceOre: number): number {
-  return Math.round(quantity * unitPriceOre);
+  return roundOre(quantity * unitPriceOre);
 }
 
 export function computeTotals(lines: { lineTotalOre: number }[], vatExempt: boolean) {
   const subtotalOre = lines.reduce((s, l) => s + l.lineTotalOre, 0);
   const vatRateBp = vatExempt ? 0 : VAT_RATE_BP;
-  const vatOre = vatExempt ? 0 : Math.round((subtotalOre * VAT_RATE_BP) / 10000);
+  const vatOre = vatExempt ? 0 : roundOre((subtotalOre * VAT_RATE_BP) / 10000);
   return { subtotalOre, vatOre, totalOre: subtotalOre + vatOre, vatRateBp };
 }
 
@@ -177,8 +177,12 @@ export function createDraft(input: { customerId: number }): InvoiceDetail {
   });
 }
 
-/** Replace draft fields and lines. 409 if the invoice is not a draft. */
-export function updateDraft(id: number, input: unknown): InvoiceDetail {
+/**
+ * Replace draft fields and lines. 409 if the invoice is not a draft.
+ * Runs under the issue lock so an edit can never interleave with an issue in
+ * progress (PDF rendered from one state, number assigned to another).
+ */
+export function updateDraft(id: number, input: unknown): Promise<InvoiceDetail> {
   // Immutability is checked before anything else: an issued invoice answers 409
   // to every mutation attempt, whatever the body looks like.
   const existing = db.select().from(invoice).where(eq(invoice.id, id)).get();
@@ -190,7 +194,8 @@ export function updateDraft(id: number, input: unknown): InvoiceDetail {
   const data = parsed.data;
   if (data.dueDate < data.issueDate) throw badRequest('Forfaldsdato kan ikke ligge før fakturadatoen');
 
-  return db.transaction(() => {
+  return withIssueLock(async () =>
+    db.transaction(() => {
     const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
     if (!inv) throw notFound('Faktura findes ikke');
     assertDraft(inv);
@@ -222,19 +227,56 @@ export function updateDraft(id: number, input: unknown): InvoiceDetail {
       .run();
     audit('invoice', id, 'update', { ...data, ...totals });
     return getInvoice(id);
-  });
+    })
+  );
 }
 
 /** Drafts may be deleted. Issued invoices cannot: there is no code path for it. */
-export function deleteDraft(id: number): void {
-  db.transaction(() => {
-    const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
-    if (!inv) throw notFound('Faktura findes ikke');
-    assertDraft(inv);
-    db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
-    db.delete(invoice).where(eq(invoice.id, id)).run();
-    audit('invoice', id, 'delete_draft', {});
+export function deleteDraft(id: number): Promise<void> {
+  return withIssueLock(async () => {
+    db.transaction(() => {
+      const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
+      if (!inv) throw notFound('Faktura findes ikke');
+      assertDraft(inv);
+      db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
+      db.delete(invoice).where(eq(invoice.id, id)).run();
+      audit('invoice', id, 'delete_draft', {});
+    });
   });
+}
+
+/** Everything that ends up on the PDF. Compared again inside the issue transaction. */
+function contentFingerprint(inv: InvoiceDetail): string {
+  return JSON.stringify({
+    customer: inv.customer,
+    customerId: inv.customerId,
+    issueDate: inv.issueDate,
+    dueDate: inv.dueDate,
+    vatExemptReason: inv.vatExemptReason,
+    paymentReference: inv.paymentReference,
+    subtotalOre: inv.subtotalOre,
+    vatOre: inv.vatOre,
+    totalOre: inv.totalOre,
+    vatRateBp: inv.vatRateBp,
+    lines: inv.lines.map((l) => [l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre])
+  });
+}
+
+/**
+ * Write the rendered PDF next to its final name and rename it into place only
+ * after the transaction committed, so a crash can never leave a {number}.pdf
+ * that blocks the series.
+ */
+function archivePdf(absPath: string, pdf: Buffer, commit: () => void): void {
+  const tmp = absPath + '.tmp';
+  fs.writeFileSync(tmp, pdf);
+  try {
+    commit();
+  } catch (e) {
+    fs.rmSync(tmp, { force: true });
+    throw e;
+  }
+  fs.renameSync(tmp, absPath);
 }
 
 export function validateForIssue(inv: InvoiceDetail, settings: Record<string, string>): string[] {
@@ -260,7 +302,7 @@ export function invoicePdfAbsolutePath(inv: Invoice): string | null {
  * transaction, after the PDF (which carries the number) has been rendered
  * under the issue lock. The number series therefore never has a gap.
  */
-export function issueInvoice(id: number): Promise<InvoiceDetail> {
+export function issueInvoice(id: number, expectedNumber?: number): Promise<InvoiceDetail> {
   return withIssueLock(async () => {
     const inv = getInvoice(id);
     assertDraft(inv);
@@ -269,18 +311,23 @@ export function issueInvoice(id: number): Promise<InvoiceDetail> {
     if (problems.length) throw badRequest(problems.join('. '));
 
     const number = Number(settings.next_invoice_number);
+    if (expectedNumber !== undefined && expectedNumber !== number) {
+      throw conflict(`Næste fakturanummer er ${number}, ikke ${expectedNumber}. Genindlæs siden og bekræft igen.`);
+    }
+    const fingerprint = contentFingerprint(inv);
     const relPath = path.posix.join('files', 'invoices', `${number}.pdf`);
     const absPath = path.join(INVOICE_FILES_DIR, `${number}.pdf`);
     if (fs.existsSync(absPath)) throw conflict(`Filen ${relPath} findes allerede`);
 
     const pdf = await renderInvoicePdf({ ...inv, invoiceNumber: number, status: 'issued' }, settings);
-    fs.writeFileSync(absPath, pdf);
 
-    try {
+    archivePdf(absPath, pdf, () =>
       db.transaction(() => {
-        const fresh = db.select().from(invoice).where(eq(invoice.id, id)).get();
-        if (!fresh) throw notFound('Faktura findes ikke');
+        const fresh = getInvoice(id);
         assertDraft(fresh);
+        if (contentFingerprint(fresh) !== fingerprint) {
+          throw conflict('Kladden blev ændret, mens den blev udstedt. Prøv igen.');
+        }
         if (Number(getSettings().next_invoice_number) !== number) {
           throw conflict('Nummerserien blev ændret undervejs. Prøv igen.');
         }
@@ -290,24 +337,21 @@ export function issueInvoice(id: number): Promise<InvoiceDetail> {
           .run();
         setSettingRaw('next_invoice_number', String(number + 1));
         audit('invoice', id, 'issue', { invoiceNumber: number, pdfPath: relPath, totalOre: inv.totalOre });
-      });
-    } catch (e) {
-      fs.rmSync(absPath, { force: true });
-      throw e;
-    }
+      })
+    );
     return getInvoice(id);
   });
 }
 
-/** Set (or clear with null) paid_date on an issued, non-credit-note invoice. */
-export function setPaidDate(id: number, paidDate: string | null): InvoiceDetail {
-  if (paidDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) throw badRequest('Ugyldig dato');
+/** "Markér som betalt": set paid_date on an issued, non-credit-note invoice. */
+export function setPaidDate(id: number, paidDate: string): InvoiceDetail {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) throw badRequest('Ugyldig dato');
   return db.transaction(() => {
     const inv = getInvoice(id);
     if (inv.status !== 'issued') throw conflict('Kun udstedte fakturaer kan markeres som betalt');
     if (inv.isCreditNote) throw conflict('En kreditnota kan ikke markeres som betalt');
     db.update(invoice).set({ paidDate }).where(eq(invoice.id, id)).run();
-    audit('invoice', id, paidDate ? 'mark_paid' : 'unmark_paid', { paidDate });
+    audit('invoice', id, 'mark_paid', { paidDate });
     return getInvoice(id);
   });
 }
@@ -339,7 +383,14 @@ export function creditInvoice(id: number): Promise<InvoiceDetail> {
       quantity: -l.quantity,
       lineTotalOre: -l.lineTotalOre
     }));
-    const totals = computeTotals(lines, orig.vatExemptReason !== null);
+    // Exact negation of the original figures, never recomputed: rounding could
+    // otherwise leave a one-øre residue in the VAT report.
+    const totals = {
+      subtotalOre: -orig.subtotalOre,
+      vatOre: -orig.vatOre,
+      totalOre: -orig.totalOre,
+      vatRateBp: orig.vatRateBp
+    };
     const creditDetail: InvoiceDetail = {
       ...orig,
       id: 0,
@@ -359,10 +410,9 @@ export function creditInvoice(id: number): Promise<InvoiceDetail> {
     };
 
     const pdf = await renderInvoicePdf(creditDetail, settings);
-    fs.writeFileSync(absPath, pdf);
 
     let newId = 0;
-    try {
+    archivePdf(absPath, pdf, () =>
       db.transaction(() => {
         const fresh = db.select().from(invoice).where(eq(invoice.id, id)).get();
         if (!fresh || fresh.status !== 'issued') throw conflict('Fakturaen kan ikke krediteres');
@@ -372,8 +422,7 @@ export function creditInvoice(id: number): Promise<InvoiceDetail> {
         const row = db
           .insert(invoice)
           .values({
-            invoiceNumber: number,
-            status: 'issued',
+            status: 'draft',
             customerId: orig.customerId,
             issueDate: today,
             dueDate: today,
@@ -383,7 +432,6 @@ export function creditInvoice(id: number): Promise<InvoiceDetail> {
             vatRateBp: totals.vatRateBp,
             vatExemptReason: orig.vatExemptReason,
             paymentReference: orig.paymentReference,
-            pdfPath: relPath,
             createdAt: new Date().toISOString()
           })
           .returning()
@@ -402,17 +450,18 @@ export function creditInvoice(id: number): Promise<InvoiceDetail> {
           )
           .run();
         db.update(invoice)
+          .set({ invoiceNumber: number, status: 'issued', pdfPath: relPath })
+          .where(eq(invoice.id, row.id))
+          .run();
+        db.update(invoice)
           .set({ status: 'credited', creditedByInvoiceId: row.id })
           .where(eq(invoice.id, id))
           .run();
         setSettingRaw('next_invoice_number', String(number + 1));
         audit('invoice', row.id, 'issue_credit_note', { invoiceNumber: number, creditsInvoiceId: id, pdfPath: relPath });
         audit('invoice', id, 'credited', { creditedByInvoiceId: row.id, creditNoteNumber: number });
-      });
-    } catch (e) {
-      fs.rmSync(absPath, { force: true });
-      throw e;
-    }
+      })
+    );
     return getInvoice(newId);
   });
 }

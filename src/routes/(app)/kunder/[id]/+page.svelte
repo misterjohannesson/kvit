@@ -1,6 +1,7 @@
 <script lang="ts">
   import CustomerFields from '$lib/components/CustomerFields.svelte';
   import InvoiceTable from '$lib/components/InvoiceTable.svelte';
+  import { formatDate } from '$lib/format';
   let { data, form } = $props();
   const c = $derived(data.customer);
 </script>
@@ -20,7 +21,7 @@
 <form class="panel" method="POST" action="?/save">
   <div class="panel__head">
     <h3 class="panel__title">Kundeoplysninger</h3>
-    <span class="panel__meta">Oprettet {c.createdAt.slice(0, 10)}</span>
+    <span class="panel__meta">Oprettet {formatDate(c.createdAt.slice(0, 10))}</span>
   </div>
   <div class="panel__body">
     <CustomerFields values={c} />
@@ -38,7 +39,7 @@
     {:else}
       <span class="hint spacer">Kunden har fakturaer og kan ikke slettes.</span>
     {/if}
-    <button type="submit" class="btn btn--primary">Gem</button>
+    <button type="submit" class="btn btn--primary btn--std">Gem</button>
   </div>
 </form>
 
@@ -47,6 +48,6 @@
     <h2>Fakturaer</h2>
   </div>
   <div class="panel">
-    <InvoiceTable rows={data.invoices} today={data.today} empty="Ingen fakturaer til denne kunde." />
+    <InvoiceTable rows={data.invoices} today={data.today} dense={data.dense} empty="Ingen fakturaer til denne kunde." emptyAction={{ href: '/fakturaer', label: 'Ny faktura' }} />
   </div>
 </section>

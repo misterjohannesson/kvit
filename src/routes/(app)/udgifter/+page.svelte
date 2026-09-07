@@ -1,7 +1,9 @@
 <script lang="ts">
+  import DensityToggle from '$lib/components/DensityToggle.svelte';
   import { formatDate, formatOre } from '$lib/format';
   let { data, form } = $props();
   const v = (k: string, fallback = '') => form?.values?.[k] ?? fallback;
+  const err = (k: string): string | undefined => form?.fields?.[k];
   const sum = (k: 'amountExVatOre' | 'vatOre' | 'amountInclOre') => data.rows.reduce((s, r) => s + r[k], 0);
 </script>
 
@@ -21,16 +23,17 @@
   <div class="panel">
     <div class="toolbar">
       <div class="segment" role="group" aria-label="År">
-        <a href="/udgifter" aria-current={!data.year ? 'true' : undefined} class="segment__link">Alle år</a>
+        <a href="/udgifter" aria-current={!data.year ? 'true' : undefined}>Alle år</a>
         {#each data.years as y (y)}
-          <a href="/udgifter?year={y}" aria-current={data.year === y ? 'true' : undefined} class="segment__link mono">{y}</a>
+          <a href="/udgifter?year={y}" aria-current={data.year === y ? 'true' : undefined} class="mono">{y}</a>
         {/each}
       </div>
       <div class="toolbar__spacer"></div>
+      <DensityToggle dense={data.dense} />
       <span class="panel__meta">{data.rows.length} bilag</span>
     </div>
     <div class="table-wrap">
-      <table class="data">
+      <table class="data {data.dense ? 'data--dense' : ''}">
         <thead>
           <tr>
             <th scope="col">Bilag</th>
@@ -46,7 +49,12 @@
         </thead>
         <tbody>
           {#if data.rows.length === 0}
-            <tr><td colspan="9" class="empty">Ingen udgifter endnu.</td></tr>
+            <tr>
+              <td colspan="9" class="empty">
+                {data.year ? `Ingen udgifter i ${data.year}.` : 'Ingen udgifter endnu.'}
+                <a class="btn btn--sm" href={data.year ? '/udgifter' : '#ny-udgift'}>{data.year ? 'Vis alle' : 'Ny udgift'}</a>
+              </td>
+            </tr>
           {/if}
           {#each data.rows as r (r.id)}
             <tr class="rowlink" onclick={() => (location.href = `/udgifter/${r.id}`)}>
@@ -89,46 +97,60 @@
   </div>
   <form class="panel" method="POST" action="?/create" enctype="multipart/form-data">
     <div class="panel__body">
-      {#if form?.error}
+      {#if form?.error && !form?.fields}
         <p class="error formerror">{form.error}</p>
       {/if}
       <div class="form-grid">
-        <div class="field field--span-3">
+        <div class="field field--span-3 {err('date') ? 'field--error' : ''}">
           <label class="label" for="date">Dato</label>
-          <input class="input input--date" id="date" name="date" type="date" value={v('date', data.today)} required />
+          <input class="input input--date" id="date" name="date" inputmode="numeric" value={v('date', formatDate(data.today))} placeholder="dd.mm.åååå" required />
+          {#if err('date')}<span class="error">{err('date')}</span>{/if}
         </div>
-        <div class="field field--span-5">
+        <div class="field field--span-5 {err('supplier') ? 'field--error' : ''}">
           <label class="label" for="supplier">Leverandør</label>
           <input class="input" id="supplier" name="supplier" value={v('supplier')} required />
+          {#if err('supplier')}<span class="error">{err('supplier')}</span>{/if}
         </div>
-        <div class="field field--span-4">
+        <div class="field field--span-4 {err('category') ? 'field--error' : ''}">
           <label class="label" for="category">Kategori</label>
           <input class="input" id="category" name="category" list="categories" value={v('category')} required autocomplete="off" />
           <datalist id="categories">
             {#each data.categories as c (c)}<option value={c}></option>{/each}
           </datalist>
+          {#if err('category')}<span class="error">{err('category')}</span>{/if}
         </div>
-        <div class="field field--span-12">
+        <div class="field field--span-12 {err('description') ? 'field--error' : ''}">
           <label class="label" for="description">Beskrivelse</label>
           <input class="input input--wide" id="description" name="description" value={v('description')} required />
+          {#if err('description')}<span class="error">{err('description')}</span>{/if}
         </div>
-        <div class="field field--span-3">
+        <div class="field field--span-3 {err('amountExVat') ? 'field--error' : ''}">
           <label class="label" for="amountExVat">Beløb ekskl. moms</label>
           <input class="input input--num input--short" id="amountExVat" name="amountExVat" value={v('amountExVat')} inputmode="decimal" placeholder="0,00" required />
+          {#if err('amountExVat')}<span class="error">{err('amountExVat')}</span>{/if}
         </div>
-        <div class="field field--span-3">
+        <div class="field field--span-3 {err('vat') ? 'field--error' : ''}">
           <label class="label" for="vat">Moms</label>
           <input class="input input--num input--short" id="vat" name="vat" value={v('vat')} inputmode="decimal" placeholder="0,00" required />
-          <span class="hint">Som anført på bilaget. 0,00 ved udenlandske køb.</span>
+          {#if err('vat')}
+            <span class="error">{err('vat')}</span>
+          {:else}
+            <span class="hint">Som anført på bilaget. 0,00 ved udenlandske køb.</span>
+          {/if}
         </div>
-        <div class="field field--span-3">
+        <div class="field field--span-3 {err('paidDate') ? 'field--error' : ''}">
           <label class="label" for="paidDate">Betalt <span class="label__optional">(valgfri)</span></label>
-          <input class="input input--date" id="paidDate" name="paidDate" type="date" value={v('paidDate')} />
+          <input class="input input--date" id="paidDate" name="paidDate" inputmode="numeric" value={v('paidDate')} placeholder="dd.mm.åååå" />
+          {#if err('paidDate')}<span class="error">{err('paidDate')}</span>{/if}
         </div>
-        <div class="field field--span-3">
+        <div class="field field--span-3 {err('file') ? 'field--error' : ''}">
           <label class="label" for="file">Bilag <span class="label__optional">(valgfri)</span></label>
-          <input class="input input--file" id="file" name="file" type="file" accept="application/pdf,image/jpeg,image/png" />
-          <span class="hint">PDF, JPG eller PNG.</span>
+          <input class="input input--md input--file" id="file" name="file" type="file" accept="application/pdf,image/jpeg,image/png" />
+          {#if err('file')}
+            <span class="error">{err('file')}</span>
+          {:else}
+            <span class="hint">PDF, JPG eller PNG.</span>
+          {/if}
         </div>
       </div>
     </div>
@@ -139,11 +161,5 @@
 </section>
 
 <style>
-  .rowlink { cursor: pointer; }
-  .empty { text-align: center; color: var(--text-secondary); padding: var(--space-6) var(--table-cell-pad-x); }
-  .segment__link { display: inline-flex; align-items: center; text-decoration: none; }
-  .segment__link:hover { text-decoration: none; color: var(--text-primary); }
-  .formerror { margin: 0 0 var(--space-4); }
-  .input--wide { max-width: none; }
   .input--file { padding-top: var(--space-1); }
 </style>

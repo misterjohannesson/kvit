@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { formatOre } from '$lib/format';
+  import { formatDate, formatOre } from '$lib/format';
   let { data, form } = $props();
   const e = $derived(data.expense);
+  const v = (k: string, fallback: string) => form?.values?.[k] ?? fallback;
+  const err = (k: string): string | undefined => form?.fields?.[k];
 </script>
 
 <svelte:head><title>Bilag {e.voucherNumber} · Faktura</title></svelte:head>
@@ -18,7 +20,7 @@
   </div>
 </div>
 
-{#if form?.error}<p class="error">{form.error}</p>{/if}
+{#if form?.error && !form?.fields}<p class="error">{form.error}</p>{/if}
 {#if form?.saved}<p class="hint">Gemt.</p>{/if}
 
 <div class="layout-8-4">
@@ -32,11 +34,14 @@
     {:else if data.fileKind === 'image'}
       <div class="panel__body imgwrap"><img src="/api/expenses/{e.id}/file" alt="Bilag {e.voucherNumber}" /></div>
     {:else}
-      <div class="panel__body"><p class="hint">Der er ikke uploadet et bilag endnu.</p></div>
+      <div class="panel__body"><p class="empty">Der er ikke uploadet et bilag endnu.</p></div>
     {/if}
     <form class="panel__foot" method="POST" action="?/upload" enctype="multipart/form-data">
-      <label class="label spacer" for="file">{e.filePath ? 'Erstat bilag' : 'Upload bilag'}</label>
-      <input class="input input--file" id="file" name="file" type="file" accept="application/pdf,image/jpeg,image/png" required />
+      <div class="field spacer {err('file') ? 'field--error' : ''}">
+        <label class="label" for="file">{e.filePath ? 'Erstat bilag' : 'Upload bilag'}</label>
+        <input class="input input--md input--file" id="file" name="file" type="file" accept="application/pdf,image/jpeg,image/png" required />
+        {#if err('file')}<span class="error">{err('file')}</span>{/if}
+      </div>
       <button type="submit" class="btn">Upload</button>
     </form>
   </div>
@@ -48,49 +53,59 @@
     </div>
     <div class="panel__body">
       <div class="stack">
-        <div class="field">
+        <div class="field {err('date') ? 'field--error' : ''}">
           <label class="label" for="date">Dato</label>
-          <input class="input input--date" id="date" name="date" type="date" value={e.date} required />
+          <input class="input input--date" id="date" name="date" inputmode="numeric" value={v('date', formatDate(e.date))} placeholder="dd.mm.åååå" required />
+          {#if err('date')}<span class="error">{err('date')}</span>{/if}
         </div>
-        <div class="field">
+        <div class="field {err('supplier') ? 'field--error' : ''}">
           <label class="label" for="supplier">Leverandør</label>
-          <input class="input" id="supplier" name="supplier" value={e.supplier} required />
+          <input class="input" id="supplier" name="supplier" value={v('supplier', e.supplier)} required />
+          {#if err('supplier')}<span class="error">{err('supplier')}</span>{/if}
         </div>
-        <div class="field">
+        <div class="field {err('description') ? 'field--error' : ''}">
           <label class="label" for="description">Beskrivelse</label>
-          <input class="input" id="description" name="description" value={e.description} required />
+          <input class="input" id="description" name="description" value={v('description', e.description)} required />
+          {#if err('description')}<span class="error">{err('description')}</span>{/if}
         </div>
-        <div class="field">
+        <div class="field {err('category') ? 'field--error' : ''}">
           <label class="label" for="category">Kategori</label>
-          <input class="input" id="category" name="category" list="categories" value={e.category} required autocomplete="off" />
+          <input class="input" id="category" name="category" list="categories" value={v('category', e.category)} required autocomplete="off" />
           <datalist id="categories">
             {#each data.categories as c (c)}<option value={c}></option>{/each}
           </datalist>
+          {#if err('category')}<span class="error">{err('category')}</span>{/if}
         </div>
-        <div class="field">
+        <div class="field {err('amountExVat') ? 'field--error' : ''}">
           <label class="label" for="amountExVat">Beløb ekskl. moms</label>
-          <input class="input input--num input--short" id="amountExVat" name="amountExVat" value={formatOre(e.amountExVatOre, false)} inputmode="decimal" required />
+          <input class="input input--num input--short" id="amountExVat" name="amountExVat" value={v('amountExVat', formatOre(e.amountExVatOre, false))} inputmode="decimal" required />
+          {#if err('amountExVat')}<span class="error">{err('amountExVat')}</span>{/if}
         </div>
-        <div class="field">
+        <div class="field {err('vat') ? 'field--error' : ''}">
           <label class="label" for="vat">Moms</label>
-          <input class="input input--num input--short" id="vat" name="vat" value={formatOre(e.vatOre, false)} inputmode="decimal" required />
-          <span class="hint">Inkl. moms: <span class="mono">{formatOre(e.amountInclOre)}</span></span>
+          <input class="input input--num input--short" id="vat" name="vat" value={v('vat', formatOre(e.vatOre, false))} inputmode="decimal" required />
+          {#if err('vat')}
+            <span class="error">{err('vat')}</span>
+          {:else}
+            <span class="hint">Inkl. moms: <span class="mono">{formatOre(e.amountInclOre)}</span></span>
+          {/if}
         </div>
-        <div class="field">
+        <div class="field {err('paidDate') ? 'field--error' : ''}">
           <label class="label" for="paidDate">Betalt <span class="label__optional">(valgfri)</span></label>
-          <input class="input input--date" id="paidDate" name="paidDate" type="date" value={e.paidDate ?? ''} />
+          <input class="input input--date" id="paidDate" name="paidDate" inputmode="numeric" value={v('paidDate', e.paidDate ? formatDate(e.paidDate) : '')} placeholder="dd.mm.åååå" />
+          {#if err('paidDate')}<span class="error">{err('paidDate')}</span>{/if}
         </div>
       </div>
     </div>
     <div class="panel__foot">
-      <button type="submit" class="btn">Gem</button>
+      <button type="submit" class="btn btn--primary btn--std">Gem</button>
     </div>
   </form>
 </div>
 
 <style>
-  .fileframe { display: block; width: 100%; height: 80vh; border: 0; background: var(--bg-surface-sunk); }
   .imgwrap img { display: block; max-width: 100%; border: var(--border-hairline-style); }
   .stack { display: flex; flex-direction: column; gap: var(--space-5); }
-  .input--file { padding-top: var(--space-1); max-width: 260px; }
+  .input--file { padding-top: var(--space-1); }
+  .panel__foot .field { align-items: flex-start; }
 </style>

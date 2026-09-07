@@ -12,7 +12,7 @@ export const PATCH = PUT;
 
 /** Delete a draft. 409 when the invoice is issued: issued invoices are never deleted. */
 export const DELETE: RequestHandler = (event) =>
-  api(() => {
-    deleteDraft(idParam(event));
+  api(async () => {
+    await deleteDraft(idParam(event));
     return { ok: true };
   });
