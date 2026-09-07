@@ -252,7 +252,7 @@
   .input--cell.input--xs { width: var(--field-width-xs); min-width: var(--field-width-xs); }
   .input--cell.input--short { width: var(--field-width-sm); min-width: var(--field-width-sm); }
   table.lines td:first-child { width: 100%; }
-  table.lines td { padding-top: var(--space-1); padding-bottom: var(--space-1); }
+  table.lines th, table.lines td { padding: var(--space-1) var(--space-2); }
   .addline { margin-top: var(--space-3); }
   .summaryhint { margin: var(--space-4) 0 0; }
   .problems { margin: var(--space-3) 0 0; padding-left: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
