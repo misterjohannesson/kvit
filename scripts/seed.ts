@@ -24,7 +24,7 @@ export async function seed(): Promise<void> {
   await updateSettings(SEED.settings);
 }
 
-const isMain = process.argv[1]?.replace(/\/g, '/').endsWith('scripts/seed.ts');
+const isMain = process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/seed.ts');
 if (isMain) {
   seed()
     .then(() => {
