@@ -148,7 +148,8 @@ The brand mark and favicon are in `static/`.
 
 `mcp/` is a separate package: a thin HTTP client over the app's JSON API with a bearer token, exposing 15 tools over stdio
 and streamable HTTP. It never opens the database. Issuing and crediting invoices are intentionally not possible through
-it. `npm run mcp` starts it over stdio; see [mcp/README.md](mcp/README.md).
+it. `npm run mcp` starts it over stdio and reads `mcp/.env` (or falls back to `API_TOKEN` and `PORT` from the root
+`.env`); see [mcp/README.md](mcp/README.md).
 
 ## Distribution
 

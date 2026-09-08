@@ -30,6 +30,15 @@ Environment variables for the server:
 
 `API_TOKEN` must be at least 16 characters (the app refuses to start otherwise); generate one with `openssl rand -hex 24`.
 
+Where the values come from, in order of precedence:
+
+1. the shell environment (or the MCP client's `env` block);
+2. `mcp/.env` (copy `mcp/.env.example`; git-ignored) for the five variables above;
+3. the app's own `.env` in the repo root: its `API_TOKEN` is used as `FAKTURA_API_TOKEN` and its `PORT` as
+   `FAKTURA_URL` when neither is set elsewhere, so a repo checkout needs the token in one place only.
+
+Set `FAKTURA_SKIP_ENV_FILES=1` to ignore both files.
+
 ## Running
 
 ```bash
