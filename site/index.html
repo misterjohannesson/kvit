@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvit — fakturering og bogholderi til én dansk virksomhed</title>
+<meta name="description" content="Kvit udsteder fakturaer med ubrudt nummerserie, holder styr på bilag og moms, og lader en AI-assistent læse tallene uden nogensinde at kunne udstede en faktura. Kører på din egen maskine.">
+<link rel="stylesheet" href="./tokens.css">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<style>
+  /* Kun tokens (tokens.css kopieres ind ved udgivelse). Ingen generator, intet framework. */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-canvas); color: var(--text-body); font-family: var(--font-ui); font-size: var(--text-md); line-height: var(--leading-normal); -webkit-font-smoothing: antialiased; }
+  a { color: var(--text-link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .rail { background: var(--nav-bg); color: var(--nav-text); }
+  .rail__inner { max-width: 1040px; margin: 0 auto; padding: var(--space-4) var(--space-8); display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+  .brand { display: flex; align-items: center; gap: var(--space-3); }
+  .brand__name { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); color: var(--nav-title); }
+  .brand__sub { display: block; font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--nav-muted); }
+  .rail nav a { color: var(--nav-text); margin-left: var(--space-5); font-size: var(--text-sm); }
+  .rail nav a:hover { color: var(--nav-title); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: var(--space-12) var(--space-8) var(--space-16); }
+  .hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-10); align-items: center; }
+  h1 { margin: 0 0 var(--space-4); font-family: var(--font-display); font-size: var(--text-4xl); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); line-height: var(--leading-tight); color: var(--text-primary); }
+  h2 { margin: var(--space-16) 0 var(--space-6); font-family: var(--font-display); font-size: var(--text-2xl); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); color: var(--text-primary); }
+  h3 { margin: 0 0 var(--space-2); font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); color: var(--text-primary); }
+  p { margin: 0 0 var(--space-4); max-width: var(--layout-prose-max); }
+  .lede { font-size: var(--text-lg); color: var(--text-body); }
+  .shot { display: block; width: 100%; height: auto; border: var(--border-default-style); border-radius: var(--radius-md); background: var(--bg-surface); }
+  .actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-top: var(--space-6); }
+  .btn { display: inline-flex; align-items: center; height: var(--control-height-lg); padding: 0 calc(var(--control-pad-x) * 2); border-radius: var(--radius-sm); border: var(--border-width) solid var(--primary-border); background: var(--primary-bg); color: var(--primary-ink); font-weight: var(--weight-medium); box-shadow: var(--primary-shadow); }
+  .btn:hover { background: var(--primary-bg-hover); text-decoration: none; }
+  .btn--secondary { background: var(--bg-surface); border-color: var(--border-default); color: var(--text-primary); box-shadow: none; }
+  .btn--secondary:hover { background: var(--bg-surface-sunk); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--layout-column-gap); }
+  .card { background: var(--bg-surface); border: var(--border-default-style); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; }
+  /* Cards share one image height; the tall PDF render is cropped from the top so the grid rows stay even. */
+  .card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border-bottom: var(--border-hairline-style); }
+  .card__body { padding: var(--space-4); }
+  .card__body p { margin: 0; font-size: var(--text-sm); color: var(--text-body); }
+  .kicker { font-size: var(--text-xs); font-weight: var(--weight-medium); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--text-label); margin: 0 0 var(--space-2); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--layout-column-gap); align-items: start; }
+  ul { margin: 0 0 var(--space-4); padding-left: var(--space-5); }
+  li { margin-bottom: var(--space-1); }
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: var(--bg-surface); border: var(--border-default-style); }
+  th, td { text-align: left; padding: var(--table-cell-pad-y) var(--table-cell-pad-x); border-bottom: var(--table-rule); }
+  th { font-size: var(--text-2xs); letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--text-label); font-weight: var(--weight-medium); background: var(--bg-thead); }
+  tr:last-child td { border-bottom: 0; }
+  code, pre { font-family: var(--font-numeric); font-size: var(--text-sm); }
+  pre { margin: var(--space-3) 0 0; padding: var(--space-3); background: var(--bg-surface-sunk); border: var(--border-hairline-style); border-radius: var(--radius-sm); overflow-x: auto; }
+  .note { padding: var(--space-4); border: var(--border-width) solid var(--status-overdue-border); background: var(--status-overdue-surface); border-radius: var(--radius-md); font-size: var(--text-sm); }
+  .note blockquote { margin: var(--space-2) 0 0; padding-left: var(--space-3); border-left: var(--border-width-thick) solid var(--status-overdue-border); color: var(--text-secondary); font-size: var(--text-xs); }
+  .small { margin-top: var(--space-3); font-size: var(--text-sm); color: var(--text-secondary); }
+  .foot { margin-top: var(--space-12); padding-top: var(--space-4); border-top: var(--border-hairline-style); font-size: var(--text-xs); color: var(--text-secondary); }
+  @media (max-width: 860px) { .hero, .grid, .two { grid-template-columns: minmax(0, 1fr); } h1 { font-size: var(--text-3xl); } }
+</style>
+</head>
+<body>
+<header class="rail">
+  <div class="rail__inner">
+    <div class="brand">
+      <img src="./logo.svg" width="26" height="26" alt="">
+      <span class="brand__name">Kvit<span class="brand__sub">Bogholderi</span></span>
+    </div>
+    <nav>
+      <a href="#funktioner">Hvad kan det</a>
+      <a href="#ai">AI-adgang</a>
+      <a href="#hent">Hent</a>
+      <a href="./whitepaper.html">Hvorfor</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <p class="kicker">Fakturering og bogholderi til én dansk virksomhed</p>
+      <h1>Kvit og frit. Fire gange om året.</h1>
+      <p class="lede">Kvit udsteder fakturaer med en ubrudt nummerserie, holder bilag og udgifter sammen med deres moms, og gør de fire kvartalsfrister til tre tal, du skriver ind på skat.dk. Det kører på din egen computer eller server, og alt, det ved, ligger i én mappe, du kan kopiere som backup.</p>
+      <div class="actions">
+        <a class="btn" href="#hent">Hent Kvit</a>
+        <a class="btn btn--secondary" href="https://github.com/kvit-app/faktura/blob/main/GUIDE.md">Læs brugervejledningen</a>
+      </div>
+    </div>
+    <img class="shot" src="./img/overblik.png" alt="Overblik: udestående og forfaldne fakturaer, omsætning år til dato og moms for kvartalet" width="1280" height="800">
+  </section>
+
+  <h2 id="funktioner">Hvad kan det</h2>
+  <div class="grid">
+    <div class="card">
+      <img src="./img/kladde.png" alt="Fakturakladde med linjer, konto pr. linje og udkast som PDF" width="1280" height="800" loading="lazy">
+      <div class="card__body"><h3>Fakturaer med ubrudt nummerserie</h3><p>Kladder kan rettes og slettes frit. Nummeret tildeles først i det øjeblik, du trykker <em>Udsted</em> – og så låses fakturaen, PDF'en gemmes som det juridiske dokument, og den kan kun rettes med en kreditnota. Bilag som timeopgørelser samles bag fakturaen i ét PDF-dokument.</p></div>
+    </div>
+    <div class="card">
+      <img src="./img/faktura-pdf.png" alt="Den udstedte faktura som PDF" width="1280" height="1810" loading="lazy">
+      <div class="card__body"><h3>Lovlige fakturaer, pæne at se på</h3><p>Alle lovpligtige felter: CVR, datoer, linjer med enhedspris, moms som separat tal, betalingsbetingelser og betalingsreference. Momsfri handel med begrundelse trykkes på fakturaen. Sort på hvidt, klar til enhver printer.</p></div>
+    </div>
+    <div class="card">
+      <img src="./img/udgifter.png" alt="Udgifter med bilagsnumre, konto og moms" width="1280" height="800" loading="lazy">
+      <div class="card__body"><h3>Udgifter med bilag</h3><p>Hver udgift får det næste bilagsnummer og sit bilag vedhæftet (PDF, JPG eller PNG). Købsmoms tastes fra bilaget – for 25 % passer ikke altid – og hver post bogføres på en konto i en lille, flad kontoplan.</p></div>
+    </div>
+    <div class="card">
+      <img src="./img/moms.png" alt="Momsindberetning med salgsmoms, købsmoms og momstilsvar pr. kvartal" width="1280" height="800" loading="lazy">
+      <div class="card__body"><h3>Moms uden regneark</h3><p>Vælg kvartalet, og læs de tre tal, der svarer til felterne på skat.dk: salgsmoms, købsmoms og momstilsvar – med listen over de fakturaer og bilag, der ligger bag. Fristen står altid nederst i menuen.</p></div>
+    </div>
+    <div class="card">
+      <img src="./img/cashflow.png" alt="Cashflow pr. måned med prognose for de kommende måneder" width="1280" height="800" loading="lazy">
+      <div class="card__body"><h3>Cashflow med prognose</h3><p>Ind, ud og bankposition pr. måned. Den igangværende måned og månederne frem er tonede: her lægges åbne fakturaer, ubetalte udgifter og skyldig moms oven i, så du ser, hvor du står ved kvartalets slutning.</p></div>
+    </div>
+    <div class="card">
+      <img src="./img/balance.png" alt="Balance med likvider, debitorer, kreditorer og skyldig moms samt afstemning mod banken" width="1280" height="800" loading="lazy">
+      <div class="card__body"><h3>Afstemning på fem minutter</h3><p>Én gang om måneden skriver du den saldo, banken viser. Stemmer den ikke med Likvider, bogføres forskellen som en korrektion med dato og revisionsspor. Ingen bankintegration, ingen adgangskoder til banken – bare ærlige tal.</p></div>
+    </div>
+  </div>
+
+  <h2 id="ai">AI-adgang med sikkerhedsmodel</h2>
+  <div class="two">
+    <div>
+      <p>Kvit har en indbygget MCP-server, så en AI-assistent (fx Claude) kan arbejde med dit bogholderi: »Hvilke fakturaer forfalder snart?«, »Hvad står jeg i banken?«, »Registrér min saldo: 84.250 kr.« Den kan markere fakturaer betalt, bogføre bankbevægelser, lave kladder og udgifter – og alt, den skriver, står i revisionssporet med afsender <code>api</code>.</p>
+      <p>Tre ting kan den <strong>ikke</strong>: udstede fakturaer, oprette kreditnotaer og slette noget. De to første tager numre fra den lovpligtige serie og er uigenkaldelige; sletning hører ikke til i et bogholderi. Det er ikke en manglende funktion – det er selve sikkerhedsmodellen.</p>
+    </div>
+    <img class="shot" src="./img/fakturaer.png" alt="Fakturalisten med status, forfald og markering af dokumenter, der ikke er sendt" width="1280" height="800" loading="lazy">
+  </div>
+
+  <h2 id="hent">Hent Kvit</h2>
+  <p>Én installation er én virksomhed og én bruger. Vælg det, der passer:</p>
+  <table>
+    <thead><tr><th>Du har</th><th>Sådan gør du</th></tr></thead>
+    <tbody>
+      <tr><td>Windows</td><td>Hent <a href="https://github.com/kvit-app/faktura/releases/latest/">Windows-versionen (.exe)</a> fra seneste udgivelse, dobbeltklik, svar på fire spørgsmål.</td></tr>
+      <tr><td>Mac (Apple Silicon)</td><td>Hent <a href="https://github.com/kvit-app/faktura/releases/latest/">Mac-versionen</a> og start den fra Terminal (vejledning på udgivelsessiden).</td></tr>
+      <tr><td>Linux</td><td>Hent <a href="https://github.com/kvit-app/faktura/releases/latest/">Linux-versionen</a>, gør den kørbar, og start den.</td></tr>
+      <tr><td>En server med Docker (anbefalet)</td><td><a href="https://github.com/kvit-app/faktura/releases/latest/download/install.sh">install.sh</a> (macOS/Linux) eller <a href="https://github.com/kvit-app/faktura/releases/latest/download/install.ps1">install.ps1</a> (Windows). Fire spørgsmål, så kører det.</td></tr>
+    </tbody>
+  </table>
+  <pre>curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash</pre>
+  <p class="small">Kontrolsummer for alle filer ligger i <a href="https://github.com/kvit-app/faktura/releases/latest/download/SHA256SUMS">SHA256SUMS</a>. Opdatering sletter aldrig data: databasen kopieres til <code>data/backups/</code>, før noget ændres.</p>
+
+  <div class="two" style="margin-top:var(--space-10)">
+    <div>
+      <p class="kicker">Læs mere</p>
+      <ul>
+        <li><a href="https://github.com/kvit-app/faktura/blob/main/GUIDE.md">Brugervejledning</a> – kom i gang, fakturaer, udgifter, moms, månedsrutinen, AI-adgang, eksport.</li>
+        <li><a href="./whitepaper.html">Hvorfor Kvit er bygget sådan</a> – to sider om designet: ingen posteringsmotor, rækkerne er journalen.</li>
+        <li><a href="https://github.com/kvit-app/faktura/blob/main/HOSTING.md">Hosting-vejledning</a> (engelsk) – VPN, offentlig adgang bag Caddy, backup, opdatering.</li>
+        <li><a href="https://github.com/kvit-app/faktura">Kildekoden</a> – open source, én mappe med alle data, ingen abonnementer.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <strong>Sikkerhed, ærligt sagt.</strong> Kvit er bygget til én bruger på et privat netværk. Det har ét fælles kodeord, ingen to-faktor, ingen låsning ved brute force, og det er ikke sikkerhedsrevideret. Kør det på din egen maskine eller bag en VPN som Tailscale; læs hosting-vejledningen, før du åbner det mod internettet.
+      <blockquote lang="en">Faktura is built for one user on a private network. It has a single shared password, no 2FA, no brute-force lockout, and has not been security audited. The recommended setup is VPN-only access (e.g. Tailscale). Exposing it directly to the internet is at your own risk.</blockquote>
+    </div>
+  </div>
+
+  <p class="foot">Kvit · dansk brugerflade, kun DKK · én virksomhed pr. installation · skærmbillederne er fra programmet med testdata.</p>
+</main>
+</body>
+</html>

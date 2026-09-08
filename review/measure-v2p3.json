@@ -1,0 +1,635 @@
+{
+  "balanceDd": {
+    "1152": [
+      {
+        "label": "Likvider",
+        "dd": "105.305,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 100,
+        "dtW": 270,
+        "rowW": 386,
+        "hintLines": 2
+      },
+      {
+        "label": "Debitorer",
+        "dd": "27.750,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 93,
+        "dtW": 156,
+        "rowW": 386,
+        "hintLines": 1
+      },
+      {
+        "label": "Aktiver i alt",
+        "dd": "133.055,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 123,
+        "dtW": 70,
+        "rowW": 386,
+        "hintLines": 0
+      },
+      {
+        "label": "Kreditorer",
+        "dd": "2.999,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 86,
+        "dtW": 165,
+        "rowW": 386,
+        "hintLines": 1
+      },
+      {
+        "label": "Skyldige kreditnotaer",
+        "dd": "15.000,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 93,
+        "dtW": 269,
+        "rowW": 386,
+        "hintLines": 1
+      },
+      {
+        "label": "Skyldig moms",
+        "dd": "1.245,20 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 86,
+        "dtW": 284,
+        "rowW": 386,
+        "hintLines": 2
+      },
+      {
+        "label": "Forpligtelser i alt",
+        "dd": "19.244,20 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 114,
+        "dtW": 105,
+        "rowW": 386,
+        "hintLines": 0
+      }
+    ],
+    "1280": [
+      {
+        "label": "Likvider",
+        "dd": "105.305,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 100,
+        "dtW": 279,
+        "rowW": 450,
+        "hintLines": 1
+      },
+      {
+        "label": "Debitorer",
+        "dd": "27.750,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 93,
+        "dtW": 156,
+        "rowW": 450,
+        "hintLines": 1
+      },
+      {
+        "label": "Aktiver i alt",
+        "dd": "133.055,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 123,
+        "dtW": 70,
+        "rowW": 450,
+        "hintLines": 0
+      },
+      {
+        "label": "Kreditorer",
+        "dd": "2.999,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 86,
+        "dtW": 165,
+        "rowW": 450,
+        "hintLines": 1
+      },
+      {
+        "label": "Skyldige kreditnotaer",
+        "dd": "15.000,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 93,
+        "dtW": 269,
+        "rowW": 450,
+        "hintLines": 1
+      },
+      {
+        "label": "Skyldig moms",
+        "dd": "1.245,20 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 86,
+        "dtW": 335,
+        "rowW": 450,
+        "hintLines": 1
+      },
+      {
+        "label": "Forpligtelser i alt",
+        "dd": "19.244,20 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 114,
+        "dtW": 105,
+        "rowW": 450,
+        "hintLines": 0
+      }
+    ],
+    "1440": [
+      {
+        "label": "Likvider",
+        "dd": "105.305,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 100,
+        "dtW": 279,
+        "rowW": 530,
+        "hintLines": 1
+      },
+      {
+        "label": "Debitorer",
+        "dd": "27.750,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 93,
+        "dtW": 156,
+        "rowW": 530,
+        "hintLines": 1
+      },
+      {
+        "label": "Aktiver i alt",
+        "dd": "133.055,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 123,
+        "dtW": 70,
+        "rowW": 530,
+        "hintLines": 0
+      },
+      {
+        "label": "Kreditorer",
+        "dd": "2.999,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 86,
+        "dtW": 165,
+        "rowW": 530,
+        "hintLines": 1
+      },
+      {
+        "label": "Skyldige kreditnotaer",
+        "dd": "15.000,00 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 93,
+        "dtW": 269,
+        "rowW": 530,
+        "hintLines": 1
+      },
+      {
+        "label": "Skyldig moms",
+        "dd": "1.245,20 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 86,
+        "dtW": 335,
+        "rowW": 530,
+        "hintLines": 1
+      },
+      {
+        "label": "Forpligtelser i alt",
+        "dd": "19.244,20 kr.",
+        "ddLines": 1,
+        "ddWs": "nowrap",
+        "ddW": 114,
+        "dtW": 105,
+        "rowW": 530,
+        "hintLines": 0
+      }
+    ]
+  },
+  "issuedLines": {
+    "1152": {
+      "wrap": 558,
+      "table": 558,
+      "hiddenPx": 0,
+      "cols": [
+        "Beskrivelse",
+        "Antal",
+        "Enhed",
+        "Pris",
+        "Beløb",
+        "Konto"
+      ],
+      "rows": [
+        [
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 2,
+            "w": 133,
+            "text": "Konceptudvikling, uge 12–14"
+          },
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 2,
+            "w": 127,
+            "text": "1000 Konsulentydelser"
+          }
+        ],
+        [
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 1,
+            "w": 133,
+            "text": "Projektledelse"
+          },
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 2,
+            "w": 127,
+            "text": "1000 Konsulentydelser"
+          }
+        ]
+      ],
+      "rowHeights": [
+        44,
+        44
+      ]
+    },
+    "1280": {
+      "wrap": 643,
+      "table": 643,
+      "hiddenPx": 0,
+      "cols": [
+        "Beskrivelse",
+        "Antal",
+        "Enhed",
+        "Pris",
+        "Beløb",
+        "Konto"
+      ],
+      "rows": [
+        [
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 2,
+            "w": 190,
+            "text": "Konceptudvikling, uge 12–14"
+          },
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 2,
+            "w": 156,
+            "text": "1000 Konsulentydelser"
+          }
+        ],
+        [
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 1,
+            "w": 190,
+            "text": "Projektledelse"
+          },
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 2,
+            "w": 156,
+            "text": "1000 Konsulentydelser"
+          }
+        ]
+      ],
+      "rowHeights": [
+        44,
+        44
+      ]
+    },
+    "1440": {
+      "wrap": 750,
+      "table": 750,
+      "hiddenPx": 0,
+      "cols": [
+        "Beskrivelse",
+        "Antal",
+        "Enhed",
+        "Pris",
+        "Beløb",
+        "Konto"
+      ],
+      "rows": [
+        [
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 1,
+            "w": 222,
+            "text": "Konceptudvikling, uge 12–14"
+          },
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 1,
+            "w": 181,
+            "text": "1000 Konsulentydelser"
+          }
+        ],
+        [
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 1,
+            "w": 222,
+            "text": "Projektledelse"
+          },
+          {
+            "cls": "wrap",
+            "ws": "normal",
+            "lines": 1,
+            "w": 181,
+            "text": "1000 Konsulentydelser"
+          }
+        ]
+      ],
+      "rowHeights": [
+        30,
+        30
+      ]
+    }
+  },
+  "editorHead": {
+    "1152": {
+      "heads": [
+        "Beskrivelse og konto",
+        "Antal",
+        "Enhed",
+        "Pris ekskl. moms",
+        "Beløb",
+        "Fjern"
+      ],
+      "firstHeadLines": 1,
+      "firstHeadW": 330,
+      "headH": 32,
+      "selectAria": "Konto, linje 1",
+      "selectValueText": "1000 Konsulentydelser",
+      "selectOptions": [
+        "1000 Konsulentydelser",
+        "1100 Andet salg",
+        "1200 Momsfrit salg"
+      ],
+      "inputAria": "Beskrivelse, linje 1",
+      "inputPlaceholder": "Ydelse"
+    },
+    "1440": {
+      "heads": [
+        "Beskrivelse og konto",
+        "Antal",
+        "Enhed",
+        "Pris ekskl. moms",
+        "Beløb",
+        "Fjern"
+      ],
+      "firstHeadLines": 1,
+      "firstHeadW": 218,
+      "headH": 32,
+      "selectAria": "Konto, linje 1",
+      "selectValueText": "1000 Konsulentydelser",
+      "selectOptions": [
+        "1000 Konsulentydelser",
+        "1100 Andet salg",
+        "1200 Momsfrit salg"
+      ],
+      "inputAria": "Beskrivelse, linje 1",
+      "inputPlaceholder": "Ydelse"
+    }
+  },
+  "cashflow": {
+    "1152": {
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 862,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 1.250,00 | 15.800,25 | −14.550,25 | 105.305,00"
+      ],
+      "colWidths": [
+        168,
+        167,
+        167,
+        180,
+        180
+      ],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (92.750,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (1.250,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introMaxW": "491.639px",
+      "introFont": "13px / 19.5px",
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 272
+    },
+    "1280": {
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 990,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 1.250,00 | 15.800,25 | −14.550,25 | 105.305,00"
+      ],
+      "colWidths": [
+        193,
+        191,
+        191,
+        207,
+        207
+      ],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (92.750,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (1.250,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introMaxW": "491.639px",
+      "introFont": "13px / 19.5px",
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 315
+    },
+    "1440": {
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 1150,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 1.250,00 | 15.800,25 | −14.550,25 | 105.305,00"
+      ],
+      "colWidths": [
+        224,
+        222,
+        222,
+        240,
+        240
+      ],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (92.750,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (1.250,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introMaxW": "491.639px",
+      "introFont": "13px / 19.5px",
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 368
+    }
+  },
+  "indstillinger": {
+    "1152": {
+      "hint": "Saldoen ved dagens begyndelse; bevægelser på selve datoen tælles med. Cashflow og balance tæller herfra.",
+      "hintLines": 4,
+      "fieldW": 190,
+      "fieldClass": "field field--span-3 ",
+      "inputW": 130,
+      "siblingHint": null,
+      "siblingHintLines": null
+    },
+    "1440": {
+      "hint": "Saldoen ved dagens begyndelse; bevægelser på selve datoen tælles med. Cashflow og balance tæller herfra.",
+      "hintLines": 3,
+      "fieldW": 262,
+      "fieldClass": "field field--span-3 ",
+      "inputW": 130,
+      "siblingHint": null,
+      "siblingHintLines": null
+    }
+  },
+  "creditNotes": [
+    {
+      "id": 14,
+      "nr": 1010,
+      "paidDate": "2026-09-08",
+      "originalPaidDate": "2026-09-07",
+      "credits": 12
+    },
+    {
+      "id": 11,
+      "nr": 1008,
+      "paidDate": null,
+      "originalPaidDate": null,
+      "credits": 10
+    },
+    {
+      "id": 6,
+      "nr": 1006,
+      "paidDate": null,
+      "originalPaidDate": "2026-06-01",
+      "credits": 2
+    }
+  ],
+  "creditNoteUnpaidOriginal": {
+    "foot": [
+      "hint spacer | Kreditnotaen er udstedt og kan ikke ændres.",
+      "hint | Modregner en ubetalt faktura – intet at refundere."
+    ],
+    "forms": 0,
+    "primaries": 0,
+    "facts": [
+      "Kunde",
+      "Berlin Software GmbHFriedrichstraße 100, 10117 Berlin",
+      "Dato",
+      "08.09.2026",
+      "Refunderet",
+      "—",
+      "Betalingsreference",
+      "Reg. 1234 Konto 1234567890",
+      "Moms",
+      "25 %",
+      "Vedrører",
+      "Faktura 1007"
+    ]
+  }
+}

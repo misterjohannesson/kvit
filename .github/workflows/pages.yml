@@ -1,0 +1,45 @@
+# Product site + whitepaper on GitHub Pages: plain HTML from site/, styled with the
+# app's own tokens.css (copied in at deploy time so the two never drift).
+# upload-pages-artifact and deploy-pages are the accepted GitHub-specific exception.
+name: pages
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['site/**', 'tokens.css', 'static/logo.svg', 'static/favicon.svg', '.github/workflows/pages.yml']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble the site
+        run: |
+          cp tokens.css site/
+          cp static/logo.svg static/favicon.svg site/
+          # The sources carry the default slug; the published site links to this repository.
+          sed -i "s#github.com/kvit-app/faktura#github.com/${{ github.repository }}#g" site/index.html site/whitepaper.html
+          test -f site/.nojekyll
+          test -f site/index.html && test -f site/whitepaper.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

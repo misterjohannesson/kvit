@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvit — hvorfor det er bygget sådan</title>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-canvas); color: var(--text-body); font-family: var(--font-ui); font-size: var(--text-md); line-height: var(--leading-normal); }
+  a { color: var(--text-link); text-decoration: none; }
+  .doc { max-width: 72ch; margin: 0 auto; padding: var(--space-16) var(--space-8); }
+  .eyebrow { margin: 0 0 var(--space-2); font-size: var(--text-xs); letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--text-label); }
+  h1 { margin: 0 0 var(--space-6); font-family: var(--font-display); font-size: var(--text-3xl); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); line-height: var(--leading-tight); color: var(--text-primary); }
+  h2 { margin: var(--space-10) 0 var(--space-3); font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); color: var(--text-primary); }
+  p, li { max-width: var(--layout-prose-max); orphans: 3; widows: 3; }
+  p { margin: 0 0 var(--space-4); }
+  code { font-family: var(--font-numeric); font-size: var(--text-sm); }
+  .rule { border: 0; border-top: var(--border-hairline-style); margin: var(--space-8) 0; }
+  .quote { margin: 0 0 var(--space-4); padding: var(--space-4); border-left: var(--border-width-thick) solid var(--status-overdue-border); background: var(--status-overdue-surface); }
+  .meta { font-family: var(--font-numeric); font-size: var(--text-xs); color: var(--text-secondary); }
+  .back { font-size: var(--text-sm); }
+  /* Printregler fra style.md afsnit 7: A4, sort/hvid, ingen chrome. tokens.css peger farver om til tryksværte under print. */
+  @media print {
+    @page { size: A4 portrait; margin: 18mm 18mm 22mm; }
+    body { font-size: var(--print-text-size); line-height: var(--print-leading); }
+    .doc { max-width: none; padding: 0; }
+    .quote { border-left: var(--print-rule); background: none; }
+    .back { display: none; }
+    a { color: inherit; }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: var(--print-text-small); }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<article class="doc">
+  <p class="back"><a href="./">← Kvit</a></p>
+  <p class="eyebrow">Kvit · whitepaper</p>
+  <h1>Rækkerne er journalen</h1>
+  <p class="meta">Designposition for et fakturerings- og bogholderiværktøj til én bruger, med et AI-lag. To sider.</p>
+
+  <h2>Problemet</h2>
+  <p>En enkeltmandsvirksomhed i Danmark har tre tilbagevendende pligter: sende fakturaer, der er gyldige efter bogføringsloven, gemme hvert køb med sit bilag, og indberette moms fire gange om året. Værktøjerne til det er enten regneark (fleksible, fejlbehæftede, uden revisionsspor) eller regnskabssystemer bygget til bogholdere (posteringsmotorer, kontoplaner med hundreder af linjer, et abonnement og et login til en bogholder, virksomheden ikke har).</p>
+  <p>Det, ejeren faktisk har brug for, er lille: en ubrudt fakturanummerserie, dokumenter der ikke kan ændres efter afsendelse, bilag ved siden af de tal, de begrunder, tre momstal pr. kvartal og en bankposition, der stemmer med banken. Alt andet er rapportering over de fakta. Kvit er bygget om den iagttagelse og nægter at vokse ud over den.</p>
+
+  <h2>Designpositionen</h2>
+  <p><strong>Ingen posteringsmotor.</strong> Kvit har ingen journaltabel og ingen debet og kredit. Fakturaer, udgifter og bankbevægelser er kilderækkerne, og finansvisningerne (resultat, cashflow, balance, momsrapporten) er forespørgsler over dem. En række, der findes, er et faktum; en rapport er en sum. Der er intet at afstemme mellem et dokument og dets postering, for der er ingen postering.</p>
+  <p><strong>Uforanderlig serie.</strong> Et fakturanummer tildeles kun i det øjeblik, fakturaen udstedes, i samme databasetransaktion som fryser dokumentet og arkiverer dets PDF. Kladder har intet nummer og må slettes; udstedte dokumenter kan ikke redigeres eller slettes ad nogen vej i koden, og selve databasen håndhæver det med triggere. Den eneste rettelse er en kreditnota, som får det næste nummer i samme serie. Resultatet er en serie uden huller og uden omskrevet historie – det, en revisor vil se.</p>
+  <p><strong>Periodisering hvor loven kigger, kasse hvor ejeren kigger.</strong> Momsrapporten og resultatet løber på dokumentdatoer. Cashflow og balance løber på betalingsdatoer. De to grundlag lever side om side med vilje, og skærmene siger, hvilket de bruger.</p>
+  <p><strong>Afstemningsritualet.</strong> Én gang om måneden skriver ejeren den saldo, banken viser. Afviger den fra det, Kvit har regnet ud, bogføres forskellen som en synlig, dateret korrektion med det indtastede tal i revisionssporet. Fem minutter, og kassevisningerne bliver ved med at være ærlige – uden bankintegration.</p>
+  <p><strong>Én mappe.</strong> Databasen er én SQLite-fil ved siden af PDF'erne og bilagene. Backup er at kopiere en mappe; gendannelse er at kopiere den tilbage. Før enhver skemaændring kopieres den gamle fil automatisk til side, så en opdatering aldrig sletter data.</p>
+
+  <h2>AI-laget, og hvad det ikke må</h2>
+  <p>Kvit leveres med en MCP-server, så en AI-assistent kan arbejde med bøgerne: liste hvad der forfalder, oplyse bankpositionen, læse kvartalets momstal, bogføre en bankbevægelse, markere en faktura betalt, køre afstemningen, lave en kladde til en faktura eller en udgift. Det er en tynd klient over programmets eget HTTP-API med en nøgle; alle regler bor i programmet, og enhver skrivning logges med afsenderen <code>api</code>.</p>
+  <p>Tre ting er bevidst umulige den vej: at udstede fakturaer, at oprette kreditnotaer og at slette noget. Udstedelse og kreditering tager numre fra den lovpligtige serie og er uigenkaldelige; sletning hører ikke til i et bogholderi. En assistent kan lave kladden og sige det – men et menneske trykker på knappen. Det er ikke en manglende funktion, der venter på et flueben. Det er sikkerhedsmodellen.</p>
+
+  <h2>Ærlighedsafsnittet</h2>
+  <p>Hosting-vejledningen åbner med denne sætning, og den gælder hele produktet:</p>
+  <div class="quote" lang="en">Faktura is built for one user on a private network. It has a single shared password, no 2FA, no brute-force lockout, and has not been security audited. The recommended setup is VPN-only access (e.g. Tailscale). Exposing it directly to the internet is at your own risk — this guide reduces that risk, it does not remove it.</div>
+  <p>Kvit er single-tenant med vilje: én installation, én virksomhed, én bruger. Det laver ikke løn, flere valutaer, e-fakturering eller – endnu – et budgetmodul. Det gør det lille sæt ting ovenfor omhyggeligt, gemmer fem års regnskabsmateriale i en mappe, du selv ejer, og holder sig ellers ude af vejen.</p>
+
+  <hr class="rule">
+  <p class="meta">Kildekode, installationsfiler og hosting-vejledning ligger på projektsiden. Dokumentet er beregnet til at blive printet fra browseren; der er ingen separat PDF.</p>
+</article>
+</body>
+</html>

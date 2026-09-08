@@ -1,0 +1,13 @@
+*.log
+.env
+.svelte-kit/
+build/
+data-*/
+data/
+dist/
+node_modules/
+packaging/stage/
+test-results/
+site/tokens.css
+site/logo.svg
+site/favicon.svg

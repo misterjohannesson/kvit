@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788815193457,
+      "tag": "0000_clean_toxin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788818234833,
+      "tag": "0001_indexes_and_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788819751177,
+      "tag": "0002_status_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788820486420,
+      "tag": "0003_credited_by_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788821235839,
+      "tag": "0004_credited_by_target",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788821867806,
+      "tag": "0005_credited_by_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788823587153,
+      "tag": "0006_accounts_and_cash",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1788823588341,
+      "tag": "0007_drop_expense_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788825078853,
+      "tag": "0008_cash_movement_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1788855127904,
+      "tag": "0009_customer_payment_terms",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1788883867423,
+      "tag": "0010_invoice_sent_and_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1788885897686,
+      "tag": "0011_audit_actor",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,344 @@
+/* ==========================================================================
+   tokens.css — Kvit design tokens
+   Danish invoicing / bookkeeping app. Direction "Kontor":
+   deep slate-navy chrome framing a warm-light work area, brass primary.
+   Custom properties only. :root + a print block that only re-points values.
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------ *
+   * 1. PALETTE — raw ramps. Do not use directly in components;
+   *    use the semantic tokens in section 2.
+   * ------------------------------------------------------------------ */
+
+  /* Slate ramp — cool blue-grey. Light end is the work area, dark end is
+     the navigation chrome. Chroma stays low so data never fights the UI. */
+  --slate-0:   oklch(99.2% 0.004 250);   /* surface / paper           */
+  --slate-25:  oklch(98.4% 0.005 250);   /* raised header             */
+  --slate-50:  oklch(96.6% 0.008 250);   /* canvas, sunken rows       */
+  --slate-75:  oklch(96.4% 0.009 250);   /* table head                */
+  --slate-100: oklch(91.0% 0.010 250);   /* hairlines                 */
+  --slate-200: oklch(86.5% 0.013 250);   /* input + card borders      */
+  --slate-300: oklch(75.0% 0.018 252);   /* strong borders, disabled  */
+  --slate-400: oklch(66.0% 0.020 252);   /* placeholder               */
+  --slate-500: oklch(54.0% 0.016 255);   /* secondary text            */
+  --slate-600: oklch(49.0% 0.018 255);   /* labels                    */
+  --slate-700: oklch(37.0% 0.020 255);   /* body                      */
+  --slate-800: oklch(30.0% 0.030 258);   /* sidebar hover             */
+  --slate-850: oklch(28.0% 0.038 258);   /* SIDEBAR / rail            */
+  --slate-900: oklch(24.0% 0.024 255);   /* headings, ink             */
+  --slate-950: oklch(18.0% 0.026 258);   /* deepest ink               */
+
+  /* Brass — the only warm hue. Reserved for the primary action and the
+     brand mark. Light enough to carry dark ink at 4.5:1+. */
+  --brass-100: oklch(96.4% 0.030 80);
+  --brass-200: oklch(88.0% 0.055 80);
+  --brass-400: oklch(82.0% 0.115 80);
+  --brass-500: oklch(74.0% 0.135 78);    /* primary fill              */
+  --brass-600: oklch(68.0% 0.130 76);    /* primary hover             */
+  --brass-800: oklch(38.0% 0.075 72);    /* brass text on light       */
+  --brass-ink: oklch(24.0% 0.040 70);    /* ink used ON brass         */
+
+  /* Accent — informational blue. Focus, links, selection. Never a fill
+     that competes with brass. */
+  --accent-50:  oklch(95.4% 0.026 250);
+  --accent-100: oklch(91.0% 0.040 250);
+  --accent-200: oklch(85.0% 0.050 250);
+  --accent-500: oklch(52.0% 0.115 255);
+  --accent-600: oklch(45.0% 0.100 255);
+  --accent-700: oklch(38.0% 0.090 256);
+
+  /* Status ramps. All share a lightness/chroma budget — surface ~95.6%,
+     border ~85%, ink ~43-47% — so no single state dominates a scanned
+     column. Hue reinforces; the label always carries the meaning. */
+
+  /* åben — issued, not yet due. Informational. */
+  --status-open-surface: oklch(95.4% 0.026 250);
+  --status-open-border:  oklch(85.0% 0.050 250);
+  --status-open-ink:     oklch(43.0% 0.100 252);
+
+  /* forfalden — past due. The only red in the system. */
+  --status-overdue-surface: oklch(95.8% 0.028 22);
+  --status-overdue-border:  oklch(85.0% 0.060 22);
+  --status-overdue-ink:     oklch(47.0% 0.150 22);
+
+  /* betalt — settled. The resting state; deliberately quiet. */
+  --status-paid-surface: oklch(95.6% 0.030 165);
+  --status-paid-border:  oklch(85.0% 0.055 165);
+  --status-paid-ink:     oklch(42.0% 0.085 165);
+
+  /* krediteret — credit note issued. Reads as voided, low energy. */
+  --status-credited-surface: oklch(96.0% 0.018 290);
+  --status-credited-border:  oklch(86.0% 0.038 290);
+  --status-credited-ink:     oklch(45.0% 0.080 290);
+
+  /* kladde — draft. Pure slate, no hue: not yet a real document. */
+  --status-draft-surface: var(--slate-50);
+  --status-draft-border:  var(--slate-200);
+  --status-draft-ink:     var(--slate-600);
+
+  /* ------------------------------------------------------------------ *
+   * 2. SEMANTIC COLOR
+   * ------------------------------------------------------------------ */
+
+  --bg-canvas:        var(--slate-50);
+  --bg-surface:       var(--slate-0);
+  --bg-surface-sunk:  var(--slate-50);
+  --bg-header:        var(--slate-25);
+  --bg-row-alt:       var(--slate-25);
+  --bg-row-hover:     oklch(95.0% 0.020 250);
+  --bg-row-selected:  var(--accent-50);
+  --bg-disabled:      var(--slate-50);
+  --bg-panel-head:    oklch(97.4% 0.007 250);
+  --bg-thead:         var(--slate-75);
+  --bg-tfoot:         oklch(97.4% 0.007 250);
+
+  --text-primary:     var(--slate-900);
+  --text-body:        var(--slate-700);
+  --text-secondary:   var(--slate-500);
+  --text-label:       var(--slate-600);
+  --text-placeholder: var(--slate-400);
+  --text-disabled:    var(--slate-400);
+  --text-inverse:     var(--slate-0);
+  --text-link:        var(--accent-600);
+  --text-negative:    var(--status-overdue-ink);
+
+  --border-hairline:  var(--slate-100);   /* table rules, dividers    */
+  --border-default:   var(--slate-200);   /* inputs, cards            */
+  --border-strong:    var(--slate-300);   /* input hover, table head  */
+  --border-ink:       var(--slate-900);
+
+  --focus-ring:        var(--accent-500);
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 1px;
+
+  /* --- Navigation rail (dark chrome) --------------------------------- */
+  --nav-bg:            var(--slate-850);
+  --nav-border:        oklch(34% 0.040 258);
+  --nav-text:          oklch(84% 0.014 250);
+  --nav-title:         oklch(97% 0.006 250);
+  --nav-muted:         oklch(66% 0.020 252);
+  --nav-hover:         var(--slate-800);
+  --nav-active-bg:     oklch(36% 0.055 258);
+  --nav-active-ink:    oklch(98% 0.005 250);
+  --nav-active-edge:   var(--brass-400);
+
+  /* --- Brand -------------------------------------------------------- */
+  --brand-mark-bg:     var(--brass-400);
+  --brand-mark-ink:    var(--brass-ink);
+  --brand-mark-radius: var(--radius-sm);
+
+  /* --- Primary action ("Udsted") ------------------------------------ */
+  --primary-bg:        var(--brass-500);
+  --primary-bg-hover:  var(--brass-600);
+  --primary-border:    var(--brass-500);
+  --primary-ink:       var(--brass-ink);
+  --primary-shadow:    0 1px 0 oklch(24% 0.030 70 / 0.18);
+
+  /* ------------------------------------------------------------------ *
+   * 3. TYPOGRAPHY
+   * ------------------------------------------------------------------ */
+
+  --font-ui: "Archivo", "Helvetica Neue", Helvetica, "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-ui);          /* Archivo 600, tight       */
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo,
+               Consolas, monospace;
+  --font-numeric: var(--font-mono);        /* all amounts, dates, IDs  */
+
+  /* Base = 13px: dense enough for tables, readable all day. */
+  --text-3xs: 0.625rem;  /* 10px — print small print only        */
+  --text-2xs: 0.6875rem; /* 11px — cell meta, column units       */
+  --text-xs:  0.75rem;   /* 12px — labels, badges, captions      */
+  --text-sm:  0.8125rem; /* 13px — BASE: tables, forms, body     */
+  --text-md:  0.875rem;  /* 14px — long-form paragraphs          */
+  --text-lg:  1rem;      /* 16px — panel titles, sub-totals      */
+  --text-xl:  1.1875rem; /* 19px — section headings              */
+  --text-2xl: 1.4375rem; /* 23px — page title                    */
+  --text-3xl: 1.75rem;   /* 28px — KPI figures, invoice total    */
+  --text-4xl: 2.25rem;   /* 36px — invoice document header only  */
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --display-weight:  600;
+
+  --leading-tight:  1.15;
+  --leading-snug:   1.35;
+  --leading-normal: 1.5;
+  --leading-loose:  1.65;
+
+  --tracking-tight:  -0.01em;  /* >= 23px                    */
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;   /* uppercase column heads     */
+  --tracking-wider:  0.08em;   /* uppercase eyebrow / groups */
+
+  /* ------------------------------------------------------------------ *
+   * 4. SPACING — 4px base, no half steps
+   * ------------------------------------------------------------------ */
+
+  --space-0:  0;
+  --space-1:  0.25rem;  /*  4px */
+  --space-2:  0.5rem;   /*  8px */
+  --space-3:  0.75rem;  /* 12px */
+  --space-4:  1rem;     /* 16px */
+  --space-5:  1.25rem;  /* 20px */
+  --space-6:  1.5rem;   /* 24px */
+  --space-8:  2rem;     /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+
+  /* ------------------------------------------------------------------ *
+   * 5. LAYOUT
+   * ------------------------------------------------------------------ */
+
+  --layout-sidebar-width: 224px;
+  --layout-topbar-height: 52px;
+  --layout-content-max:   1280px;
+  --layout-prose-max:     68ch;
+  --layout-gutter:        var(--space-8);
+  --layout-column-gap:    var(--space-6);
+  --layout-columns:       12;
+
+  /* Table density */
+  --table-row-height:       36px;  /* default (comfortable) */
+  --table-row-height-dense: 30px;  /* compact toggle        */
+  --table-head-height:      32px;
+  --table-cell-pad-x:       var(--space-3);
+  --table-cell-pad-y:       var(--space-2);
+  --table-rule:             1px solid var(--border-hairline);
+
+  /* Controls */
+  --control-height-sm: 26px;
+  --control-height:    32px;
+  --control-height-lg: 38px;
+  --control-pad-x:     var(--space-3);
+  --field-max-width:   360px;
+  /* Field widths by content (style.md section 4): quantities/units, dates and short amounts, file pickers. */
+  --field-width-xs:    90px;
+  --field-width-sm:    130px;
+  --field-width-md:    260px;
+
+  /* ------------------------------------------------------------------ *
+   * 6. RADII — small and consistent. Nothing pill-shaped.
+   * ------------------------------------------------------------------ */
+
+  --radius-none: 0;
+  --radius-xs:   2px;   /* badges, checkboxes       */
+  --radius-sm:   3px;   /* inputs, buttons, mark    */
+  --radius-md:   5px;   /* cards, panels            */
+  --radius-lg:   8px;   /* modals, popovers         */
+  --radius-full: 999px;
+
+  /* ------------------------------------------------------------------ *
+   * 7. BORDERS
+   * ------------------------------------------------------------------ */
+
+  --border-width:       1px;
+  --border-width-thick: 2px;
+  --border-hairline-style: var(--border-width) solid var(--border-hairline);
+  --border-default-style:  var(--border-width) solid var(--border-default);
+  --border-strong-style:   var(--border-width) solid var(--border-strong);
+
+  /* ------------------------------------------------------------------ *
+   * 8. SHADOWS — borders do the structural work; shadows only signal
+   *    "floating above the page". Never on cards or table rows.
+   * ------------------------------------------------------------------ */
+
+  --shadow-none:     none;
+  --shadow-raised:   0 1px 1px oklch(18% 0.026 258 / 0.04);
+  --shadow-dropdown: 0 1px 2px oklch(18% 0.026 258 / 0.06),
+                     0 6px 16px -4px oklch(18% 0.026 258 / 0.12);
+  --shadow-modal:    0 2px 4px oklch(18% 0.026 258 / 0.06),
+                     0 18px 40px -8px oklch(18% 0.026 258 / 0.20);
+  --shadow-sticky:   0 1px 0 var(--border-hairline),
+                     0 4px 8px -6px oklch(18% 0.026 258 / 0.18);
+
+  /* ------------------------------------------------------------------ *
+   * 9. MOTION — utility app: fast, or not at all.
+   * ------------------------------------------------------------------ */
+
+  --duration-instant: 80ms;
+  --duration-fast:    140ms;
+  --ease-standard:    cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* ------------------------------------------------------------------ *
+   * 10. Z-INDEX
+   * ------------------------------------------------------------------ */
+
+  --z-base:     0;
+  --z-sticky:   10;
+  --z-dropdown: 100;
+  --z-modal:    1000;
+  --z-toast:    2000;
+
+  /* ------------------------------------------------------------------ *
+   * 11. PRINT — page geometry for the invoice document
+   * ------------------------------------------------------------------ */
+
+  --print-page-width:  210mm;   /* A4 */
+  --print-page-height: 297mm;
+  --print-margin-top:    18mm;
+  --print-margin-side:   18mm;
+  --print-margin-bottom: 22mm;  /* room for repeating footer */
+  --print-text-size:   9.5pt;
+  --print-text-small:  8pt;
+  --print-leading:     1.4;
+  --print-rule:        0.5pt solid #6b6b6b;
+}
+
+/* Print re-points tokens to ink-on-paper values, so component CSS that
+   references tokens needs no print overrides of its own. Brass and the
+   navy rail do not print: the invoice is a monochrome legal document. */
+@media print {
+  :root {
+    --bg-canvas: #fff;
+    --bg-surface: #fff;
+    --bg-surface-sunk: #fff;
+    --bg-header: #fff;
+    --bg-row-alt: #fff;
+    --bg-row-hover: #fff;
+    --bg-row-selected: #fff;
+    --bg-panel-head: #fff;
+    --bg-thead: #fff;
+    --bg-tfoot: #fff;
+
+    --text-primary: #000;
+    --text-body: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-label: #4a4a4a;
+    --text-link: #000;
+
+    --border-hairline: #c9c9c9;
+    --border-default: #9a9a9a;
+    --border-strong: #6b6b6b;
+
+    --nav-bg: #fff;
+    --nav-text: #000;
+    --nav-title: #000;
+    --brand-mark-bg: #fff;
+    --brand-mark-ink: #000;
+
+    --primary-bg: #fff;
+    --primary-ink: #000;
+    --primary-border: #6b6b6b;
+    --primary-shadow: none;
+
+    --status-open-surface: #fff;
+    --status-overdue-surface: #fff;
+    --status-paid-surface: #fff;
+    --status-credited-surface: #fff;
+    --status-draft-surface: #fff;
+    --status-open-ink: #000;
+    --status-overdue-ink: #000;
+    --status-paid-ink: #000;
+    --status-credited-ink: #000;
+    --status-draft-ink: #000;
+
+    --shadow-raised: none;
+    --shadow-dropdown: none;
+    --shadow-modal: none;
+    --shadow-sticky: none;
+  }
+}

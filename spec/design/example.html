@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvit — mønsterside</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   example.html — Kvit pattern reference. Vanilla CSS, tokens only.
+   Every value below comes from tokens.css. Copy blocks as needed.
+   ========================================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg-canvas);
+  color: var(--text-body);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--text-link); text-decoration: none; }
+a:hover { color: var(--accent-700); text-decoration: underline; }
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* ---------- shell ------------------------------------------------------- */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--layout-sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--nav-bg);
+  border-right: var(--border-width) solid var(--nav-border);
+  padding: var(--space-5) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2) var(--space-2);
+}
+.brand__mark {
+  width: 26px; height: 26px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--brand-mark-radius);
+  background: var(--brand-mark-bg);
+  color: var(--brand-mark-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--display-weight);
+}
+.brand__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--display-weight);
+  color: var(--nav-title);
+  letter-spacing: var(--tracking-tight);
+}
+.brand__sub {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--nav-muted);
+}
+
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav__group {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--nav-muted);
+  padding: var(--space-4) var(--space-2) var(--space-1);
+}
+.nav__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--nav-text);
+  font-size: var(--text-sm);
+}
+.nav__item:hover { background: var(--nav-hover); text-decoration: none; color: var(--nav-title); }
+.nav__item[aria-current="page"] {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-ink);
+  font-weight: var(--weight-medium);
+  box-shadow: inset var(--border-width-thick) 0 0 var(--nav-active-edge);
+}
+.nav__count {
+  font-family: var(--font-numeric);
+  font-size: var(--text-2xs);
+  color: var(--nav-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sidebar__foot { margin-top: auto; padding: var(--space-3) var(--space-2) 0; border-top: var(--border-width) solid var(--nav-border); }
+.sidebar__foot p { margin: 0; font-family: var(--font-numeric); font-size: var(--text-2xs); color: var(--nav-muted); }
+
+.main { min-width: 0; }
+
+.topbar {
+  height: var(--layout-topbar-height);
+  background: var(--bg-header);
+  border-bottom: var(--border-hairline-style);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--layout-gutter);
+}
+.topbar__ctx {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.topbar__ctx--now { color: var(--text-primary); font-weight: var(--weight-medium); }
+
+.content {
+  max-width: var(--layout-content-max);
+  padding: var(--space-8) var(--layout-gutter) var(--space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+/* ---------- page header ------------------------------------------------- */
+
+.pagehead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.pagehead__eyebrow {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-1);
+}
+.pagehead h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--display-weight);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+.pagehead__actions { display: flex; gap: var(--space-2); align-items: center; }
+
+/* ---------- buttons ----------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  padding: 0 var(--control-pad-x);
+  border-radius: var(--radius-sm);
+  border: var(--border-default-style);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--duration-instant) var(--ease-standard),
+              border-color var(--duration-instant) var(--ease-standard);
+}
+.btn:hover { background: var(--bg-surface-sunk); border-color: var(--border-strong); }
+
+/* the one primary action */
+.btn--primary {
+  height: var(--control-height-lg);
+  padding: 0 calc(var(--control-pad-x) * 2);
+  background: var(--primary-bg);
+  border-color: var(--primary-border);
+  color: var(--primary-ink);
+  box-shadow: var(--primary-shadow);
+}
+.btn--primary:hover { background: var(--primary-bg-hover); border-color: var(--primary-bg-hover); }
+
+.btn--ghost { border-color: transparent; background: transparent; color: var(--text-link); }
+.btn--ghost:hover { background: var(--bg-row-hover); border-color: transparent; text-decoration: none; }
+
+.btn--danger { color: var(--status-overdue-ink); }
+.btn--danger:hover { border-color: var(--status-overdue-ink); background: var(--status-overdue-surface); }
+
+.btn--sm { height: var(--control-height-sm); font-size: var(--text-xs); padding: 0 var(--space-2); }
+
+.btn[disabled] {
+  background: var(--bg-disabled);
+  border-color: var(--border-default);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+.btn[disabled]:hover { background: var(--bg-disabled); border-color: var(--border-default); }
+
+/* ---------- badges ------------------------------------------------------ */
+
+.badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  border: var(--border-width) solid;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.badge--kladde     { background: var(--status-draft-surface);    border-color: var(--status-draft-border);    color: var(--status-draft-ink); }
+.badge--aaben      { background: var(--status-open-surface);     border-color: var(--status-open-border);     color: var(--status-open-ink); }
+.badge--forfalden  { background: var(--status-overdue-surface);  border-color: var(--status-overdue-border);  color: var(--status-overdue-ink); }
+.badge--betalt     { background: var(--status-paid-surface);     border-color: var(--status-paid-border);     color: var(--status-paid-ink); }
+.badge--krediteret { background: var(--status-credited-surface); border-color: var(--status-credited-border); color: var(--status-credited-ink); }
+
+.badge-note {
+  font-family: var(--font-numeric);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  margin-left: var(--space-2);
+}
+
+/* ---------- panels & sections ------------------------------------------ */
+
+.panel {
+  background: var(--bg-surface);
+  border: var(--border-default-style);
+  border-radius: var(--radius-md);
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-panel-head);
+  border-bottom: var(--border-hairline-style);
+}
+.panel__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--display-weight);
+  color: var(--text-primary);
+  letter-spacing: var(--tracking-tight);
+}
+.panel__meta { font-family: var(--font-numeric); font-size: var(--text-xs); color: var(--text-secondary); }
+.panel__body { padding: var(--space-4); }
+.panel__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-panel-head);
+  border-top: var(--border-hairline-style);
+}
+.panel__foot > .spacer { margin-right: auto; }
+
+.section__head { margin-bottom: var(--space-6); }
+.section__head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--display-weight);
+  color: var(--text-primary);
+  letter-spacing: var(--tracking-tight);
+}
+.section__head p {
+  margin: var(--space-1) 0 0;
+  max-width: var(--layout-prose-max);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* ---------- KPI strip --------------------------------------------------- */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--layout-column-gap);
+}
+.kpi {
+  background: var(--bg-surface);
+  border: var(--border-default-style);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.kpi__label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+.kpi__value {
+  margin-top: var(--space-2);
+  font-family: var(--font-numeric);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.kpi__value--neg { color: var(--text-negative); }
+.kpi__sub { margin-top: var(--space-1); font-size: var(--text-2xs); color: var(--text-secondary); font-family: var(--font-numeric); }
+.kpi__unit { font-size: var(--text-sm); color: var(--text-secondary); margin-left: var(--space-1); }
+.kpi--accent { background: var(--brass-100); border-color: var(--brass-200); }
+
+/* ---------- toolbar / filters ------------------------------------------ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-hairline-style);
+  flex-wrap: wrap;
+}
+.toolbar__spacer { margin-left: auto; }
+
+.segment {
+  display: inline-flex;
+  border: var(--border-default-style);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.segment > * {
+  appearance: none;
+  border: 0;
+  border-left: var(--border-hairline-style);
+  background: var(--bg-surface);
+  color: var(--text-body);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  height: var(--control-height-sm);
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+.segment > *:first-child { border-left: 0; }
+.segment > *:hover { background: var(--bg-surface-sunk); }
+.segment > [aria-pressed="true"] { background: var(--nav-bg); color: var(--nav-active-ink); font-weight: var(--weight-medium); }
+
+/* ---------- form -------------------------------------------------------- */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--layout-columns), minmax(0, 1fr));
+  gap: var(--space-5) var(--layout-column-gap);
+}
+.field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.field--span-6 { grid-column: span 6; }
+.field--span-4 { grid-column: span 4; }
+.field--span-3 { grid-column: span 3; }
+.field--span-12 { grid-column: span 12; }
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-label);
+}
+.label__optional { font-weight: var(--weight-regular); color: var(--text-secondary); }
+
+.input, .select, .textarea {
+  height: var(--control-height);
+  width: 100%;
+  max-width: var(--field-max-width);
+  padding: 0 var(--control-pad-x);
+  border: var(--border-default-style);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.input:hover, .select:hover, .textarea:hover { border-color: var(--border-strong); }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--accent-500); }
+.input::placeholder { color: var(--text-placeholder); }
+
+.input--num { font-family: var(--font-numeric); text-align: right; font-variant-numeric: tabular-nums; }
+.input--date { font-family: var(--font-numeric); max-width: 130px; }
+.input--short { max-width: 130px; }
+
+.textarea { height: auto; min-height: 64px; padding: var(--space-2) var(--control-pad-x); line-height: var(--leading-normal); resize: vertical; }
+
+.select { appearance: none; padding-right: var(--space-8); background-image: none; }
+
+.input[readonly], .input[disabled], .select[disabled] {
+  background: var(--bg-disabled);
+  color: var(--text-disabled);
+}
+
+.hint { font-size: var(--text-xs); color: var(--text-secondary); }
+.error { font-size: var(--text-xs); color: var(--text-negative); }
+.field--error .input { border-color: var(--status-overdue-ink); }
+
+fieldset {
+  margin: 0;
+  padding: var(--space-6) 0 0;
+  border: 0;
+  border-top: var(--border-hairline-style);
+}
+legend {
+  padding: 0 var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-label);
+}
+
+.check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.check input {
+  appearance: none;
+  width: 14px; height: 14px;
+  border: var(--border-strong-style);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  margin: 0;
+  cursor: pointer;
+}
+.check input:checked { background: var(--slate-900); border-color: var(--slate-900); }
+
+/* ---------- tables ------------------------------------------------------ */
+
+.table-wrap { overflow-x: auto; }
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+table.data th, table.data td {
+  padding: var(--table-cell-pad-y) var(--table-cell-pad-x);
+  line-height: var(--leading-snug);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: var(--table-rule);
+  white-space: nowrap;
+}
+table.data thead th {
+  height: var(--table-head-height);
+  padding-top: 0; padding-bottom: 0;
+  background: var(--bg-thead);
+  border-bottom: var(--border-strong-style);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-label);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+table.data tbody tr { height: var(--table-row-height); }
+table.data tbody tr:hover { background: var(--bg-row-hover); }
+table.data tbody tr[aria-selected="true"] {
+  background: var(--bg-row-selected);
+  box-shadow: inset var(--border-width-thick) 0 0 var(--focus-ring);
+}
+
+.num {
+  font-family: var(--font-numeric);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.num--neg { color: var(--text-negative); }
+.mono { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
+.col-status { width: 152px; }
+.col-actions { width: 1%; }
+.cell-sub { display: block; font-size: var(--text-2xs); color: var(--text-secondary); }
+.void { text-decoration: line-through; color: var(--text-secondary); }
+
+table.data tfoot td {
+  background: var(--bg-tfoot);
+  border-top: var(--border-strong-style);
+  border-bottom: 0;
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.row-actions { display: flex; gap: var(--space-1); justify-content: flex-end; }
+
+/* dense variant */
+table.data--dense tbody tr { height: var(--table-row-height-dense); }
+table.data--dense td { padding-top: var(--space-1); padding-bottom: var(--space-1); }
+
+/* ---------- totals block (form sidebar) -------------------------------- */
+
+.totals { display: flex; flex-direction: column; gap: var(--space-2); }
+.totals__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+.totals__row dt { color: var(--text-secondary); }
+.totals__row dd { margin: 0; font-family: var(--font-numeric); font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.totals__row--sum {
+  border-top: var(--border-strong-style);
+  padding-top: var(--space-3);
+  margin-top: var(--space-1);
+  align-items: baseline;
+}
+.totals__row--sum dt { color: var(--text-primary); font-weight: var(--weight-semibold); }
+.totals__row--sum dd { font-size: var(--text-3xl); font-weight: var(--weight-medium); line-height: var(--leading-tight); }
+
+.layout-8-4 {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: var(--layout-column-gap);
+  align-items: start;
+}
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
+.swatch { border: var(--border-hairline-style); border-radius: var(--radius-sm); overflow: hidden; }
+.swatch__chip { height: 40px; border-bottom: var(--border-hairline-style); }
+.swatch__name { padding: var(--space-2) var(--space-3); font-family: var(--font-numeric); font-size: var(--text-2xs); color: var(--text-secondary); }
+
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .layout-8-4 { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media print {
+  .sidebar, .topbar, .toolbar, .pagehead__actions, .panel__foot, .row-actions, .col-actions { display: none !important; }
+  .app { display: block; }
+  body { font-size: var(--print-text-size); line-height: var(--print-leading); }
+  .panel { border: 0; }
+  table.data thead { display: table-header-group; }
+  table.data tbody tr { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand__mark">K</span>
+      <span class="brand__name">Kvit<span class="brand__sub">Bogholderi</span></span>
+    </div>
+
+    <nav class="nav" aria-label="Hovedmenu">
+      <span class="nav__group">Salg</span>
+      <a class="nav__item" href="#" aria-current="page">Fakturaer <span class="nav__count">24</span></a>
+      <a class="nav__item" href="#">Kunder <span class="nav__count">11</span></a>
+      <span class="nav__group">Køb</span>
+      <a class="nav__item" href="#">Udgifter <span class="nav__count">63</span></a>
+      <a class="nav__item" href="#">Kvitteringer <span class="nav__count">4</span></a>
+      <span class="nav__group">Rapporter</span>
+      <a class="nav__item" href="#">Momsindberetning</a>
+      <a class="nav__item" href="#">Resultat</a>
+    </nav>
+    <div class="sidebar__foot"><p>Moms 3. kvt. · frist 01.12.2026</p></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar__ctx topbar__ctx--now">Regnskabsår 2026 · 3. kvartal (jul–sep)</span>
+      <span class="topbar__ctx">Frist for moms: 01.12.2026</span>
+    </header>
+
+    <div class="content">
+
+      <!-- ============================================================ -->
+      <!-- Page header + the one primary action                         -->
+      <!-- ============================================================ -->
+      <div class="pagehead">
+        <div>
+          <p class="pagehead__eyebrow">Salg</p>
+          <h1>Fakturaer</h1>
+        </div>
+        <div class="pagehead__actions">
+          <button type="button" class="btn">Forhåndsvis</button>
+          <button type="button" class="btn btn--primary">Udsted</button>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- KPI strip                                                    -->
+      <!-- ============================================================ -->
+      <section class="kpis" aria-label="Nøgletal">
+        <div class="kpi kpi--accent">
+          <div class="kpi__label">Udestående</div>
+          <div class="kpi__value">86.240,00<span class="kpi__unit">kr.</span></div>
+          <div class="kpi__sub">7 åbne fakturaer</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Forfaldent</div>
+          <div class="kpi__value kpi__value--neg">18.750,00<span class="kpi__unit">kr.</span></div>
+          <div class="kpi__sub">2 fakturaer · ældste +34 dage</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Omsætning i kvartalet</div>
+          <div class="kpi__value">312.900,00<span class="kpi__unit">kr.</span></div>
+          <div class="kpi__sub">ekskl. moms</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Moms at afregne</div>
+          <div class="kpi__value">54.312,50<span class="kpi__unit">kr.</span></div>
+          <div class="kpi__sub">salgsmoms − købsmoms</div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- Invoice list table                                           -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="section__head">
+          <h2>Fakturaoversigt</h2>
+          <p>Hairline-regler, ingen lodrette streger, ingen farvede rækker. Status bæres af badget — ikke af rækkens baggrund.</p>
+        </div>
+
+        <div class="panel">
+          <div class="toolbar">
+            <div class="segment" role="group" aria-label="Filtrér status">
+              <button type="button" aria-pressed="true">Alle</button>
+              <button type="button" aria-pressed="false">Åbne</button>
+              <button type="button" aria-pressed="false">Forfaldne</button>
+              <button type="button" aria-pressed="false">Betalte</button>
+            </div>
+            <label class="label" for="q" hidden>Søg</label>
+            <input class="input input--short" id="q" type="search" placeholder="Søg kunde eller nr." style="max-width:220px">
+            <div class="toolbar__spacer"></div>
+            <div class="segment" role="group" aria-label="Tæthed">
+              <button type="button" aria-pressed="true">Normal</button>
+              <button type="button" aria-pressed="false">Kompakt</button>
+            </div>
+            <button type="button" class="btn btn--sm">Eksportér CSV</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th scope="col">Nr.</th>
+                  <th scope="col">Kunde</th>
+                  <th scope="col">Udstedt</th>
+                  <th scope="col">Forfald</th>
+                  <th scope="col" class="col-status">Status</th>
+                  <th scope="col" class="num">Beløb ekskl.</th>
+                  <th scope="col" class="num">Moms</th>
+                  <th scope="col" class="num">Beløb i alt</th>
+                  <th scope="col" class="col-actions"><span hidden>Handlinger</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">2026-0042</td>
+                  <td>Nordhavn Arkitekter ApS<span class="cell-sub">CVR 38 41 22 07</span></td>
+                  <td class="mono">14.08.2026</td>
+                  <td class="mono">13.09.2026</td>
+                  <td><span class="badge badge--aaben">Åben</span></td>
+                  <td class="num">42.000,00</td>
+                  <td class="num">10.500,00</td>
+                  <td class="num">52.500,00</td>
+                  <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm">Registrér betaling</button></div></td>
+                </tr>
+                <tr aria-selected="true">
+                  <td class="mono">2026-0041</td>
+                  <td>Vestergaard Consulting<span class="cell-sub">Betalingsbetingelser: netto 14</span></td>
+                  <td class="mono">02.08.2026</td>
+                  <td class="mono">16.08.2026</td>
+                  <td>
+                    <span class="badge badge--forfalden">Forfalden</span>
+                    <span class="badge-note">+22 dage</span>
+                  </td>
+                  <td class="num">15.000,00</td>
+                  <td class="num">3.750,00</td>
+                  <td class="num">18.750,00</td>
+                  <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm">Send rykker</button></div></td>
+                </tr>
+                <tr>
+                  <td class="mono">2026-0040</td>
+                  <td>Kolding Kommune<span class="cell-sub">EAN 5798009812345</span></td>
+                  <td class="mono">28.07.2026</td>
+                  <td class="mono">27.08.2026</td>
+                  <td><span class="badge badge--betalt">Betalt</span></td>
+                  <td class="num">96.000,00</td>
+                  <td class="num">24.000,00</td>
+                  <td class="num">120.000,00</td>
+                  <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm">Vis</button></div></td>
+                </tr>
+                <tr>
+                  <td class="mono void">2026-0039</td>
+                  <td>Hjelmsgade Bageri<span class="cell-sub">Krediteret med 2026-K003</span></td>
+                  <td class="mono">21.07.2026</td>
+                  <td class="mono">20.08.2026</td>
+                  <td><span class="badge badge--krediteret">Krediteret</span></td>
+                  <td class="num num--neg">−7.400,00</td>
+                  <td class="num num--neg">−1.850,00</td>
+                  <td class="num num--neg">−9.250,00</td>
+                  <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm">Vis kreditnota</button></div></td>
+                </tr>
+                <tr>
+                  <td class="mono">—</td>
+                  <td>Aarhus Lydstudie<span class="cell-sub">Ikke udstedt</span></td>
+                  <td class="mono">—</td>
+                  <td class="mono">—</td>
+                  <td><span class="badge badge--kladde">Kladde</span></td>
+                  <td class="num">28.500,00</td>
+                  <td class="num">7.125,00</td>
+                  <td class="num">35.625,00</td>
+                  <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm">Redigér</button></div></td>
+                </tr>
+                <tr>
+                  <td class="mono">2026-0038</td>
+                  <td>Frederiksberg Tandklinik</td>
+                  <td class="mono">09.07.2026</td>
+                  <td class="mono">08.08.2026</td>
+                  <td><span class="badge badge--betalt">Betalt</span></td>
+                  <td class="num">12.800,00</td>
+                  <td class="num">3.200,00</td>
+                  <td class="num">16.000,00</td>
+                  <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm">Vis</button></div></td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5">6 rækker · 3. kvartal 2026</td>
+                  <td class="num">186.900,00</td>
+                  <td class="num">46.725,00</td>
+                  <td class="num">233.625,00</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- Form section: 8 / 4 split                                    -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="section__head">
+          <h2>Ny faktura</h2>
+          <p>Én kolonne pr. felt­gruppe, label over feltet, feltbredde efter indhold. Beløb og datoer i monospace.</p>
+        </div>
+
+        <div class="layout-8-4">
+          <div class="panel">
+            <div class="panel__head">
+              <h3 class="panel__title">Fakturaoplysninger</h3>
+              <span class="panel__meta">Kladde · gemt 09:41</span>
+            </div>
+
+            <div class="panel__body">
+              <div class="form-grid">
+                <div class="field field--span-6">
+                  <label class="label" for="kunde">Kunde</label>
+                  <select class="select" id="kunde">
+                    <option>Nordhavn Arkitekter ApS</option>
+                    <option>Vestergaard Consulting</option>
+                    <option>Kolding Kommune</option>
+                  </select>
+                </div>
+                <div class="field field--span-3">
+                  <label class="label" for="cvr">CVR-nummer</label>
+                  <input class="input mono input--short" id="cvr" value="38412207">
+                </div>
+                <div class="field field--span-3">
+                  <label class="label" for="ean">EAN-nummer <span class="label__optional">(valgfri)</span></label>
+                  <input class="input mono input--short" id="ean" placeholder="13 cifre">
+                </div>
+
+                <div class="field field--span-3">
+                  <label class="label" for="udstedt">Udstedelsesdato</label>
+                  <input class="input input--date" id="udstedt" value="07.09.2026">
+                </div>
+                <div class="field field--span-3">
+                  <label class="label" for="levering">Leveringsdato</label>
+                  <input class="input input--date" id="levering" value="31.08.2026">
+                </div>
+                <div class="field field--span-3">
+                  <label class="label" for="vilkaar">Betalingsbetingelser</label>
+                  <select class="select input--short" id="vilkaar">
+                    <option>Netto 14</option>
+                    <option selected>Netto 30</option>
+                    <option>Straks</option>
+                  </select>
+                </div>
+                <div class="field field--span-3 field--error">
+                  <label class="label" for="forfald">Forfaldsdato</label>
+                  <input class="input input--date" id="forfald" value="01.09.2026" aria-describedby="forfald-fejl">
+                  <span class="error" id="forfald-fejl">Kan ikke ligge før udstedelsesdatoen.</span>
+                </div>
+
+                <div class="field field--span-12">
+                  <label class="label" for="ref">Kundereference <span class="label__optional">(valgfri)</span></label>
+                  <input class="input" id="ref" placeholder="Indkøbsordre, projekt eller kontaktperson" style="max-width:none">
+                  <span class="hint">Vises øverst på den udstedte faktura.</span>
+                </div>
+
+                <fieldset class="field--span-12">
+                  <legend>Fakturalinjer</legend>
+                  <div class="table-wrap">
+                    <table class="data data--dense">
+                      <thead>
+                        <tr>
+                          <th scope="col">Beskrivelse</th>
+                          <th scope="col" class="num">Antal</th>
+                          <th scope="col">Enhed</th>
+                          <th scope="col" class="num">Pris</th>
+                          <th scope="col" class="num">Moms</th>
+                          <th scope="col" class="num">Beløb</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Konceptudvikling, uge 32–34</td>
+                          <td class="num">42,00</td>
+                          <td>time</td>
+                          <td class="num">950,00</td>
+                          <td class="num">25 %</td>
+                          <td class="num">39.900,00</td>
+                        </tr>
+                        <tr>
+                          <td>Projektledelse</td>
+                          <td class="num">6,00</td>
+                          <td>time</td>
+                          <td class="num">1.150,00</td>
+                          <td class="num">25 %</td>
+                          <td class="num">6.900,00</td>
+                        </tr>
+                        <tr>
+                          <td>Transport, Kbh–Aarhus</td>
+                          <td class="num">1,00</td>
+                          <td>stk.</td>
+                          <td class="num">1.200,00</td>
+                          <td class="num">25 %</td>
+                          <td class="num">1.200,00</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style="margin-top:var(--space-3)">
+                    <button type="button" class="btn btn--sm">Tilføj linje</button>
+                  </div>
+                </fieldset>
+
+                <div class="field field--span-12">
+                  <label class="label" for="note">Note på faktura <span class="label__optional">(valgfri)</span></label>
+                  <textarea class="textarea" id="note" style="max-width:none" placeholder="Fx aftalt leveringsomfang"></textarea>
+                </div>
+
+                <div class="field field--span-12">
+                  <label class="check"><input type="checkbox" checked> Send som PDF pr. e-mail ved udstedelse</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel__foot">
+              <button type="button" class="btn btn--danger spacer">Slet kladde</button>
+              <button type="button" class="btn">Gem kladde</button>
+              <button type="button" class="btn btn--primary" disabled>Udsted</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__head">
+              <h3 class="panel__title">Opsummering</h3>
+            </div>
+            <div class="panel__body">
+              <dl class="totals">
+                <div class="totals__row"><dt>Subtotal</dt><dd>48.000,00</dd></div>
+                <div class="totals__row"><dt>Moms 25 %</dt><dd>12.000,00</dd></div>
+                <div class="totals__row"><dt>Rabat</dt><dd class="num--neg">−0,00</dd></div>
+                <div class="totals__row totals__row--sum"><dt>I alt</dt><dd>60.000,00</dd></div>
+              </dl>
+              <p class="hint" style="margin:var(--space-4) 0 0">
+                Ved udstedelse tildeles nummer <span class="mono">2026-0043</span>. Herefter kan fakturaen kun annulleres med en kreditnota.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- Reference: statuses, buttons, palette                        -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="section__head">
+          <h2>Reference</h2>
+        </div>
+
+        <div class="panel">
+          <div class="panel__body" style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+            <div>
+              <div class="kpi__label" style="margin-bottom:var(--space-3)">Statusbadges</div>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:center">
+                <span class="badge badge--kladde">Kladde</span>
+                <span class="badge badge--aaben">Åben</span>
+                <span class="badge badge--forfalden">Forfalden</span>
+                <span class="badge badge--betalt">Betalt</span>
+                <span class="badge badge--krediteret">Krediteret</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="kpi__label" style="margin-bottom:var(--space-3)">Knapper</div>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:center">
+                <button type="button" class="btn btn--primary">Udsted</button>
+                <button type="button" class="btn">Gem kladde</button>
+                <button type="button" class="btn btn--ghost">Vis faktura</button>
+                <button type="button" class="btn btn--danger">Krediter faktura</button>
+                <button type="button" class="btn" disabled>Indberet moms</button>
+                <button type="button" class="btn btn--sm">Tilføj linje</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="kpi__label" style="margin-bottom:var(--space-3)">Palette</div>
+              <div class="swatches">
+                <div class="swatch"><div class="swatch__chip" style="background:var(--nav-bg)"></div><div class="swatch__name">--nav-bg · rail</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--brass-500)"></div><div class="swatch__name">--brass-500 · primær</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--slate-900)"></div><div class="swatch__name">--slate-900 · blæk</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--slate-700)"></div><div class="swatch__name">--slate-700 · brødtekst</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--slate-200)"></div><div class="swatch__name">--slate-200 · kant</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--slate-50)"></div><div class="swatch__name">--slate-50 · lærred</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--accent-500)"></div><div class="swatch__name">--accent-500 · fokus</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--status-open-ink)"></div><div class="swatch__name">--status-open-ink</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--status-overdue-ink)"></div><div class="swatch__name">--status-overdue-ink</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--status-paid-ink)"></div><div class="swatch__name">--status-paid-ink</div></div>
+                <div class="swatch"><div class="swatch__chip" style="background:var(--status-credited-ink)"></div><div class="swatch__name">--status-credited-ink</div></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

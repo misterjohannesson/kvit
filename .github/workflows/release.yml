@@ -1,0 +1,99 @@
+# On a version tag: build the artifacts with `npm run release` (the same script a developer
+# runs locally), push the multi-arch image, and publish a release with the notes rendered
+# from release-template.md. Shell steps throughout; only actions/checkout is used.
+#
+# Portability note: `gh release create` and ghcr.io are GitHub-specific. On a Forgejo runner,
+# replace the last two steps with `tea release create` (or the Forgejo API) and point
+# RELEASE_IMAGE at your own registry; everything before them runs unchanged.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  # Re-run the release for an existing tag (e.g. after fixing this workflow) without re-tagging.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build and publish (e.g. v0.2)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  # The build imports the server code (SvelteKit route analysis), which opens the database at DATA_DIR on import;
+  # /data is not writable on a runner, so point it at scratch space. Tests and installers set their own DATA_DIR.
+  DATA_DIR: /tmp/faktura-build-data
+  APP_PASSWORD: build-only-not-used-at-runtime
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install Node 22 and Bun
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Derive the image name (lowercase) and repository slug
+        run: |
+          echo "RELEASE_IMAGE=ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/faktura" >> "$GITHUB_ENV"
+          echo "RELEASE_REPO=${{ github.repository }}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix mcp ci
+
+      - name: Build release artifacts (installers, three binaries, SHA256SUMS, release notes)
+        run: npm run release
+
+      - name: Log in to the container registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Enable arm64 emulation and a buildx builder
+        run: |
+          docker run --privileged --rm tonistiigi/binfmt --install arm64
+          docker buildx create --use --name faktura-builder
+
+      - name: Build and push the multi-arch image
+        run: |
+          VERSION="$(cat dist/VERSION)"
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            -t "$RELEASE_IMAGE:$VERSION" -t "$RELEASE_IMAGE:latest" --push .
+
+      - name: Create or update the release with all artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="$(cat dist/VERSION)"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          ASSETS=(dist/install.sh dist/install.ps1 dist/faktura-* dist/SHA256SUMS)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # The release already exists (created in the GitHub UI, which pushed this tag): replace its assets and
+            # append the generated notes below whatever the owner wrote, without touching title or flags.
+            echo "Release $TAG exists; uploading assets and appending notes"
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            gh release view "$TAG" --json body --jq .body > existing-notes.md
+            if [ -s existing-notes.md ] && ! grep -q "Changes in this release" existing-notes.md; then
+              { cat existing-notes.md; printf '\n\n---\n\n'; cat dist/RELEASE_NOTES.md; } > combined-notes.md
+            else
+              cp dist/RELEASE_NOTES.md combined-notes.md
+            fi
+            gh release edit "$TAG" --notes-file combined-notes.md
+          else
+            gh release create "$TAG" \
+              --title "Faktura $VERSION" \
+              --notes-file dist/RELEASE_NOTES.md \
+              "${ASSETS[@]}"
+          fi

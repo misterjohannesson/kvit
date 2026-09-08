@@ -1,0 +1,60 @@
+{
+  "name": "kvit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node build",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "seed": "tsx scripts/seed.ts",
+    "db:generate": "drizzle-kit generate",
+    "test": "npm run build && vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:api": "vitest run tests/api",
+    "mcp": "npm --prefix mcp run dev",
+    "mcp:http": "npm --prefix mcp run dev:http",
+    "mcp:test": "npm run build && npm --prefix mcp test",
+    "build:runtime": "node packaging/build-runtime.mjs",
+    "build:binaries": "node packaging/build-binaries.mjs",
+    "release": "node packaging/release.mjs",
+    "test:install": "bash tests/install/run.sh",
+    "test:docs": "vitest run --project unit tests/unit/docs.test.ts",
+    "site:shots": "tsx scripts/site-shots.ts"
+  },
+  "dependencies": {
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@sveltejs/adapter-node": "^5.5.7",
+    "@sveltejs/kit": "^2.70.3",
+    "archiver": "^8.0.0",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.2",
+    "pdf-lib": "^1.17.1",
+    "playwright": "1.63.0",
+    "svelte": "^5.57.0",
+    "tsx": "^4.23.13",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@types/adm-zip": "^0.5.8",
+    "@types/archiver": "^8.0.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.0.0",
+    "adm-zip": "^0.6.0",
+    "drizzle-kit": "^0.31.10",
+    "pdf-parse": "^2.4.5",
+    "svelte-check": "^4.7.6",
+    "tar": "^7.5.22",
+    "typescript": "^5.9.0",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0",
+    "yaml": "^2.9.0"
+  }
+}
