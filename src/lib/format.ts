@@ -83,6 +83,15 @@ export function parseDateInput(input: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** True for a real calendar date in ISO form (rejects 2026-13-01, 2026-02-30). */
+export function isValidIsoDate(s: string): boolean {
+  try {
+    return parseDateInput(s) === s;
+  } catch {
+    return false;
+  }
+}
+
 /** CVR grouped in pairs for reading: 12345678 -> "12 34 56 78". */
 export function formatCvr(cvr: string | null | undefined): string {
   if (!cvr) return '';

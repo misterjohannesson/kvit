@@ -10,7 +10,7 @@ beforeAll(async () => {
 });
 
 describe('export zip', () => {
-  it('contains the four CSVs and every file under /data/files/', async () => {
+  it('contains the six CSVs and every file under /data/files/', async () => {
     const r = await c.raw('GET', '/api/export');
     expect(r.status).toBe(200);
     expect(r.headers.get('content-type')).toBe('application/zip');

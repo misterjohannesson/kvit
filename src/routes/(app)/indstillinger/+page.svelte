@@ -108,7 +108,7 @@
   </div>
   <div class="panel">
     <div class="table-wrap">
-      <table class="data {data.dense ? 'data--dense' : ''}">
+      <table class="data data--dense">
         <thead>
           <tr>
             <th scope="col">Konto</th>
@@ -128,7 +128,7 @@
                   <input type="hidden" name="id" value={a.id} />
                   <label class="label" for="acc-{a.id}" hidden>Navn</label>
                   <input class="input input--cell" id="acc-{a.id}" name="name" value={a.name} required />
-                  <button type="submit" class="btn btn--sm">Omdøb</button>
+                  <button type="submit" class="btn btn--ghost btn--sm">Omdøb</button>
                 </form>
               </td>
               <td class="num">{a.usage}</td>
@@ -147,19 +147,32 @@
         </tbody>
       </table>
     </div>
-    <form class="panel__foot" method="POST" action="?/addAccount">
-      <div class="field spacer addaccount">
-        <label class="label" for="new-number">Ny konto</label>
-        <div class="addaccount__row">
-          <input class="input input--num input--xs mono" id="new-number" name="number" inputmode="numeric" placeholder="Nr." required />
-          <input class="input" name="name" placeholder="Navn" required aria-label="Navn på ny konto" />
-          <select class="select input--short" name="type" aria-label="Type">
-            <option value="cost">Omkostning</option>
-            <option value="revenue">Salg</option>
-          </select>
-        </div>
+    <form method="POST" action="?/addAccount">
+      <div class="panel__body">
+        <fieldset>
+          <legend>Ny konto</legend>
+          <div class="form-grid">
+            <div class="field field--span-2">
+              <label class="label" for="new-number">Kontonr.</label>
+              <input class="input input--num input--short mono" id="new-number" name="number" inputmode="numeric" placeholder="2700" required />
+            </div>
+            <div class="field field--span-6">
+              <label class="label" for="new-name">Navn</label>
+              <input class="input" id="new-name" name="name" required />
+            </div>
+            <div class="field field--span-3">
+              <label class="label" for="new-type">Type</label>
+              <select class="select input--short" id="new-type" name="type">
+                <option value="cost">Omkostning</option>
+                <option value="revenue">Salg</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
       </div>
-      <button type="submit" class="btn">Tilføj konto</button>
+      <div class="panel__foot">
+        <button type="submit" class="btn">Tilføj konto</button>
+      </div>
     </form>
   </div>
 </section>
@@ -167,7 +180,4 @@
 <style>
   fieldset.first { border-top: 0; }
   .inline { display: flex; align-items: center; gap: var(--space-2); }
-  .input--cell { height: var(--control-height-sm); padding: 0 var(--space-2); }
-  .addaccount { align-items: flex-start; }
-  .addaccount__row { display: flex; gap: var(--space-2); align-items: center; }
 </style>

@@ -99,7 +99,14 @@ export function auditLogCsv(): string {
   );
 }
 
-export const EXPORT_CSVS = ['invoices.csv', 'invoice_lines.csv', 'expenses.csv', 'cash_movements.csv', 'accounts.csv', 'audit_log.csv'] as const;
+const CSV_FILES: Record<string, () => string> = {
+  'invoices.csv': invoicesCsv,
+  'invoice_lines.csv': invoiceLinesCsv,
+  'expenses.csv': expensesCsv,
+  'cash_movements.csv': cashMovementsCsv,
+  'accounts.csv': accountsCsv,
+  'audit_log.csv': auditLogCsv
+};
 
 /** Zip with the six CSVs and every file under /data/files/. Streams to the returned readable. */
 export function exportZipStream(): PassThrough {
@@ -108,12 +115,7 @@ export function exportZipStream(): PassThrough {
   zip.on('error', (err: Error) => out.destroy(err));
   zip.pipe(out);
 
-  zip.append(invoicesCsv(), { name: 'invoices.csv' });
-  zip.append(invoiceLinesCsv(), { name: 'invoice_lines.csv' });
-  zip.append(expensesCsv(), { name: 'expenses.csv' });
-  zip.append(cashMovementsCsv(), { name: 'cash_movements.csv' });
-  zip.append(accountsCsv(), { name: 'accounts.csv' });
-  zip.append(auditLogCsv(), { name: 'audit_log.csv' });
+  for (const [name, build] of Object.entries(CSV_FILES)) zip.append(build(), { name });
   if (fs.existsSync(FILES_DIR)) {
     zip.directory(FILES_DIR, 'files');
   }

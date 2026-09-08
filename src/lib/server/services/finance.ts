@@ -7,11 +7,11 @@
 import { and, asc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { account, cashMovement, expense, invoice, invoiceLine, type Account } from '../schema';
-import { quarterOf, quarterRange, todayIso } from '../../format';
+import { formatOre, quarterOf, quarterRange, todayIso } from '../../format';
 import { getSettings } from './settings';
 import { listInvoices } from './invoices';
 import { listMovementsAsc } from './cash';
-import { badRequest } from '../errors';
+import { badRequest, conflict } from '../errors';
 import { createMovement } from './cash';
 
 const ISSUED = ['issued', 'credited'] as const;
@@ -68,6 +68,7 @@ export interface CashflowMonth {
   movementsInOre: number;
   inOre: number;
   expensesOutOre: number;
+  creditNotesOutOre: number;
   movementsOutOre: number;
   outOre: number;
   netOre: number;
@@ -81,6 +82,8 @@ export interface Cashflow {
   /** Open issued invoices grouped by due month. */
   expected: { month: string; totalOre: number; count: number }[];
   closingPositionOre: number;
+  /** Paid flows and movements dated before the opening balance date: already inside that balance, so not counted. */
+  excludedBeforeOpening: { count: number; netOre: number };
 }
 
 function monthOf(iso: string): string {
@@ -99,37 +102,49 @@ export function cashflow(): Cashflow {
   const openingBalanceDate = s.opening_balance_date;
   const today = todayIso();
 
-  const paidInvoices = db
-    .select({ paidDate: invoice.paidDate, totalOre: invoice.totalOre })
-    .from(invoice)
-    .where(and(eq(invoice.status, 'issued'), isNotNull(invoice.paidDate)))
-    .all()
-    .concat(
-      // originals that were paid and later credited still moved money in on their paid date
-      db
-        .select({ paidDate: invoice.paidDate, totalOre: invoice.totalOre })
-        .from(invoice)
-        .where(and(eq(invoice.status, 'credited'), isNotNull(invoice.paidDate)))
-        .all()
-    );
-  const paidExpenses = db
-    .select({ paidDate: expense.paidDate, totalOre: expense.amountInclOre })
-    .from(expense)
-    .where(isNotNull(expense.paidDate))
-    .all();
-  const movements = listMovementsAsc();
+  // Every issued document with a paid_date moved money: invoices in, refunded credit notes (negative totals) out,
+  // and originals that were paid before being credited still came in on their paid date.
+  const excluded = { count: 0, netOre: 0 };
+  const sinceOpening = <T extends { date: string; netOre: number }>(rows: T[]): T[] =>
+    rows.filter((r) => {
+      if (r.date >= openingBalanceDate) return true;
+      excluded.count += 1;
+      excluded.netOre += r.netOre;
+      return false;
+    });
+  const paidInvoices = sinceOpening(
+    db
+      .select({ paidDate: invoice.paidDate, totalOre: invoice.totalOre })
+      .from(invoice)
+      .where(and(inArray(invoice.status, [...ISSUED]), isNotNull(invoice.paidDate)))
+      .all()
+      .map((r) => ({ date: r.paidDate as string, netOre: r.totalOre, totalOre: r.totalOre }))
+  );
+  const paidExpenses = sinceOpening(
+    db
+      .select({ paidDate: expense.paidDate, totalOre: expense.amountInclOre })
+      .from(expense)
+      .where(isNotNull(expense.paidDate))
+      .all()
+      .map((r) => ({ date: r.paidDate as string, netOre: -r.totalOre, totalOre: r.totalOre }))
+  );
+  const movements = sinceOpening(listMovementsAsc().map((m) => ({ ...m, netOre: m.amountOre })));
 
   const months = new Map<string, CashflowMonth>();
   const ensure = (ym: string) => {
     let row = months.get(ym);
     if (!row) {
-      row = { month: ym, invoicesInOre: 0, movementsInOre: 0, inOre: 0, expensesOutOre: 0, movementsOutOre: 0, outOre: 0, netOre: 0, positionOre: 0 };
+      row = { month: ym, invoicesInOre: 0, movementsInOre: 0, inOre: 0, expensesOutOre: 0, creditNotesOutOre: 0, movementsOutOre: 0, outOre: 0, netOre: 0, positionOre: 0 };
       months.set(ym, row);
     }
     return row;
   };
-  for (const p of paidInvoices) ensure(monthOf(p.paidDate as string)).invoicesInOre += p.totalOre;
-  for (const e of paidExpenses) ensure(monthOf(e.paidDate as string)).expensesOutOre += e.totalOre;
+  for (const p of paidInvoices) {
+    const row = ensure(monthOf(p.date));
+    if (p.totalOre >= 0) row.invoicesInOre += p.totalOre;
+    else row.creditNotesOutOre += -p.totalOre;
+  }
+  for (const e of paidExpenses) ensure(monthOf(e.date)).expensesOutOre += e.totalOre;
   for (const m of movements) {
     const row = ensure(monthOf(m.date));
     if (m.amountOre >= 0) row.movementsInOre += m.amountOre;
@@ -137,18 +152,15 @@ export function cashflow(): Cashflow {
   }
 
   const keys = [...months.keys()].sort();
-  let first = monthOf(openingBalanceDate);
+  const first = monthOf(openingBalanceDate);
   let last = monthOf(today);
-  if (keys.length) {
-    if (keys[0] < first) first = keys[0];
-    if (keys[keys.length - 1] > last) last = keys[keys.length - 1];
-  }
+  if (keys.length && keys[keys.length - 1] > last) last = keys[keys.length - 1];
   const rows: CashflowMonth[] = [];
   let position = openingBalanceOre;
   for (let ym = first; ym <= last; ym = nextMonth(ym)) {
     const row = ensure(ym);
     row.inOre = row.invoicesInOre + row.movementsInOre;
-    row.outOre = row.expensesOutOre + row.movementsOutOre;
+    row.outOre = row.expensesOutOre + row.creditNotesOutOre + row.movementsOutOre;
     row.netOre = row.inOre - row.outOre;
     position += row.netOre;
     row.positionOre = position;
@@ -169,7 +181,8 @@ export function cashflow(): Cashflow {
     openingBalanceDate,
     months: rows,
     expected: [...expectedMap.values()].sort((a, b) => a.month.localeCompare(b.month)),
-    closingPositionOre: position
+    closingPositionOre: position,
+    excludedBeforeOpening: excluded
   };
 }
 
@@ -178,6 +191,8 @@ export interface Balance {
   likviderOre: number;
   debitorerOre: number;
   kreditorerOre: number;
+  /** Unrefunded credit notes whose original was paid: money owed back to customers. */
+  skyldigeKreditnotaerOre: number;
   skyldigMomsOre: number;
   nettoOre: number;
   accruedVatOre: number;
@@ -185,6 +200,7 @@ export interface Balance {
   openingBalanceOre: number;
   openInvoices: number;
   unpaidExpenses: number;
+  openCreditNotes: number;
 }
 
 /** Position statement computed live: Likvider, Debitorer against Kreditorer and Skyldig moms. */
@@ -195,6 +211,19 @@ export function balance(): Balance {
   const debitorerOre = open.reduce((s, r) => s + r.totalOre, 0);
   const unpaid = db.select({ totalOre: expense.amountInclOre }).from(expense).where(sql`${expense.paidDate} IS NULL`).all();
   const kreditorerOre = unpaid.reduce((s, r) => s + r.totalOre, 0);
+  // Credit note (issued, unpaid) whose original had been paid -> the customer is owed the money back.
+  const owedCreditNotes = db
+    .select({ totalOre: invoice.totalOre })
+    .from(invoice)
+    .where(
+      and(
+        eq(invoice.status, 'issued'),
+        sql`${invoice.paidDate} IS NULL`,
+        sql`exists (select 1 from invoice o where o.credited_by_invoice_id = ${invoice.id} and o.paid_date is not null)`
+      )
+    )
+    .all();
+  const skyldigeKreditnotaerOre = owedCreditNotes.reduce((s, r) => s - r.totalOre, 0);
 
   // Accrued momstilsvar for every quarter up to and including the current one.
   const { to } = quarterRange(quarterOf(asOf).year, quarterOf(asOf).quarter);
@@ -218,13 +247,15 @@ export function balance(): Balance {
     likviderOre: cf.closingPositionOre,
     debitorerOre,
     kreditorerOre,
+    skyldigeKreditnotaerOre,
     skyldigMomsOre,
-    nettoOre: cf.closingPositionOre + debitorerOre - kreditorerOre - skyldigMomsOre,
+    nettoOre: cf.closingPositionOre + debitorerOre - kreditorerOre - skyldigeKreditnotaerOre - skyldigMomsOre,
     accruedVatOre,
     vatPaymentsOre,
     openingBalanceOre: cf.openingBalanceOre,
     openInvoices: open.length,
-    unpaidExpenses: unpaid.length
+    unpaidExpenses: unpaid.length,
+    openCreditNotes: owedCreditNotes.length
   };
 }
 
@@ -235,14 +266,21 @@ export function reconcilePreview(actualOre: number): { likviderOre: number; actu
   return { likviderOre, actualOre, differenceOre: actualOre - likviderOre };
 }
 
-/** Afstemning step 2: book a `correction` movement for the difference, audit-logged with the entered figure. */
-export function reconcileBook(actualOre: number) {
+/**
+ * Afstemning step 2: book a `correction` movement for the difference, audit-logged with the entered figure.
+ * `expectedLikviderOre` is the figure the user saw in step 1; if Likvider moved meanwhile, refuse (409) so the
+ * booked correction is always the one that was confirmed.
+ */
+export function reconcileBook(actualOre: number, expectedLikviderOre?: number) {
   const preview = reconcilePreview(actualOre);
+  if (expectedLikviderOre !== undefined && expectedLikviderOre !== preview.likviderOre) {
+    throw conflict(`Likvider er ændret siden sammenligningen (${formatOre(preview.likviderOre)}). Sammenlign igen.`);
+  }
   if (preview.differenceOre === 0) throw badRequest('Saldoen stemmer allerede; der er intet at bogføre');
   return createMovement(
     {
       date: todayIso(),
-      description: `Afstemning mod bank: saldo ${(actualOre / 100).toFixed(2).replace('.', ',')} kr.`,
+      description: `Afstemning mod bank: saldo ${formatOre(actualOre)}`,
       amountOre: preview.differenceOre,
       kind: 'correction'
     },

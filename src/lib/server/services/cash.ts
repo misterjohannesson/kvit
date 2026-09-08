@@ -4,6 +4,7 @@ import { db } from '../db';
 import { cashMovement, type CashMovement } from '../schema';
 import { audit } from '../audit';
 import { badRequest } from '../errors';
+import { isValidIsoDate } from '../../format';
 
 export const MOVEMENT_KINDS = ['vat_payment', 'owner', 'tax', 'correction', 'other'] as const;
 export type MovementKind = (typeof MOVEMENT_KINDS)[number];
@@ -17,10 +18,10 @@ export const KIND_LABELS: Record<MovementKind, string> = {
 };
 
 const movementSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').refine(isValidIsoDate, 'Ugyldig dato'),
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(300),
   /** Signed øre: positive = money in, negative = money out. */
-  amountOre: z.coerce.number().int('Beløb skal være hele øre').max(1e13).min(-1e13).refine((n) => n !== 0, 'Beløb skal være forskelligt fra 0'),
+  amountOre: z.coerce.number({ error: 'Beløb skal være et tal' }).int('Beløb skal være hele øre').max(1e13).min(-1e13).refine((n) => n !== 0, 'Beløb skal være forskelligt fra 0'),
   kind: z.enum(MOVEMENT_KINDS, { message: 'Ugyldig type' })
 });
 

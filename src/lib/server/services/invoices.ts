@@ -7,28 +7,28 @@ import { customer, invoice, invoiceLine, type Customer, type Invoice, type Invoi
 import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 import { DATA_DIR, INVOICE_FILES_DIR } from '../env';
-import { addDays, lineTotalOre, roundOre, todayIso } from '../../format';
+import { addDays, isValidIsoDate, lineTotalOre, roundOre, todayIso } from '../../format';
 import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
 import { renderInvoicePdf } from '../pdf';
-import { requireAccountOfType } from './accounts';
+import { defaultRevenueAccountId, requireAccountOfType } from './accounts';
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd');
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').refine(isValidIsoDate, 'Ugyldig dato');
 
 const lineSchema = z.object({
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
   quantity: z.coerce
-    .number()
+    .number({ error: 'Antal skal være et tal' })
     .refine((n) => Number.isFinite(n) && n !== 0 && Math.abs(n) <= 1e9, 'Antal skal være forskelligt fra 0')
     .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, 'Antal kan højst have to decimaler'),
   unit: z.string().trim().min(1, 'Enhed er påkrævet').max(30),
-  unitPriceOre: z.coerce.number().int('Pris skal være hele øre').max(1e13).min(-1e13),
-  /** Revenue account; defaults to 1000 Konsulentydelser (seeded id 1). */
-  accountId: z.coerce.number().int().positive().default(1)
+  unitPriceOre: z.coerce.number({ error: 'Pris skal være et tal' }).int('Pris skal være hele øre').max(1e13).min(-1e13),
+  /** Revenue account; omitted -> 1000 Konsulentydelser (resolved by number, see defaultRevenueAccountId). */
+  accountId: z.coerce.number({ error: 'Konto skal være et tal' }).int('Ugyldig konto').positive('Ugyldig konto').optional()
 });
 
 const draftSchema = z.object({
-  customerId: z.coerce.number().int().positive(),
+  customerId: z.coerce.number({ error: 'Kunde skal vælges' }).int('Ugyldig kunde').positive('Ugyldig kunde'),
   issueDate: isoDate,
   dueDate: isoDate,
   vatExemptReason: z
@@ -198,16 +198,20 @@ export async function updateDraft(id: number, input: unknown): Promise<InvoiceDe
     const cust = db.select().from(customer).where(eq(customer.id, data.customerId)).get();
     if (!cust) throw badRequest('Kunden findes ikke');
 
-    for (const l of data.lines) requireAccountOfType(l.accountId, 'revenue');
-    const lines = data.lines.map((l) => ({
-      invoiceId: id,
-      description: l.description,
-      quantity: l.quantity,
-      unit: l.unit,
-      unitPriceOre: l.unitPriceOre,
-      lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre),
-      accountId: l.accountId
-    }));
+    const fallbackAccount = data.lines.some((l) => l.accountId === undefined) ? defaultRevenueAccountId() : 0;
+    const lines = data.lines.map((l) => {
+      const accountId = l.accountId ?? fallbackAccount;
+      requireAccountOfType(accountId, 'revenue');
+      return {
+        invoiceId: id,
+        description: l.description,
+        quantity: l.quantity,
+        unit: l.unit,
+        unitPriceOre: l.unitPriceOre,
+        lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre),
+        accountId
+      };
+    });
     const totals = computeTotals(lines, data.vatExemptReason !== null);
 
     db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
@@ -359,15 +363,19 @@ export function issueInvoice(id: number, expectedNumber?: number): Promise<Invoi
   });
 }
 
-/** "Markér som betalt": set paid_date on an issued, non-credit-note invoice. */
+/**
+ * "Markér som betalt": set paid_date on an issued invoice. On a credit note the
+ * date is the refund date ("Markér som refunderet"); until then a credit note of
+ * a paid original is money owed to the customer (see balance()).
+ */
 export function setPaidDate(id: number, paidDate: string): InvoiceDetail {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) throw badRequest('Ugyldig dato');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate) || !isValidIsoDate(paidDate)) throw badRequest('Ugyldig dato');
   return db.transaction(() => {
     const inv = getInvoice(id);
-    if (inv.status !== 'issued') throw conflict('Kun udstedte fakturaer kan markeres som betalt');
-    if (inv.isCreditNote) throw conflict('En kreditnota kan ikke markeres som betalt');
+    if (inv.status !== 'issued') throw conflict('Kun udstedte dokumenter kan markeres som betalt');
+    if (inv.paidDate) throw conflict(inv.isCreditNote ? 'Kreditnotaen er allerede refunderet' : 'Fakturaen er allerede markeret som betalt');
     db.update(invoice).set({ paidDate }).where(eq(invoice.id, id)).run();
-    audit('invoice', id, 'mark_paid', { paidDate });
+    audit('invoice', id, inv.isCreditNote ? 'mark_refunded' : 'mark_paid', { paidDate });
     return getInvoice(id);
   });
 }

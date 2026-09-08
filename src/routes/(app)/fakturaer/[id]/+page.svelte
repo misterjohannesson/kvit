@@ -46,6 +46,8 @@
           {#if !inv.isCreditNote}
             <div><dt>Forfaldsdato</dt><dd class="mono">{formatDate(inv.dueDate)}</dd></div>
             <div><dt>Betalt</dt><dd class="mono">{inv.paidDate ? formatDate(inv.paidDate) : '—'}</dd></div>
+          {:else}
+            <div><dt>Refunderet</dt><dd class="mono">{inv.paidDate ? formatDate(inv.paidDate) : '—'}</dd></div>
           {/if}
           <div><dt>Betalingsreference</dt><dd class="mono">{inv.paymentReference}</dd></div>
           <div><dt>Moms</dt><dd>{#if inv.vatExemptReason}Momsfri – {inv.vatExemptReason}{:else}<span class="mono">{formatVatRate(inv.vatRateBp)}</span>{/if}</dd></div>
@@ -78,7 +80,7 @@
                 <td>{l.unit}</td>
                 <td class="num">{formatOre(l.unitPriceOre, false)}</td>
                 <td class={neg(l.lineTotalOre)}>{formatOre(l.lineTotalOre, false)}</td>
-                <td><span class="mono">{acc?.number ?? ''}</span> {acc?.name ?? ''}</td>
+                <td class="wrap"><span class="mono">{acc?.number ?? ''}</span> {acc?.name ?? ''}</td>
               </tr>
             {/each}
           </tbody>
@@ -94,6 +96,17 @@
               <label class="label" for="paidDate" hidden>Betalingsdato</label>
               <input class="input input--date" id="paidDate" name="paidDate" inputmode="numeric" value={formatDate(data.today)} placeholder="dd.mm.åååå" required />
               <button type="submit" class="btn">Markér som betalt</button>
+            </form>
+          {/if}
+        {:else if inv.status === 'issued' && inv.isCreditNote}
+          <span class="hint spacer">Kreditnotaen er udstedt og kan ikke ændres.</span>
+          {#if inv.paidDate}
+            <span class="hint">Refunderet <span class="mono">{formatDate(inv.paidDate)}</span></span>
+          {:else}
+            <form method="POST" action="?/paid" class="paidform">
+              <label class="label" for="paidDate" hidden>Refusionsdato</label>
+              <input class="input input--date" id="paidDate" name="paidDate" inputmode="numeric" value={formatDate(data.today)} placeholder="dd.mm.åååå" required />
+              <button type="submit" class="btn">Markér som refunderet</button>
             </form>
           {/if}
         {:else}

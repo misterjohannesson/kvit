@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms';
   import { formatDate, formatOre, formatQuantity, lineTotalOre, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
 
-  type Line = { description: string; quantity: string; unit: string; unitPrice: string; accountId: number };
+  type Line = { description: string; quantity: string; unit: string; unitPrice: string; accountId: number | undefined };
   type Customer = { id: number; name: string };
   type Account = { id: number; number: number; name: string };
   type Invoice = {
@@ -41,7 +41,7 @@
     accountId: l.accountId
   });
   // svelte-ignore state_referenced_locally
-  const defaultAccountId = accounts[0]?.id ?? 1;
+  const defaultAccountId = (accounts.find((a) => a.number === 1000) ?? accounts[0])?.id;
 
   // svelte-ignore state_referenced_locally
   let lines = $state<Line[]>(invoice.lines.length ? invoice.lines.map(toLine) : [{ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: defaultAccountId }]);
@@ -153,7 +153,6 @@
                   <th scope="col">Enhed</th>
                   <th scope="col" class="num">Pris ekskl. moms</th>
                   <th scope="col" class="num">Beløb</th>
-                  <th scope="col">Konto</th>
                   <th scope="col" class="col-actions"><span hidden>Fjern</span></th>
                 </tr>
               </thead>
@@ -161,16 +160,18 @@
                 {#each lines as line, i (i)}
                   {@const t = lineTotal(line)}
                   <tr>
-                    <td><input class="input input--cell" aria-label="Beskrivelse, linje {i + 1}" bind:value={line.description} placeholder="Ydelse" /></td>
+                    <td>
+                      <div class="cell-stack">
+                        <input class="input input--cell" aria-label="Beskrivelse, linje {i + 1}" bind:value={line.description} placeholder="Ydelse" />
+                        <select class="select input--cell" aria-label="Konto, linje {i + 1}" bind:value={line.accountId}>
+                          {#each accounts as a (a.id)}<option value={a.id}>{a.number} {a.name}</option>{/each}
+                        </select>
+                      </div>
+                    </td>
                     <td><input class="input input--cell input--num input--xs" aria-label="Antal, linje {i + 1}" bind:value={line.quantity} inputmode="decimal" /></td>
                     <td><input class="input input--cell input--xs" aria-label="Enhed, linje {i + 1}" bind:value={line.unit} placeholder="time" /></td>
                     <td><input class="input input--cell input--num input--short" aria-label="Pris, linje {i + 1}" bind:value={line.unitPrice} inputmode="decimal" placeholder="0,00" /></td>
                     <td class="num {t !== null && t < 0 ? 'num--neg' : ''}">{t === null ? '—' : formatOre(t, false)}</td>
-                    <td>
-                      <select class="select input--cell input--account" aria-label="Konto, linje {i + 1}" bind:value={line.accountId}>
-                        {#each accounts as a (a.id)}<option value={a.id}>{a.number} {a.name}</option>{/each}
-                      </select>
-                    </td>
                     <td><div class="row-actions"><button type="button" class="btn btn--ghost btn--sm" onclick={() => removeLine(i)}>Fjern</button></div></td>
                   </tr>
                 {/each}
@@ -259,12 +260,8 @@
 </form>
 
 <style>
-  .input--cell { height: var(--control-height-sm); padding: 0 var(--space-2); }
-  /* fixed widths so the auto-layout table cannot squeeze the numeric inputs at 1152px */
-  .input--cell.input--xs { width: var(--field-width-xs); min-width: var(--field-width-xs); }
-  .input--cell.input--short { width: var(--field-width-sm); min-width: var(--field-width-sm); }
-  .input--account { width: var(--field-width-md); min-width: var(--field-width-md); max-width: var(--field-width-md); }
   table.lines td:first-child { width: 100%; }
+  table.lines td { vertical-align: top; }
   table.lines th, table.lines td { padding: var(--space-1) var(--space-2); }
   .addline { margin-top: var(--space-3); }
   .summaryhint { margin: var(--space-4) 0 0; }

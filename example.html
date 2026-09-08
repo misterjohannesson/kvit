@@ -473,6 +473,8 @@ table.data tbody tr[aria-selected="true"] {
   color: var(--text-primary);
 }
 .num--neg { color: var(--text-negative); }
+/* the cell rule above (text-align: left) is more specific than .num alone */
+table.data th.num, table.data td.num { text-align: right; }
 .mono { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
 .nowrap { white-space: nowrap; }          /* grouped IDs such as CVR "12 34 56 78" */
 table.data td.wrap { white-space: normal; } /* prose column in an otherwise nowrap table */
@@ -558,6 +560,17 @@ table.data td.empty, .empty { text-align: center; color: var(--text-secondary); 
 
 /* form-level error line above the grid */
 .formerror { margin: 0 0 var(--space-4); }
+
+/* KPI strip variants and prose paragraphs */
+.kpis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpis--1 { grid-template-columns: minmax(0, 1fr); }
+.prose { max-width: var(--layout-prose-max); margin: 0; }
+
+/* inputs living inside table cells (line editors, inline rename) */
+.input--cell { height: var(--control-height-sm); padding: 0 var(--space-2); }
+.input--cell.input--xs { width: var(--field-width-xs); min-width: var(--field-width-xs); }
+.input--cell.input--short { width: var(--field-width-sm); min-width: var(--field-width-sm); }
+.cell-stack { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
 .swatch { border: var(--border-hairline-style); border-radius: var(--radius-sm); overflow: hidden; }

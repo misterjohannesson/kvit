@@ -173,6 +173,12 @@ describe('credit notes', () => {
     expect(o.status).toBe('credited');
     expect(o.creditedByInvoiceId).toBe(cr.data.id);
 
+    // A credit note can be marked refunded (paid_date = refund date), once.
+    const refunded = await c.json<Inv>('POST', `/api/invoices/${cr.data.id}/paid`, { paidDate: '2026-09-08' });
+    expect(refunded.status).toBe(200);
+    expect(refunded.data.paidDate).toBe('2026-09-08');
+    expect((await c.json('POST', `/api/invoices/${cr.data.id}/paid`, { paidDate: '2026-09-09' })).status).toBe(409);
+
     // credited twice -> 409; credit note itself -> 409; credit note cannot be edited -> 409
     expect((await c.json('POST', `/api/invoices/${orig.id}/credit`)).status).toBe(409);
     expect((await c.json('POST', `/api/invoices/${cr.data.id}/credit`)).status).toBe(409);

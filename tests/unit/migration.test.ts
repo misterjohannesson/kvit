@@ -62,7 +62,7 @@ describe('migrating a populated database', () => {
       const triggers = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as { name: string }[]).map((t) => t.name);
       const { REQUIRED_TRIGGERS } = await import('../../src/lib/server/db');
       for (const t of REQUIRED_TRIGGERS) expect(triggers).toContain(t);
-      expect(REQUIRED_TRIGGERS.length).toBe(12);
+      expect(REQUIRED_TRIGGERS.length).toBe(15);
       // Guards are live on the migrated data too.
       expect(() => sqlite.prepare('DELETE FROM invoice WHERE id = 1').run()).toThrow(/cannot be deleted/);
       expect(() => sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id = 2').run()).not.toThrow();

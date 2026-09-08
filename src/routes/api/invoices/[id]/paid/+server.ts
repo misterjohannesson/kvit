@@ -4,7 +4,7 @@ import { setPaidDate } from '$lib/server/services/invoices';
 import { todayIso } from '$lib/format';
 import { badRequest } from '$lib/server/errors';
 
-/** "Markér som betalt". Body: { paidDate?: 'yyyy-mm-dd' } (defaults to today). */
+/** "Markér som betalt" (on a credit note: refunded). Body: { paidDate?: 'yyyy-mm-dd' } (defaults to today). */
 export const POST: RequestHandler = (event) =>
   api(async () => {
     const body = await readOptionalJson(event.request);

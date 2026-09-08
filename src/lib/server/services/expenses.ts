@@ -8,18 +8,19 @@ import { audit } from '../audit';
 import { badRequest, notFound } from '../errors';
 import { DATA_DIR } from '../env';
 import { requireAccountOfType } from './accounts';
+import { isValidIsoDate } from '../../format';
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd');
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').refine(isValidIsoDate, 'Ugyldig dato');
 
 const expenseSchema = z.object({
   date: isoDate,
   supplier: z.string().trim().min(1, 'Leverandør er påkrævet').max(200),
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
   /** Cost account (kontoplan); the free-text note is `description`. */
-  accountId: z.coerce.number().int().positive(),
-  amountExVatOre: z.coerce.number().int('Beløb skal være hele øre').max(1e13).min(-1e13),
+  accountId: z.coerce.number({ error: 'Konto skal vælges' }).int('Ugyldig konto').positive('Ugyldig konto'),
+  amountExVatOre: z.coerce.number({ error: 'Beløb skal være et tal' }).int('Beløb skal være hele øre').max(1e13).min(-1e13),
   /** Entered manually, never derived: foreign purchases and repræsentation break 25 %. */
-  vatOre: z.coerce.number().int('Moms skal være hele øre').max(1e13).min(-1e13),
+  vatOre: z.coerce.number({ error: 'Moms skal være et tal' }).int('Moms skal være hele øre').max(1e13).min(-1e13),
   paidDate: z
     .union([isoDate, z.literal(''), z.null()])
     .optional()

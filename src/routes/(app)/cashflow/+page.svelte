@@ -43,7 +43,7 @@
 <section>
   <div class="section__head">
     <h2>Pr. måned</h2>
-    <p>Kassebasis: fakturaer efter betalingsdato, udgifter efter betalingsdato, plus øvrige bankbevægelser. Positionen løber fra åbningssaldoen.</p>
+    <p>Kassebasis: fakturaer efter betalingsdato, udgifter efter betalingsdato, plus øvrige bankbevægelser. Positionen løber fra åbningssaldoen.{#if f.excludedBeforeOpening.count > 0} {f.excludedBeforeOpening.count} bevægelser dateret før åbningssaldoen ({formatOre(f.excludedBeforeOpening.netOre)} netto) er allerede indeholdt i den og tælles ikke med.{/if}</p>
   </div>
   <div class="panel">
     <div class="table-wrap">
@@ -51,11 +51,7 @@
         <thead>
           <tr>
             <th scope="col">Måned</th>
-            <th scope="col" class="num">Fakturaer ind</th>
-            <th scope="col" class="num">Bevægelser ind</th>
             <th scope="col" class="num">Ind</th>
-            <th scope="col" class="num">Udgifter ud</th>
-            <th scope="col" class="num">Bevægelser ud</th>
             <th scope="col" class="num">Ud</th>
             <th scope="col" class="num">Netto</th>
             <th scope="col" class="num">Position</th>
@@ -65,12 +61,8 @@
           {#each f.months as m (m.month)}
             <tr>
               <td class="mono">{monthLabel(m.month)}</td>
-              <td class="num">{formatOre(m.invoicesInOre, false)}</td>
-              <td class="num">{formatOre(m.movementsInOre, false)}</td>
-              <td class="num">{formatOre(m.inOre, false)}</td>
-              <td class="num">{formatOre(m.expensesOutOre, false)}</td>
-              <td class="num">{formatOre(m.movementsOutOre, false)}</td>
-              <td class="num">{formatOre(m.outOre, false)}</td>
+              <td class="num">{formatOre(m.inOre, false)}<span class="cell-sub">fakturaer {formatOre(m.invoicesInOre, false)} · bevægelser {formatOre(m.movementsInOre, false)}</span></td>
+              <td class="num">{formatOre(m.outOre, false)}<span class="cell-sub">udgifter {formatOre(m.expensesOutOre, false)} · kreditnotaer {formatOre(m.creditNotesOutOre, false)} · bevægelser {formatOre(m.movementsOutOre, false)}</span></td>
               <td class={neg(m.netOre)}>{formatOre(m.netOre, false)}</td>
               <td class={neg(m.positionOre)}>{formatOre(m.positionOre, false)}</td>
             </tr>
@@ -79,11 +71,7 @@
         <tfoot>
           <tr>
             <td>{f.months.length} måneder</td>
-            <td class="num">{formatOre(f.months.reduce((s, m) => s + m.invoicesInOre, 0), false)}</td>
-            <td class="num">{formatOre(f.months.reduce((s, m) => s + m.movementsInOre, 0), false)}</td>
             <td class="num">{formatOre(f.months.reduce((s, m) => s + m.inOre, 0), false)}</td>
-            <td class="num">{formatOre(f.months.reduce((s, m) => s + m.expensesOutOre, 0), false)}</td>
-            <td class="num">{formatOre(f.months.reduce((s, m) => s + m.movementsOutOre, 0), false)}</td>
             <td class="num">{formatOre(f.months.reduce((s, m) => s + m.outOre, 0), false)}</td>
             <td class={neg(f.months.reduce((s, m) => s + m.netOre, 0))}>{formatOre(f.months.reduce((s, m) => s + m.netOre, 0), false)}</td>
             <td class={neg(f.closingPositionOre)}>{formatOre(f.closingPositionOre, false)}</td>
@@ -123,12 +111,12 @@
     </div>
   </div>
 
-  <div class="panel">
+  <form class="panel" method="POST" action="?/create">
     <div class="panel__head">
-      <h3 class="panel__title">Bankbevægelser</h3>
-      <span class="panel__meta">{data.movements.length} poster</span>
+      <h3 class="panel__title">Ny bankbevægelse</h3>
+      <span class="panel__meta">moms, ejer, skat, korrektion, andet</span>
     </div>
-    <form class="panel__body" method="POST" action="?/create">
+    <div class="panel__body">
       {#if form?.error && !form?.fields}<p class="error formerror">{form.error}</p>{/if}
       {#if form?.saved}<p class="hint formerror">Bevægelsen er bogført.</p>{/if}
       <div class="form-grid">
@@ -155,11 +143,20 @@
           <input class="input input--wide" id="mv-desc" name="description" value={v('description')} required />
           {#if err('description')}<span class="error">{err('description')}</span>{/if}
         </div>
-        <div class="field field--span-12 actions">
-          <button type="submit" class="btn btn--primary btn--std">Bogfør bevægelse</button>
-        </div>
       </div>
-    </form>
+    </div>
+    <div class="panel__foot">
+      <button type="submit" class="btn btn--primary">Bogfør bevægelse</button>
+    </div>
+  </form>
+</section>
+
+<section>
+  <div class="panel">
+    <div class="panel__head">
+      <h3 class="panel__title">Bankbevægelser</h3>
+      <span class="panel__meta">{data.movements.length} poster</span>
+    </div>
     <div class="table-wrap">
       <table class="data {data.dense ? 'data--dense' : ''}">
         <thead>
@@ -175,7 +172,7 @@
           {#each data.movements as m (m.id)}
             <tr>
               <td class="mono">{formatDate(m.date)}</td>
-              <td>{m.description}</td>
+              <td class="wrap">{m.description}</td>
               <td>{kindLabel(m.kind)}</td>
               <td class={neg(m.amountOre)}>{formatOre(m.amountOre, false)}</td>
             </tr>
@@ -186,7 +183,3 @@
   </div>
 </section>
 
-<style>
-  .kpis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .actions { flex-direction: row; justify-content: flex-end; }
-</style>

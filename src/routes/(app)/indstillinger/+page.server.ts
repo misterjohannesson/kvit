@@ -6,6 +6,12 @@ import { errorMessage } from '$lib/server/api';
 import { parseDateInput, parseKrToOre } from '$lib/format';
 import { badRequest } from '$lib/server/errors';
 
+function accountIdFrom(form: FormData): number {
+  const n = Number(String(form.get('id') ?? ''));
+  if (!Number.isInteger(n) || n <= 0) throw badRequest('Ugyldig konto');
+  return n;
+}
+
 export const load: PageServerLoad = () => ({
   settings: getSettings(),
   accounts: listAccounts().map((a) => ({ ...a, usage: accountUsage(a.id) }))
@@ -26,9 +32,9 @@ export const actions: Actions = {
       const fields: Record<string, string> = {};
       const ob = String(form.get('opening_balance') ?? '').trim();
       try {
-        input.opening_balance_ore = String(parseKrToOre(ob || '0'));
+        input.opening_balance_ore = String(parseKrToOre(ob));
       } catch {
-        fields.opening_balance = 'Ugyldigt beløb – brug fx 12.345,67';
+        fields.opening_balance = ob === '' ? 'Skal udfyldes (0,00 hvis kontoen var tom)' : 'Ugyldigt beløb – brug fx 12.345,67';
       }
       try {
         input.opening_balance_date = parseDateInput(String(form.get('opening_balance_date') ?? ''));
@@ -59,7 +65,7 @@ export const actions: Actions = {
   renameAccount: async ({ request }) => {
     const form = await request.formData();
     try {
-      renameAccount(Number(form.get('id')), { name: String(form.get('name') ?? '') });
+      renameAccount(accountIdFrom(form), { name: String(form.get('name') ?? '') });
       return { saved: true };
     } catch (e) {
       const { status, message } = errorMessage(e);
@@ -70,7 +76,7 @@ export const actions: Actions = {
   deleteAccount: async ({ request }) => {
     const form = await request.formData();
     try {
-      deleteAccount(Number(form.get('id')));
+      deleteAccount(accountIdFrom(form));
       return { saved: true };
     } catch (e) {
       const { status, message } = errorMessage(e);

@@ -6,6 +6,7 @@ import { audit } from '../audit';
 import { badRequest } from '../errors';
 import { DEFAULT_SETTINGS, SETTING_KEYS } from './settings-defaults';
 import { withIssueLock } from './issue-lock';
+import { isValidIsoDate } from '../../format';
 
 export type Settings = Record<string, string>;
 
@@ -49,9 +50,9 @@ const settingsSchema = z.object({
   opening_balance_ore: z
     .union([z.number(), z.string().regex(/^-?\d+$/, 'Åbningssaldo skal være hele øre')])
     .transform(Number)
-    .pipe(z.number().int())
+    .pipe(z.number().int().max(1e13).min(-1e13))
     .optional(),
-  opening_balance_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').optional(),
+  opening_balance_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').refine(isValidIsoDate, 'Ugyldig dato').optional(),
   vat_registered: z
     .union([z.literal('1'), z.literal('0'), z.literal('on'), z.boolean()])
     .transform((v) => (v === true || v === '1' || v === 'on' ? '1' : '0'))

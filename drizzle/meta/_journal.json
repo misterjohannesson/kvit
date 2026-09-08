@@ -57,6 +57,13 @@
       "when": 1788823588341,
       "tag": "0007_drop_expense_category",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788825078853,
+      "tag": "0008_cash_movement_guard",
+      "breakpoints": true
     }
   ]
 }

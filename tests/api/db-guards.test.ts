@@ -100,6 +100,18 @@ describe('database guards', () => {
     expect(() => credit.run(note, b)).toThrow(/UNIQUE constraint failed: invoice.credited_by_invoice_id/);
   });
 
+  it('cash movements are append-only', () => {
+    const id = (sqlite.prepare("INSERT INTO cash_movement (date, description, amount_ore, kind, created_at) VALUES ('2026-09-01', 'x', -100, 'other', 'x') RETURNING id").get() as { id: number }).id;
+    expect(() => sqlite.prepare('UPDATE cash_movement SET amount_ore = -1 WHERE id = ?').run(id)).toThrow(/append-only/);
+    expect(() => sqlite.prepare('DELETE FROM cash_movement WHERE id = ?').run(id)).toThrow(/append-only/);
+  });
+
+  it('accounts can only be renamed', () => {
+    expect(() => sqlite.prepare("UPDATE account SET type = 'cost' WHERE number = 1000").run()).toThrow(/renamed/);
+    expect(() => sqlite.prepare('UPDATE account SET number = 1001 WHERE number = 1000').run()).toThrow(/renamed/);
+    expect(() => sqlite.prepare("UPDATE account SET name = 'Konsulentydelser' WHERE number = 1000").run()).not.toThrow();
+  });
+
   it('audit_log is append-only', () => {
     const row = sqlite.prepare('SELECT id FROM audit_log ORDER BY id LIMIT 1').get() as { id: number };
     expect(() => sqlite.prepare("UPDATE audit_log SET action = 'tampered' WHERE id = ?").run(row.id)).toThrow(/append-only/);

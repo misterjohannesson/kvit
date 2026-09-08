@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { balance, reconcileBook, reconcilePreview } from '$lib/server/services/finance';
 import { errorMessage } from '$lib/server/api';
 import { parseKrToOre } from '$lib/format';
-import { badRequest } from '$lib/server/errors';
+import { badRequest, HttpError } from '$lib/server/errors';
 
 export const load: PageServerLoad = () => ({ balance: balance() });
 
@@ -23,14 +23,17 @@ export const actions: Actions = {
       return { preview: reconcilePreview(actualFrom(form)) };
     } catch (e) {
       const { status, message } = errorMessage(e);
-      return fail(status, { error: message });
+      const fields = e instanceof HttpError && Object.keys(e.fields).length ? e.fields : undefined;
+      return fail(status, { error: message, fields });
     }
   },
   /** Step 2: book the difference as a `correction` movement. */
   book: async ({ request }) => {
     const form = await request.formData();
     try {
-      const movement = reconcileBook(actualFrom(form));
+      const expectedRaw = String(form.get('expectedLikvider') ?? '').trim();
+      const expected = expectedRaw === '' ? undefined : parseKrToOre(expectedRaw);
+      const movement = reconcileBook(actualFrom(form), expected);
       return { booked: movement };
     } catch (e) {
       const { status, message } = errorMessage(e);

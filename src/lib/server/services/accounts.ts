@@ -6,7 +6,7 @@ import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 
 const accountSchema = z.object({
-  number: z.coerce.number().int('Kontonummer skal være et helt tal').min(1000).max(9999),
+  number: z.coerce.number({ error: 'Kontonummer skal være et tal' }).int('Kontonummer skal være et helt tal').min(1000, 'Kontonummer skal være mellem 1000 og 9999').max(9999, 'Kontonummer skal være mellem 1000 og 9999'),
   name: z.string().trim().min(1, 'Navn er påkrævet').max(100),
   type: z.enum(['revenue', 'cost'], { message: 'Type skal være salg eller omkostning' })
 });
@@ -76,6 +76,11 @@ export function deleteAccount(id: number): void {
   });
 }
 
-export function accountLabel(a: Pick<Account, 'number' | 'name'>): string {
-  return `${a.number} ${a.name}`;
+/** Default for new invoice lines: 1000 Konsulentydelser if it exists, else the lowest-numbered revenue account. */
+export function defaultRevenueAccountId(): number {
+  const revenue = listAccounts('revenue');
+  const preferred = revenue.find((a) => a.number === 1000) ?? revenue[0];
+  if (!preferred) throw badRequest('Kontoplanen har ingen salgskonti');
+  return preferred.id;
 }
+

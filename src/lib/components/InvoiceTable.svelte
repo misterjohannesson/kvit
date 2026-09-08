@@ -82,7 +82,7 @@
           <td class="mono">{r.status === 'draft' || r.isCreditNote ? '—' : formatDate(r.dueDate)}</td>
           <td>
             <Badge invoice={r} {today} />
-            {#if r.paidDate && r.status === 'issued' && !r.isCreditNote}<span class="badge-note">{formatDate(r.paidDate)}</span>{/if}
+            {#if r.paidDate && r.status === 'issued'}<span class="badge-note">{r.isCreditNote ? 'refunderet ' : ''}{formatDate(r.paidDate)}</span>{/if}
           </td>
           <td class={neg(r.subtotalOre)}>{formatOre(r.subtotalOre, false)}</td>
           <td class={neg(r.vatOre)}>{formatOre(r.vatOre, false)}</td>
