@@ -56,6 +56,16 @@ npm --prefix mcp run inspect
 
 ### Client configuration
 
+Which transport to use:
+
+| Client | Local server | Notes |
+|---|---|---|
+| Claude Code | `claude mcp add --transport http kvit http://127.0.0.1:3333/mcp` after `npm run mcp:http`, or the stdio JSON below | plain `http` is fine for localhost |
+| Claude Desktop | the stdio JSON below in `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\`) | Desktop launches the server itself; no URL |
+| claude.ai / Desktop "Add custom connector" | not for a local server | that dialog accepts only public `https` URLs reachable from Anthropic's side, hence "url must start with https" |
+
+The HTTP server prints its URL and whether a token is configured when it starts.
+
 stdio, e.g. Claude Code (`claude mcp add-json kvit '<json>'`) or Claude Desktop (`claude_desktop_config.json`):
 
 ```json

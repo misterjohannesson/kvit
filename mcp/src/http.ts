@@ -70,5 +70,21 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 httpServer.listen(port, host, () => {
-  console.error(`[kvit-mcp] streamable HTTP on http://${host}:${port}/mcp (allowed hosts: ${allowedHosts.join(', ')}), app at ${config.baseUrl}`);
+  const shownHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+  const url = `http://${shownHost}:${port}/mcp`;
+  console.error(
+    [
+      '',
+      '[kvit-mcp] streamable HTTP transport is running',
+      `[kvit-mcp]   MCP URL:   ${url}`,
+      `[kvit-mcp]   app:       ${config.baseUrl}`,
+      `[kvit-mcp]   token:     ${config.token ? 'configured' : 'MISSING (every tool will fail with an auth error)'}`,
+      `[kvit-mcp]   hosts:     ${allowedHosts.join(', ')}`,
+      '[kvit-mcp]',
+      `[kvit-mcp]   Claude Code:  claude mcp add --transport http kvit ${url}`,
+      '[kvit-mcp]   Claude Desktop accepts only https for remote connectors; use the stdio config',
+      '[kvit-mcp]   from mcp/README.md for a local server instead.',
+      ''
+    ].join('\n')
+  );
 });
