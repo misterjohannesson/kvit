@@ -15,12 +15,18 @@ permissions:
   contents: write
   packages: write
 
+env:
+  # The build imports the server code (SvelteKit route analysis), which opens the database at DATA_DIR on import;
+  # /data is not writable on a runner, so point it at scratch space. Tests and installers set their own DATA_DIR.
+  DATA_DIR: /tmp/faktura-build-data
+  APP_PASSWORD: build-only-not-used-at-runtime
+
 jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
