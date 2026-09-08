@@ -9,7 +9,6 @@ data-*
 review
 tests
 *.log
-spec
 mcp/node_modules
 mcp/dist
 mcp/test

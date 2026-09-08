@@ -170,5 +170,5 @@ The printed/PDF invoice is a legal document, not a screenshot of the UI. `tokens
 ## 8. Fonts and brand assets in the app
 
 - Archivo (400/500/600) and IBM Plex Mono (400/500) are self-hosted from the `@fontsource` packages (no CDN, per the spec). The browser loads them through `src/routes/+layout.svelte`; the invoice PDF embeds the same woff2 files as data URIs so Chromium renders the document with the exact faces.
-- `static/logo.svg` is the 26px rail mark and the login lockup; `static/favicon.svg` is the tab icon. Both come from `spec/design/`.
+- `static/logo.svg` is the 26px rail mark and the login lockup; `static/favicon.svg` is the tab icon.
 - The rail footer and the topbar pin the current quarter's VAT deadline (`vatSettlementDate`).

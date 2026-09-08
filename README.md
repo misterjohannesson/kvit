@@ -142,7 +142,7 @@ you). `tests/unit/migration.test.ts` migrates a populated version-0 database and
 `tokens.css`, `style.md` and `example.html` in the repo root are mandatory (the app halts without them) and are the only
 place colours, type, spacing, radii and shadows are defined. `src/app.css` is the example's style block plus app
 additions, documented in style.md. Fonts (Archivo, IBM Plex Mono) are self-hosted via `@fontsource` and embedded in PDFs.
-The sources live in `spec/design/`.
+The brand mark and favicon are in `static/`.
 
 ## MCP server
 
