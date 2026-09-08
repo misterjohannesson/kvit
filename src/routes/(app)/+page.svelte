@@ -24,6 +24,18 @@
   </div>
 </div>
 
+{#if data.unsent.length > 0}
+  <div class="callout callout--alert" role="alert">
+    <div class="callout__body">
+      <p class="callout__title">{data.unsent.length === 1 ? '1 udstedt dokument er ikke sendt' : `${data.unsent.length} udstedte dokumenter er ikke sendt`}</p>
+      <p>{data.unsent.map((r) => `${r.isCreditNote ? 'Kreditnota' : 'Faktura'} ${r.invoiceNumber} (${r.customerName})`).join(' · ')}. Send dem til kunden, og markér dem som sendt.</p>
+    </div>
+    <div class="callout__actions">
+      <a class="btn" href="/fakturaer?status=usendte">Vis usendte</a>
+    </div>
+  </div>
+{/if}
+
 <section class="kpis" aria-label="Nøgletal">
   <div class="kpi">
     <div class="kpi__label">Udestående</div>

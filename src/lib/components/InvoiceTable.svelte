@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatDate, formatOre } from '$lib/format';
+  import { formatDate, formatOre, needsSending } from '$lib/format';
   import Badge from './Badge.svelte';
 
   type Row = {
@@ -16,6 +16,7 @@
     isCreditNote: boolean;
     creditsInvoiceNumber: number | null;
     creditedByNumber: number | null;
+    sentAt: string | null;
   };
 
   let {
@@ -83,6 +84,7 @@
           <td>
             <Badge invoice={r} {today} />
             {#if r.paidDate && r.status === 'issued'}<span class="badge-note">{r.isCreditNote ? 'refunderet ' : ''}{formatDate(r.paidDate)}</span>{/if}
+            {#if needsSending(r, today)}<span class="badge badge--usendt">Ikke sendt</span>{/if}
           </td>
           <td class={neg(r.subtotalOre)}>{formatOre(r.subtotalOre, false)}</td>
           <td class={neg(r.vatOre)}>{formatOre(r.vatOre, false)}</td>

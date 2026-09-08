@@ -1,10 +1,18 @@
-# Style guide — invoicing & bookkeeping
+# Kvit — style guide
 
-Single-user Danish invoicing app: invoices (fakturaer), expenses (udgifter), quarterly VAT report (momsindberetning). One person, at a desk, doing accounting they do not enjoy. The interface's job is to be legible, predictable, and quiet — and to be trustworthy about numbers.
+**Kvit** — from Danish *kvit og frit*: settled, square, nothing outstanding. That is the product's promise and the whole point of the tool: get to zero, four times a year, without drama.
 
-**Design position:** Scandinavian administrative utility. Paper-white surfaces, hairline rules, ink-blue as the only accent, numbers in monospace. Structure comes from alignment and rules, never from shadows or coloured panels. Density is high but the page never feels busy, because there is exactly one accent, one red, and one strong button per screen.
+Single-user Danish invoicing app: invoices (fakturaer), expenses (udgifter), quarterly VAT report (momsindberetning). One person, at a desk, doing accounting they do not enjoy. The interface's job is to be legible, predictable and quiet — and to be trustworthy about numbers.
 
-Everything below references tokens from `tokens.css`. Component CSS must not contain raw colour, size, or spacing literals.
+**Design position — "Kontor".** Scandinavian administrative utility with a spine. A deep slate-navy navigation rail frames a warm-light work area: it gives the data an edge to sit against, cuts the glare of an all-white screen, and keeps every pixel of colour budget inside the chrome rather than on the numbers. Structure comes from alignment and hairline rules, never from shadows or coloured panels. Density is high but the page never feels busy, because there is exactly one warm colour, one red, and one strong button per screen.
+
+**Brand elements**
+
+- Wordmark: `Kvit` in Archivo 600, `--tracking-tight`, with `Bogholderi` beneath at `--text-2xs` uppercase in `--nav-muted`.
+- Mark: a `26px` brass square (`--brand-mark-bg`, `--brand-mark-radius`) carrying a dark-ink **K**. It is the only brass surface outside the primary button — the mark and "Udsted" are visually the same material, which is the point: the brand *is* the act of issuing.
+- Brass (`--brass-*`) is a budget, not a palette. If a screen has brass in three places, two of them are wrong.
+
+Everything below references tokens from `tokens.css`. Component CSS must not contain raw colour, size or spacing literals.
 
 ---
 
@@ -12,8 +20,9 @@ Everything below references tokens from `tokens.css`. Component CSS must not con
 
 | Role | Token | Notes |
 |---|---|---|
-| UI text | `--font-ui` | Helvetica Neue / Helvetica, system fallback. Neutral grotesque, no personality tax. |
-| Numbers, dates, IDs | `--font-numeric` (mono) | **Mandatory** for all amounts, dates, invoice numbers, CVR, VAT rates, account numbers. |
+| UI text | `--font-ui` | **Archivo** 400/500, Helvetica fallback. Grotesque with slightly narrow, squared-off forms — it holds up at 11–13px in dense tables and gives the brand a Danish-signage character without becoming decorative. |
+| Headings, wordmark | `--font-display` (= Archivo, `--display-weight` 600) | Same family, heavier weight, `--tracking-tight`. One family only; hierarchy comes from weight and size. |
+| Numbers, dates, IDs | `--font-numeric` (**IBM Plex Mono**) | **Mandatory** for all amounts, dates, invoice numbers, CVR, VAT rates, account numbers. |
 
 Base size is `--text-sm` (13px). This is the size of table cells, form fields, and most body copy — dense enough to see a quarter of invoices without scrolling, large enough to read all day.
 
@@ -31,7 +40,7 @@ Base size is `--text-sm` (13px). This is the size of table cells, form fields, a
 
 1. Amounts are right-aligned, `--font-numeric`, `font-variant-numeric: tabular-nums`, thousands separated with `.` and decimals with `,` (Danish): `12.450,00 kr.` Currency suffix is `--text-secondary`, never bold.
 2. Negative amounts and credit notes: minus prefix **and** `--text-negative`. Never parentheses; never colour alone.
-3. Dates are `DD.MM.YYYY` in mono. Date *entry* in the invoice editor uses the browser's native date picker (an explicit owner decision; the control follows the browser's Danish locale). Relative dates are permitted only as secondary metadata ("om 4 dage") at `--text-2xs`.
+3. Dates are `DD.MM.YYYY` in mono. Relative dates are permitted only as secondary metadata ("om 4 dage") at `--text-2xs`.
 4. Column heads are uppercase, `--text-xs`, `--weight-medium`, `--tracking-wide`, `--text-label`. Nothing else in the UI is uppercase.
 5. Never bold body text for emphasis. Use `--text-primary` vs `--text-secondary` to create hierarchy.
 6. Line length for prose is capped at `--layout-prose-max`.
@@ -44,17 +53,23 @@ Desktop-first, 1440px design target, usable from 1152px. No mobile layout — th
 
 ```
 ┌────────────┬──────────────────────────────────────────────┐
-│  sidebar   │  topbar  (--layout-topbar-height)            │
-│  224px     ├──────────────────────────────────────────────┤
-│  (--layout│  content: max --layout-content-max,           │
-│  -sidebar-│  padded --layout-gutter, centred              │
-│  width)    │                                              │
+│ NAVY RAIL  │  topbar  (--layout-topbar-height)            │
+│ --nav-bg   ├──────────────────────────────────────────────┤
+│ 224px      │  content: max --layout-content-max,          │
+│            │  padded --layout-gutter, on --bg-canvas      │
+│            │                                              │
 └────────────┴──────────────────────────────────────────────┘
 ```
 
-- Content area is a 12-column grid (`--layout-columns`) with `--layout-column-gap`. Only three column splits are sanctioned: **12** (tables, full-width), **8 / 4** (form + summary sidebar), **6 / 6** (paired panels, e.g. VAT sales vs. purchases). An 8 / 4 that holds a line-item editor (`layout-8-4--lines`) stacks to one column below 1420px, and a 6 / 6 of paired data tables (`layout-6-6--tables`) stacks below 1280px; plain 8 / 4 detail pages stay side by side down to 1152px.
+**The rail** is `--nav-bg` full-height, with its own token set (`--nav-text`, `--nav-muted`, `--nav-hover`, `--nav-active-bg`). The active item gets `--nav-active-bg` plus a `--border-width-thick` left edge in `--nav-active-edge` (brass) — the only brass in the rail besides the mark. Group labels are `--text-2xs` uppercase `--tracking-wider` in `--nav-muted`. The rail's footer pins the current VAT deadline: this app exists because of that date.
+
+Never place data, tables or amounts on the dark rail; it is navigation and status only. The work area never goes dark.
+
+- Content area is a 12-column grid (`--layout-columns`) with `--layout-column-gap`. Only three column splits are sanctioned: **12** (tables, full-width), **8 / 4** (form + summary sidebar), **6 / 6** (paired panels, e.g. VAT sales vs. purchases).
 - Vertical rhythm is a multiple of `--space-2`. Section spacing: `--space-8` between major sections, `--space-6` between a heading and its content, `--space-4` inside a panel.
 - Panels are `--bg-surface` on `--bg-canvas`, `--border-default-style`, `--radius-md`, **no shadow**. Shadows are reserved for things that float: dropdowns, modals, sticky bars.
+- Panel headers and footers use `--bg-panel-head`; table heads `--bg-thead`, totals rows `--bg-tfoot`. These three faint slate tints are what replace white-on-white — the panel reads as a stack of bands rather than one flat sheet.
+- One KPI card per screen may use `.kpi--accent` (`--brass-100` / `--brass-200`) — the number the user came to see. Never two.
 - Page header pattern: eyebrow (`--text-xs`, `--text-secondary`) → title (`--text-2xl`) → the primary action, right-aligned on the same baseline as the title.
 - Sticky elements (table head, save bar) use `--shadow-sticky` and `--z-sticky`.
 
@@ -67,15 +82,12 @@ Tables are the product. They get the most attention.
 - Row height `--table-row-height` (36px) by default; a per-user **Kompakt** toggle switches to `--table-row-height-dense` (30px). Both keep `--table-cell-pad-x` horizontally.
 - Cell padding: `--table-cell-pad-y` / `--table-cell-pad-x`. Line height `--leading-snug`.
 - **Horizontal hairlines only** (`--table-rule`). No vertical rules, no zebra striping by default — alignment separates columns. `--bg-row-alt` zebra is allowed only for tables wider than 8 columns (e.g. the VAT ledger).
-- Head: `--bg-header`, sticky, bottom border `--border-strong-style`. Head text per §1.5.
+- Head: `--bg-thead`, sticky, bottom border `--border-strong-style`. Head text per §1.5.
 - Hover `--bg-row-hover`; selected `--bg-row-selected` plus a `--border-width-thick` left edge in `--focus-ring`. Whole row is the click target for the detail view.
 - Column order for the invoice list, fixed: `Nr.` · `Kunde` · `Udstedt` · `Forfald` · `Status` · `Beløb ekskl.` · `Moms` · `Beløb i alt` · row actions.
 - Numeric columns right-aligned, text left-aligned, status centre-left in a fixed-width column so badges form a clean vertical band. Never centre numbers.
-- Totals row: top border `--border-strong-style`, `--weight-semibold`, no fill.
+- Totals row: top border `--border-strong-style`, `--weight-semibold`, `--bg-tfoot`.
 - Overdue rows are **not** tinted red. The badge carries the state; tinting a row makes a healthy quarter look like a crisis.
-- Loading (`.loading`): a client-side navigation that takes longer than 150 ms shows a 2px `--accent-500` bar sliding along the top of the content and a see-through veil (`--bg-canvas` at 45 %) over the content, sidebar untouched. No spinners. Reduced motion: static full-width bar.
-- Alert callout (`.callout--alert`): the one message that needs action today, e.g. an issued document that has not been marked as sent. Overdue ramp on a bordered box with a title and the action inline; never a page-wide tint, and the text always carries the meaning. The matching `Ikke sendt` marker (`.badge--usendt`) sits next to the status badge in lists.
-- Forecast rows (Cashflow, `.row--forecast`): the running month and every month ahead are tinted `--status-open-surface` with `--text-secondary` text, and the month cell carries a mono note (`igangværende` / `prognose`) so the tint is never the only cue. Closed months stay untinted. Hover `--accent-100`.
 - Empty state: single centred line at `--text-sm` / `--text-secondary` plus one secondary button. No illustrations.
 
 ---
@@ -84,7 +96,7 @@ Tables are the product. They get the most attention.
 
 - One column. Label above field, always: `--text-xs`, `--weight-medium`, `--text-label`, `--space-1` below.
 - Field height `--control-height`, `--radius-sm`, `--border-default-style`, `--bg-surface`, padding `--control-pad-x`, text `--text-sm`.
-- Width follows content, capped at `--field-max-width`: amounts and dates get short fields (`--field-width-sm`), quantities and units the narrowest (`--field-width-xs`), file pickers `--field-width-md`, names get wide ones. Grid spans 2/3/4/5/6/8/12 are available so a name can be wider than the CVR next to it. Never stretch a date field across the panel.
+- Width follows content, capped at `--field-max-width`: amounts and dates get short fields (~120px), names get wide ones. Never stretch a date field across the panel.
 - Amount and date inputs use `--font-numeric` and `text-align: right` for amounts.
 - Hover `--border-strong`; focus `--focus-ring-width` outline in `--focus-ring` at `--focus-ring-offset`, border becomes `--accent-500`. Focus is always visible — keyboard entry is the primary input method for bookkeeping.
 - Disabled/read-only: `--bg-disabled`, `--text-disabled`, border `--border-default`.
@@ -106,9 +118,6 @@ Five states. Text label always present; hue is a reinforcement, never the messag
 | `Forfalden` | past due | `--status-overdue-*` |
 | `Betalt` | settled | `--status-paid-*` |
 | `Krediteret` | credit note issued | `--status-credited-*` |
-| `Kreditnota` | the credit-note document itself (it is neither open nor paid) | `--status-credited-*` |
-
-`Kreditnota` is a document type sitting in the status column: it reuses the credited tokens, never gets a paid date, and its `Kunde` cell names the invoice it credits.
 
 Construction: `--text-xs`, `--weight-medium`, `--radius-xs`, padding `--space-1` / `--space-2`, `1px` border in `*-border`, fill `*-surface`, text `*-ink`. Sentence case, one word. No dots, no icons, no pills.
 
@@ -123,12 +132,13 @@ Construction: `--text-xs`, `--weight-medium`, `--radius-xs`, padding `--space-1`
 
 **"Udsted"** (issue invoice) is the app's single most consequential action: it assigns a sequential invoice number and makes the document legally binding for Danish bookkeeping. It is the only place the strongest visual weight in the system is used.
 
-- **Primary** — `--grey-900` fill, `--text-inverse`, `--radius-sm`, `--control-height-lg` when it is the page's main commit action (`Udsted`, `Bogfør`, `Indberet moms`), otherwise `--control-height`. `--weight-medium`. **Exactly one per screen.** Ink, not accent: it must read as gravity, not as marketing.
+- **Primary** — brass: `--primary-bg` fill, `--primary-ink` (dark) text, `--primary-shadow`, `--radius-sm`, `--control-height-lg` when it is the page's main commit action (`Udsted`, `Bogfør`, `Indberet moms`), otherwise `--control-height`. `--weight-medium`. **Exactly one per screen.** Brass is the only warm surface in the UI, so the eye finds it instantly without the button having to be large or loud — and because the label sits in dark ink on a light-warm fill, it reads as a physical key, not a marketing CTA.
 - **Secondary** — `--bg-surface`, `--border-default-style`, `--text-primary`. Everything reversible: `Gem kladde`, `Forhåndsvis`, `Annullér`.
 - **Tertiary / link** — text only in `--text-link`, no border. Row actions and inline navigation.
 - **Destructive** — secondary shell with `--status-overdue-ink` text and border on hover. Never a red fill. `Slet kladde`, `Krediter faktura` — both behind confirmation.
-- Heights from `--control-height*`; padding `--control-pad-x` (×2 for the primary commit action). Icon-only buttons are square at the same height. A primary that is merely the page's single save (`Gem`, `Opret kunde`, `Log ind`) takes the `btn--std` modifier: `--control-height`, normal padding.
-- Focus: same ring as fields. Disabled: `--bg-disabled` / `--text-disabled`, no border change.
+- Heights from `--control-height*`; padding `--control-pad-x` (×2 for the primary commit action). Icon-only buttons are square at the same height.
+- Focus: same ring as fields (`--focus-ring`, the informational blue — never brass, so focus is never confused with primacy). Disabled: `--bg-disabled` / `--text-disabled`, no border change; a disabled `Udsted` loses its brass entirely.
+- Segmented controls mark the active segment with `--nav-bg` and `--nav-active-ink` — the rail's own colour, reused so filters read as navigation rather than as data.
 - `Udsted` is disabled until the invoice validates, and always confirms: *"Fakturaen får nummer 2026-0043 og kan herefter kun annulleres med en kreditnota."*
 - Order in a footer: destructive far left, then secondary, primary rightmost.
 
@@ -140,10 +150,11 @@ The printed/PDF invoice is a legal document, not a screenshot of the UI. `tokens
 
 - A4 portrait, `--print-page-width` × `--print-page-height`; margins `--print-margin-top` / `--print-margin-side` / `--print-margin-bottom`.
 - Base size `--print-text-size` (9.5pt), leading `--print-leading`. Nothing below `--print-text-small` (8pt). Amounts stay mono.
-- Hide: sidebar, topbar, all buttons, filters, row actions, hover affordances, badges' fills.
+- Hide: the navy rail, topbar, all buttons, filters, row actions, hover affordances, badges' fills. **Neither the rail nor brass ever prints** — `@media print` in `tokens.css` re-points `--nav-*` and `--primary-*` to white/black.
+- The wordmark prints as text (`Kvit`, `--font-display`), not as the brass mark: the invoice is a legal document, not a brand surface.
 - Header block: sender identity (name, address, CVR) top-left; document title `Faktura` and, on a credit note, `Kreditnota` at `--text-4xl` top-right, with number, issue date and due date in a mono key/value list beneath.
 - Line-item table: header row with a `--print-rule` above and below; rows separated by `--border-hairline`; no fill. `page-break-inside: avoid` on each row; `thead { display: table-header-group }` so headers repeat.
-- Totals block bottom-right, max 70mm wide: subtotal, VAT (`Moms 25%`), total. Total gets a `--print-rule` above and `--weight-semibold` at `--text-lg` (the `--text-3xl` rule in §1 is for screen KPIs; at 9.5pt body copy the printed total stays at `--text-lg`). Amounts right-aligned to a shared edge with the line-item amounts; the currency belongs in the total's label ("I alt inkl. moms, DKK"), never after the digits, so it cannot push them off that edge.
+- Totals block bottom-right, max 70mm wide: subtotal, VAT (`Moms 25%`), total. Total gets a `--print-rule` above and `--weight-semibold`. Amounts right-aligned to a shared edge with the line-item amounts.
 - Footer repeats on every page (`position: fixed; bottom: 0` inside the print root): payment details (bank/konto, betalingsbetingelser), and `Side X af Y`.
 - Required Danish statutory content must be present and never clipped: sender name & address, CVR-nummer, invoice number, issue date, delivery date if different, buyer name & address, description, VAT rate and amount per rate, total ex. and incl. VAT, payment terms. Reverse-charge or exempt lines print their statutory note at `--print-text-small`.
 - No background images, no logos larger than 30mm wide, no colour beyond black/greys — the file must print correctly on a monochrome office printer.

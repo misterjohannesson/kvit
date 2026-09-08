@@ -54,7 +54,7 @@ export async function htmlToPdf(html: string, footerTemplate: string): Promise<B
   }
 }
 
-export async function renderInvoicePdf(inv: InvoiceDetail, settings: Record<string, string>): Promise<Buffer> {
-  const { html, footerTemplate } = renderInvoiceHtml(inv, settings, readTokensCss());
+export async function renderInvoicePdf(inv: InvoiceDetail, settings: Record<string, string>, opts: { draft?: boolean } = {}): Promise<Buffer> {
+  const { html, footerTemplate } = renderInvoiceHtml(inv, settings, readTokensCss(), opts);
   return htmlToPdf(html, footerTemplate);
 }

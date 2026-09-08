@@ -39,7 +39,11 @@ export const REQUIRED_TRIGGERS = [
   'invoice_credited_by_target',
   'cash_movement_no_update',
   'cash_movement_no_delete',
-  'account_identity_immutable'
+  'account_identity_immutable',
+  'invoice_sent_once',
+  'invoice_attachment_no_insert_issued',
+  'invoice_attachment_no_update_issued',
+  'invoice_attachment_no_delete_issued'
 ] as const;
 
 // Migrations that rebuild a table drop and re-create it while other tables (and

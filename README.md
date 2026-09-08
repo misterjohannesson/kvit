@@ -154,6 +154,14 @@ periodiseringsdatoer (fakturadato / bilagsdato), kassevisningerne bruger betalin
 - Betalingsreferencen på fakturaen er den tekst, kunden skriver på bankoverførslen (tom = »Faktura <nr.>«, sat ved
   udstedelse). Reg.- og kontonummer kommer fra Indstillinger og trykkes ved siden af. Forfaldsdatoen følger
   fakturadatoen plus kundens betalingsfrist (eller standarden fra Indstillinger) og kan rettes frit.
+- **Bilag**: PDF'er (timeopgørelser, produktlister) kan vedhæftes en kladde og samles i ét dokument ved udstedelse:
+  fakturasiderne først, derefter bilagene i rækkefølge, med en bilagsliste på fakturaen. Efter udstedelse er bilagene
+  frosset sammen med fakturaen (triggers); de uploadede originaler ligger under `files/invoices/bilag/`.
+- **Udkast til PDF**: en gemt kladde kan ses som PDF (`/api/invoices/{id}/preview`, mærket UDKAST, uden nummer,
+  inkl. bilag). Den genereres pr. visning og gemmes aldrig; det juridiske dokument opstår kun ved udstedelse.
+- **Sendt**: udstedte dokumenter markeres som sendt med en dato (én gang, revisionslogget). Et udstedt dokument, der ikke
+  er markeret sendt, og hvis dato er nået, får en tydelig advarsel på detaljesiden, i listen (filter »Usendte«) og på
+  Overblik.
 - Fakturanummer tildeles kun ved udstedelse, fra `next_invoice_number`, i samme transaktion som status → `issued`.
   Udstedelser serialiseres, så samtidige forsøg altid giver fortløbende numre.
 - Udstedte fakturaer og deres linjer er skrivebeskyttede i API-laget (409 Conflict). Eneste korrektion er en kreditnota.

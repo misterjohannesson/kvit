@@ -47,6 +47,8 @@ export const invoice = sqliteTable(
     paymentReference: text('payment_reference').notNull().default(''),
     paidDate: text('paid_date'),
     pdfPath: text('pdf_path'),
+    /** Date the document was sent to the customer; set once, only on issued documents (trigger invoice_sent_once). */
+    sentAt: text('sent_at'),
     creditedByInvoiceId: integer('credited_by_invoice_id').references((): AnySQLiteColumn => invoice.id),
     createdAt: text('created_at').notNull()
   },
@@ -118,6 +120,24 @@ export const cashMovement = sqliteTable(
   (t) => [index('cash_movement_date_idx').on(t.date)]
 );
 
+/** PDFs appended to the invoice document at issue (time sheets, product lists). Draft-only; locked with the invoice. */
+export const invoiceAttachment = sqliteTable(
+  'invoice_attachment',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    invoiceId: integer('invoice_id')
+      .notNull()
+      .references(() => invoice.id),
+    position: integer('position').notNull(),
+    name: text('name').notNull(),
+    filePath: text('file_path').notNull(),
+    pages: integer('pages').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    createdAt: text('created_at').notNull()
+  },
+  (t) => [index('invoice_attachment_invoice_idx').on(t.invoiceId)]
+);
+
 export const auditLog = sqliteTable(
   'audit_log',
   {
@@ -136,7 +156,7 @@ export const setting = sqliteTable('setting', {
   value: text('value').notNull()
 });
 
-export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement;
+export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement | typeof invoiceAttachment;
 export type Customer = typeof customer.$inferSelect;
 export type Account = typeof account.$inferSelect;
 export type CashMovement = typeof cashMovement.$inferSelect;
@@ -144,3 +164,4 @@ export type Invoice = typeof invoice.$inferSelect;
 export type InvoiceLine = typeof invoiceLine.$inferSelect;
 export type Expense = typeof expense.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
+export type InvoiceAttachment = typeof invoiceAttachment.$inferSelect;

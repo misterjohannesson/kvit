@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import NavProgress from '$lib/components/NavProgress.svelte';
   let { data, children } = $props();
 
   const items = [
@@ -55,6 +56,7 @@
     </header>
 
     <div class="content">
+      <NavProgress />
       {@render children()}
     </div>
   </div>

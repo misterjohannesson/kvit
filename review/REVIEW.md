@@ -1410,3 +1410,12 @@ Open findings: 0
   the items. Actual position (Likvider) unchanged. Tests: 81 passing.
 
 Open findings: 0
+- Cashflow: the "Pr. maaned" explanation cut to two lines.
+- Navigation: NavProgress (top bar + see-through veil after 150 ms) while a page loads; style.md section 3 "Loading".
+- Drafts: on-the-fly PDF preview (UDKAST, no number, attachments included, never stored) via /api/invoices/{id}/preview.
+- Attachments: PDFs appended to a draft are merged behind the invoice pages at issue (pdf-lib), listed on the document,
+  frozen by triggers once issued; originals under files/invoices/bilag/.
+- Sent status: sent_at set once on issued documents (trigger invoice_sent_once); alert callout on the detail page, "Ikke sendt"
+  marker + "Usendte" filter in the list, warning on Overblik. Tests: 88 passing.
+
+Open findings: 0

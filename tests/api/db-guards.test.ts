@@ -118,6 +118,33 @@ describe('database guards', () => {
     expect(() => sqlite.prepare('DELETE FROM audit_log WHERE id = ?').run(row.id)).toThrow(/append-only/);
   });
 
+  it('sent_at is written once, on issued documents only', () => {
+    const draft = sqlite
+      .prepare("INSERT INTO invoice (status, customer_id, issue_date, due_date, created_at) VALUES ('draft', 1, '2026-09-01', '2026-09-15', 'x') RETURNING id")
+      .get() as { id: number };
+    expect(() => sqlite.prepare("UPDATE invoice SET sent_at = '2026-09-02' WHERE id = ?").run(draft.id)).toThrow(/set once/);
+    sqlite.prepare('DELETE FROM invoice WHERE id = ?').run(draft.id);
+    expect(() => sqlite.prepare("UPDATE invoice SET sent_at = '2026-09-02' WHERE id = ?").run(issuedId)).not.toThrow();
+    expect(() => sqlite.prepare("UPDATE invoice SET sent_at = '2026-09-03' WHERE id = ?").run(issuedId)).toThrow(/set once/);
+    expect(() => sqlite.prepare('UPDATE invoice SET sent_at = NULL WHERE id = ?').run(issuedId)).toThrow(/set once/);
+    expect(sqlite.prepare('SELECT sent_at FROM invoice WHERE id = ?').get(issuedId)).toEqual({ sent_at: '2026-09-02' });
+  });
+
+  it('attachments of an issued invoice cannot be added, changed or removed', () => {
+    const ins = sqlite.prepare(
+      "INSERT INTO invoice_attachment (invoice_id, position, name, file_path, pages, size_bytes, created_at) VALUES (?, 1, 'x.pdf', 'files/invoices/bilag/x.pdf', 1, 10, 'x')"
+    );
+    expect(() => ins.run(issuedId)).toThrow(/immutable/);
+    // Attach to a draft, issue-like flip is blocked by other guards, so simulate: attach then try to touch after the row's invoice is issued.
+    const draft = sqlite
+      .prepare("INSERT INTO invoice (status, customer_id, issue_date, due_date, created_at) VALUES ('draft', 1, '2026-09-01', '2026-09-15', 'x') RETURNING id")
+      .get() as { id: number };
+    expect(() => ins.run(draft.id)).not.toThrow();
+    sqlite.prepare("UPDATE invoice SET status = 'issued', invoice_number = 990010, pdf_path = 'files/invoices/990010.pdf' WHERE id = ?").run(draft.id);
+    expect(() => sqlite.prepare("UPDATE invoice_attachment SET name = 'y.pdf' WHERE invoice_id = ?").run(draft.id)).toThrow(/immutable/);
+    expect(() => sqlite.prepare('DELETE FROM invoice_attachment WHERE invoice_id = ?').run(draft.id)).toThrow(/immutable/);
+  });
+
   it('WAL mode is on', () => {
     expect(sqlite.pragma('journal_mode', { simple: true })).toBe('wal');
   });

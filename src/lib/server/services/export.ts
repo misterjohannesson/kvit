@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { asc } from 'drizzle-orm';
 import { db } from '../db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceLine } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine } from '../schema';
 import { FILES_DIR } from '../env';
 import { audit } from '../audit';
 
@@ -39,16 +39,18 @@ function accountMap() {
 export function invoicesCsv(): string {
   const custs = new Map(db.select().from(customer).all().map((c) => [c.id, c]));
   const rows = db.select().from(invoice).orderBy(asc(invoice.id)).all();
+  const attachmentCounts = new Map<number, number>();
+  for (const a of db.select({ invoiceId: invoiceAttachment.invoiceId }).from(invoiceAttachment).all()) attachmentCounts.set(a.invoiceId, (attachmentCounts.get(a.invoiceId) ?? 0) + 1);
   return toCsv(
     [
       'id', 'fakturanr', 'status', 'kunde_id', 'kunde', 'fakturadato', 'forfaldsdato', 'valuta',
       'subtotal_ekskl_moms', 'moms', 'total_inkl_moms', 'momssats_pct', 'momsfritagelse',
-      'betalingsreference', 'betalt_dato', 'pdf_fil', 'krediteret_af_id', 'oprettet'
+      'betalingsreference', 'betalt_dato', 'sendt_dato', 'bilag_antal', 'pdf_fil', 'krediteret_af_id', 'oprettet'
     ],
     rows.map((r) => [
       r.id, r.invoiceNumber, r.status, r.customerId, custs.get(r.customerId)?.name ?? '', r.issueDate, r.dueDate,
       r.currency, oreToCsv(r.subtotalOre), oreToCsv(r.vatOre), oreToCsv(r.totalOre), decimalToCsv(r.vatRateBp / 100),
-      r.vatExemptReason, r.paymentReference, r.paidDate, r.pdfPath, r.creditedByInvoiceId, r.createdAt
+      r.vatExemptReason, r.paymentReference, r.paidDate, r.sentAt, attachmentCounts.get(r.id) ?? 0, r.pdfPath, r.creditedByInvoiceId, r.createdAt
     ])
   );
 }

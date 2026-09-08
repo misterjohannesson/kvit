@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { createDraft, listInvoiceYears, listInvoices } from '$lib/server/services/invoices';
 import { listCustomers } from '$lib/server/services/customers';
 import { errorMessage, isRedirect } from '$lib/server/api';
-import { todayIso } from '$lib/format';
+import { needsSending, todayIso } from '$lib/format';
 
 export const load: PageServerLoad = ({ url }) => {
   const today = todayIso();
@@ -27,6 +27,9 @@ export const load: PageServerLoad = ({ url }) => {
       break;
     case 'krediterede':
       rows = rows.filter((r) => r.status === 'credited' || r.isCreditNote);
+      break;
+    case 'usendte':
+      rows = rows.filter((r) => needsSending(r, today));
       break;
   }
   return { today, filter, year, years: listInvoiceYears(), rows, customers: listCustomers() };

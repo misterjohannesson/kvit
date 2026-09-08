@@ -5,11 +5,14 @@ import {
   deleteDraft,
   getInvoice,
   issueInvoice,
+  markSent,
   nextInvoiceNumber,
   setPaidDate,
   updateDraft,
   validateForIssue
 } from '$lib/server/services/invoices';
+import { addAttachment, removeAttachment } from '$lib/server/services/attachments';
+import { uploadFromForm } from '$lib/server/expense-form';
 import { listCustomers } from '$lib/server/services/customers';
 import { getSettings } from '$lib/server/services/settings';
 import { listAccounts } from '$lib/server/services/accounts';
@@ -30,7 +33,9 @@ export const load: PageServerLoad = ({ params }) => {
       revenueAccounts: listAccounts('revenue'),
       defaultTermsDays: Number(settings.payment_terms_days) || 0,
       nextNumber: nextInvoiceNumber(),
-      problems: inv.status === 'draft' ? validateForIssue(inv, settings) : []
+      problems: inv.status === 'draft' ? validateForIssue(inv, settings) : [],
+      /** Changes on every load so the draft preview iframe re-renders after a save. */
+      previewKey: Date.now()
     };
   } catch (e) {
     if (e instanceof HttpError) error(e.status, e.message);
@@ -92,5 +97,37 @@ export const actions: Actions = {
       const form = await request.formData();
       const note = await creditInvoice(routeId(params), expectedNumberFrom(form.get('expectedNumber')));
       redirect(303, `/fakturaer/${note.id}`);
+    }),
+
+  /** "Markér som sendt": the date the document went to the customer (defaults to today). */
+  sent: async ({ params, request }) =>
+    run(async () => {
+      const form = await request.formData();
+      const raw = String(form.get('sentAt') ?? '').trim();
+      let sentAt = todayIso();
+      if (raw) {
+        try {
+          sentAt = parseDateInput(raw);
+        } catch {
+          throw new HttpError(400, 'Sendt: ugyldig dato – brug dd.mm.åååå', { sentAt: 'Ugyldig dato' });
+        }
+      }
+      markSent(routeId(params), sentAt);
+    }),
+
+  /** Append a PDF to the draft (multipart field `file`). */
+  attach: async ({ params, request }) =>
+    run(async () => {
+      const file = await uploadFromForm(await request.formData());
+      if (!file) throw new HttpError(400, 'Vælg en PDF-fil at vedhæfte', { file: 'Vælg en fil' });
+      await addAttachment(routeId(params), file);
+    }),
+
+  detach: async ({ params, request }) =>
+    run(async () => {
+      const form = await request.formData();
+      const aid = Number(form.get('attachmentId'));
+      if (!Number.isInteger(aid) || aid <= 0) throw new HttpError(400, 'Ugyldigt bilag');
+      await removeAttachment(routeId(params), aid);
     })
 };

@@ -2,19 +2,84 @@
   import { page } from '$app/state';
   import Badge from '$lib/components/Badge.svelte';
   import InvoiceEditor from '$lib/components/InvoiceEditor.svelte';
-  import { formatCvr, formatDate, formatOre, formatQuantity, formatVatRate } from '$lib/format';
+  import { formatCvr, formatDate, formatOre, formatQuantity, formatVatRate, needsSending } from '$lib/format';
   let { data, form } = $props();
 
   const inv = $derived(data.invoice);
   const title = $derived(inv.isCreditNote ? 'Kreditnota' : 'Faktura');
   let confirmCredit = $state(false);
+  let showPreview = $state(false);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
+  const unsent = $derived(needsSending(inv, data.today));
+  const attachmentPages = $derived(inv.attachments.reduce((n, a) => n + a.pages, 0));
+  const kb = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} kB`;
+  // The key changes on every load, so the preview re-renders after a save.
+  const previewSrc = $derived(`/api/invoices/${inv.id}/preview?v=${data.previewKey}#toolbar=0`);
 </script>
 
 <svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Faktura</title></svelte:head>
 
 {#if inv.status === 'draft'}
   <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} defaultTermsDays={data.defaultTermsDays} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
+
+  <section class="layout-8-4">
+    <div class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">Bilag</h3>
+        <span class="panel__meta">{inv.attachments.length} PDF · {attachmentPages} sider</span>
+      </div>
+      <div class="panel__body">
+        {#if form?.fields?.file}<p class="error formerror">{form.error}</p>{/if}
+        {#if inv.attachments.length === 0}
+          <p class="hint">Ingen bilag. Vedhæft fx en timeopgørelse eller en produktliste; den følger efter fakturasiderne i det udstedte dokument.</p>
+        {:else}
+          <ul class="attachlist">
+            {#each inv.attachments as a (a.id)}
+              <li>
+                <span class="attachlist__name"><a href="/api/invoices/{inv.id}/attachments/{a.id}" target="_blank" rel="noopener">{a.name}</a></span>
+                <span class="attachlist__meta">{a.pages} {a.pages === 1 ? 'side' : 'sider'} · {kb(a.sizeBytes)}</span>
+                <form method="POST" action="?/detach">
+                  <input type="hidden" name="attachmentId" value={a.id} />
+                  <button type="submit" class="btn btn--ghost btn--sm">Fjern</button>
+                </form>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        <form method="POST" action="?/attach" enctype="multipart/form-data" class="attachform">
+          <label class="label" for="attach-file" hidden>PDF-fil</label>
+          <input class="input input--md" type="file" id="attach-file" name="file" accept="application/pdf,.pdf" required />
+          <button type="submit" class="btn">Vedhæft PDF</button>
+        </form>
+        <span class="hint">Kun PDF, højst 20 MB pr. fil. Ved udstedelse samles faktura og bilag i ét dokument, som ikke kan ændres bagefter.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">Udkast som PDF</h3>
+        <span class="panel__meta">gemt kladde</span>
+      </div>
+      <div class="panel__body">
+        <p class="hint">Viser den gemte kladde med bilag, mærket UDKAST og uden nummer. Gem først, hvis du har ændret noget.</p>
+        <p class="previewactions">
+          <button type="button" class="btn" onclick={() => (showPreview = !showPreview)}>{showPreview ? 'Skjul udkast' : 'Vis udkast'}</button>
+          <a class="btn btn--ghost" href={previewSrc.replace('#toolbar=0', '')} target="_blank" rel="noopener">Åbn i ny fane</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {#if showPreview}
+    <section>
+      <div class="section__head">
+        <h2>Udkast</h2>
+      </div>
+      <div class="panel">
+        <iframe class="pdfframe" title="Udkast til faktura" src={previewSrc}></iframe>
+      </div>
+    </section>
+  {/if}
 {:else}
   <div class="pagehead">
     <div>
@@ -33,6 +98,27 @@
     <p class="error">{form.error}</p>
   {/if}
 
+  {#if unsent}
+    <div class="callout callout--alert" role="alert">
+      <div class="callout__body">
+        <p class="callout__title">Ikke sendt til kunden</p>
+        <p>{title} <span class="mono">{inv.invoiceNumber}</span> er dateret <span class="mono">{formatDate(inv.issueDate)}</span> men er ikke markeret som sendt. Send PDF'en til {inv.customer.name}{#if inv.customer.email} (<span class="mono">{inv.customer.email}</span>){/if}, og markér den her.</p>
+      </div>
+      <form method="POST" action="?/sent" class="callout__actions">
+        <label class="label" for="sentAt" hidden>Sendt den</label>
+        <input class="input input--date" id="sentAt" name="sentAt" inputmode="numeric" value={formatDate(data.today)} placeholder="dd.mm.åååå" required />
+        <button type="submit" class="btn btn--primary">Markér som sendt</button>
+      </form>
+    </div>
+  {:else if !inv.sentAt}
+    <p class="hint">Dokumentet er dateret <span class="mono">{formatDate(inv.issueDate)}</span>; markér det som sendt, når det er afsendt.</p>
+    <form method="POST" action="?/sent" class="sentform">
+      <label class="label" for="sentAt" hidden>Sendt den</label>
+      <input class="input input--date" id="sentAt" name="sentAt" inputmode="numeric" value={formatDate(data.today)} placeholder="dd.mm.åååå" required />
+      <button type="submit" class="btn">Markér som sendt</button>
+    </form>
+  {/if}
+
   <div class="layout-8-4">
     <div class="panel">
       <div class="panel__head">
@@ -49,6 +135,7 @@
           {:else}
             <div><dt>Refunderet</dt><dd class="mono">{inv.paidDate ? formatDate(inv.paidDate) : '—'}</dd></div>
           {/if}
+          <div><dt>Sendt</dt><dd class="mono">{inv.sentAt ? formatDate(inv.sentAt) : '—'}</dd></div>
           <div><dt>Betalingsreference</dt><dd class="mono">{inv.paymentReference || '—'}</dd></div>
           <div><dt>Moms</dt><dd>{#if inv.vatExemptReason}Momsfri – {inv.vatExemptReason}{:else}<span class="mono">{formatVatRate(inv.vatRateBp)}</span>{/if}</dd></div>
           {#if inv.isCreditNote}
@@ -141,6 +228,17 @@
           <p class="hint pdfhint">
             PDF gemt som <span class="mono">{inv.pdfPath}</span>. <a href="/api/invoices/{inv.id}/pdf" target="_blank" rel="noopener">Åbn PDF</a>
           </p>
+          {#if inv.attachments.length > 0}
+            <p class="hint pdfhint">Bilag i dokumentet ({attachmentPages} sider efter fakturaen):</p>
+            <ul class="attachlist">
+              {#each inv.attachments as a (a.id)}
+                <li>
+                  <span class="attachlist__name"><a href="/api/invoices/{inv.id}/attachments/{a.id}" target="_blank" rel="noopener">{a.name}</a></span>
+                  <span class="attachlist__meta">{a.pages} {a.pages === 1 ? 'side' : 'sider'}</span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
         {/if}
       </div>
     </div>
@@ -165,6 +263,8 @@
   }
   .facts dt { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-label); }
   .facts dd { margin: var(--space-1) 0 0; color: var(--text-primary); }
-  .paidform { display: flex; align-items: center; gap: var(--space-2); }
+  .paidform, .sentform { display: flex; align-items: center; gap: var(--space-2); }
+  .sentform { margin: 0 0 var(--space-6); }
   .pdfhint { margin: var(--space-4) 0 0; overflow-wrap: anywhere; }
+  .previewactions { display: flex; gap: var(--space-2); margin: var(--space-3) 0 0; }
 </style>

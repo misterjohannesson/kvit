@@ -49,7 +49,7 @@
 <section>
   <div class="section__head">
     <h2>Pr. måned</h2>
-    <p>Kassebasis: Ind = fakturaer efter betalingsdato (<span class="mono">{formatOre(sum(f.months.map((m) => m.invoicesInOre)), false)}</span>) plus positive bankbevægelser (<span class="mono">{formatOre(sum(f.months.map((m) => m.movementsInOre)), false)}</span>); Ud = udgifter efter betalingsdato (<span class="mono">{formatOre(sum(f.months.map((m) => m.expensesOutOre)), false)}</span>), refunderede kreditnotaer (<span class="mono">{formatOre(sum(f.months.map((m) => m.creditNotesOutOre)), false)}</span>) og negative bankbevægelser (<span class="mono">{formatOre(sum(f.months.map((m) => m.movementsOutOre)), false)}</span>). Positionen løber fra åbningssaldoen. Tonede rækker er prognose: den igangværende måned og frem medregner åbne fakturaer efter forfaldsmåned, ubetalte udgifter, kreditnotaer til refusion og momsafregning efter frist (1. juni, 1. sept., 1. dec. og 1. marts); forfaldne poster ligger i den aktuelle måned. {#if f.excludedBeforeOpening.count > 0}<span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser dateret før åbningssaldoen (<span class="mono">{formatOre(f.excludedBeforeOpening.netOre, false)}</span> netto) er allerede indeholdt i den og tælles ikke med.{/if}</p>
+    <p>Betalte fakturaer, udgifter og bankbevægelser pr. betalingsdato, løbende fra åbningssaldoen. Tonede rækker er prognose: åbne fakturaer, ubetalte udgifter, kreditnotaer til refusion og moms efter frist.{#if f.excludedBeforeOpening.count > 0} <span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser før åbningssaldoen tælles ikke med.{/if}</p>
   </div>
   <div class="panel">
     <div class="table-wrap">

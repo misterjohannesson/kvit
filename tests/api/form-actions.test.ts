@@ -87,6 +87,11 @@ describe('invoice editor form actions', () => {
     const paid = await action(`/fakturaer/${id}?/paid`, { paidDate: '22.09.2026' });
     expect(paid.status).toBe(200);
     expect((await c.json<Inv>('GET', `/api/invoices/${id}`)).data.paidDate).toBe('2026-09-22');
+    // Mark as sent with a Danish date; a second time is refused.
+    const sent = await action(`/fakturaer/${id}?/sent`, { sentAt: '08.09.2026' });
+    expect(sent.status).toBe(200);
+    expect((await c.json<Inv & { sentAt: string | null }>('GET', `/api/invoices/${id}`)).data.sentAt).toBe('2026-09-08');
+    expect((await action(`/fakturaer/${id}?/sent`, { sentAt: '09.09.2026' })).status).toBe(409);
 
     // Credit through the form with a stale, then the right, confirmed number.
     const settings2 = await c.json<Record<string, string>>('GET', '/api/settings');

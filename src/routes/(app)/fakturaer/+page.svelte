@@ -9,7 +9,8 @@
     { key: 'aabne', label: 'Åbne' },
     { key: 'forfaldne', label: 'Forfaldne' },
     { key: 'betalte', label: 'Betalte' },
-    { key: 'krediterede', label: 'Krediterede' }
+    { key: 'krediterede', label: 'Krediterede' },
+    { key: 'usendte', label: 'Usendte' }
   ];
   const href = (status: string, year: number | undefined) =>
     `/fakturaer?status=${status}${year ? `&year=${year}` : ''}`;

@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { customer, invoice, invoiceLine, type Customer, type Invoice, type InvoiceLine } from '../schema';
+import { customer, invoice, invoiceLine, type Customer, type Invoice, type InvoiceAttachment, type InvoiceLine } from '../schema';
+import { attachmentBuffers, detachAllForDelete, listAttachments, mergePdfs } from './attachments';
 import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 import { DATA_DIR, INVOICE_FILES_DIR } from '../env';
@@ -57,6 +58,8 @@ export interface InvoiceDetail extends InvoiceListRow {
   creditsInvoiceId: number | null;
   /** For a credit note: the paid date of the original it credits (money to be refunded when set). */
   originalPaidDate: string | null;
+  /** PDFs appended to the document at issue, in order. */
+  attachments: InvoiceAttachment[];
 }
 
 export const computeLineTotalOre = lineTotalOre;
@@ -140,7 +143,7 @@ export function getInvoice(id: number): InvoiceDetail {
     .from(invoice)
     .where(eq(invoice.creditedByInvoiceId, id))
     .get();
-  return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null, originalPaidDate: orig?.paidDate ?? null };
+  return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null, originalPaidDate: orig?.paidDate ?? null, attachments: listAttachments(id) };
 }
 
 function assertDraft(inv: Invoice): void {
@@ -238,14 +241,17 @@ export async function updateDraft(id: number, input: unknown): Promise<InvoiceDe
 /** Drafts may be deleted. Issued invoices cannot: there is no code path for it. */
 export function deleteDraft(id: number): Promise<void> {
   return withIssueLock(async () => {
-    db.transaction(() => {
+    const files = db.transaction(() => {
       const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
       if (!inv) throw notFound('Faktura findes ikke');
       assertDraft(inv);
+      const attachmentFiles = detachAllForDelete(id);
       db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
       db.delete(invoice).where(eq(invoice.id, id)).run();
-      audit('invoice', id, 'delete_draft', {});
+      audit('invoice', id, 'delete_draft', { attachments: attachmentFiles.length });
+      return attachmentFiles;
     });
+    for (const f of files) fs.rmSync(f, { force: true });
   });
 }
 
@@ -262,7 +268,8 @@ function contentFingerprint(inv: InvoiceDetail): string {
     vatOre: inv.vatOre,
     totalOre: inv.totalOre,
     vatRateBp: inv.vatRateBp,
-    lines: inv.lines.map((l) => [l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre, l.accountId])
+    lines: inv.lines.map((l) => [l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre, l.accountId]),
+    attachments: inv.attachments.map((a) => [a.id, a.name, a.pages, a.sizeBytes, a.filePath])
   });
 }
 
@@ -343,7 +350,9 @@ export function issueInvoice(id: number, expectedNumber?: number): Promise<Invoi
 
     // What the customer writes on the transfer; defaults to the invoice number, which only exists now.
     const paymentReference = inv.paymentReference || `Faktura ${number}`;
-    const pdf = await renderInvoicePdf({ ...inv, invoiceNumber: number, status: 'issued', paymentReference }, settings);
+    const rendered = await renderInvoicePdf({ ...inv, invoiceNumber: number, status: 'issued', paymentReference }, settings);
+    // The archived document is the invoice followed by its attachments, in one file.
+    const pdf = await mergePdfs(rendered, attachmentBuffers(id));
 
     archivePdf(absPath, pdf, () =>
       db.transaction(() => {
@@ -360,7 +369,7 @@ export function issueInvoice(id: number, expectedNumber?: number): Promise<Invoi
           .where(eq(invoice.id, id))
           .run();
         setSettingRaw('next_invoice_number', String(number + 1));
-        audit('invoice', id, 'issue', { invoiceNumber: number, pdfPath: relPath, totalOre: inv.totalOre, paymentReference });
+        audit('invoice', id, 'issue', { invoiceNumber: number, pdfPath: relPath, totalOre: inv.totalOre, paymentReference, attachments: inv.attachments.map((a) => a.id) });
       })
     );
     return getInvoice(id);
@@ -384,6 +393,37 @@ export function setPaidDate(id: number, paidDate: string): InvoiceDetail {
     db.update(invoice).set({ paidDate }).where(eq(invoice.id, id)).run();
     audit('invoice', id, inv.isCreditNote ? 'mark_refunded' : 'mark_paid', { paidDate });
     return getInvoice(id);
+  });
+}
+
+/**
+ * "Markér som sendt": the date the document went to the customer. Set once, on
+ * issued documents only (trigger invoice_sent_once backs this up).
+ */
+export function markSent(id: number, sentAt: string): InvoiceDetail {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(sentAt) || !isValidIsoDate(sentAt)) throw badRequest('Ugyldig dato');
+  return db.transaction(() => {
+    const inv = getInvoice(id);
+    if (inv.status === 'draft') throw conflict('Kladder kan ikke markeres som sendt; udsted fakturaen først');
+    if (inv.sentAt) throw conflict(`Dokumentet er allerede markeret som sendt ${inv.sentAt}`);
+    db.update(invoice).set({ sentAt }).where(eq(invoice.id, id)).run();
+    audit('invoice', id, 'mark_sent', { sentAt });
+    return getInvoice(id);
+  });
+}
+
+/**
+ * Draft preview: the document as it would be issued now, marked UDKAST and
+ * without a number, attachments included. Rendered on the fly and never stored;
+ * the archived PDF is only ever produced by issueInvoice().
+ */
+export function previewDraftPdf(id: number): Promise<Buffer> {
+  return withIssueLock(async () => {
+    const inv = getInvoice(id);
+    assertDraft(inv);
+    const settings = getSettings();
+    const rendered = await renderInvoicePdf({ ...inv, paymentReference: inv.paymentReference || 'Faktura <nr.>' }, settings, { draft: true });
+    return mergePdfs(rendered, attachmentBuffers(id));
   });
 }
 
@@ -443,7 +483,9 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
       creditsInvoiceNumber: orig.invoiceNumber,
       creditsInvoiceId: orig.id,
       originalPaidDate: orig.paidDate,
-      creditedByNumber: null
+      creditedByNumber: null,
+      sentAt: null,
+      attachments: []
     };
 
     const pdf = await renderInvoicePdf(creditDetail, settings);

@@ -535,6 +535,33 @@ table.data td.empty, .empty { text-align: center; color: var(--text-secondary); 
 table.data tbody tr.row--forecast { background: var(--status-open-surface); color: var(--text-secondary); }
 table.data tbody tr.row--forecast:hover { background: var(--accent-100); }
 
+/* Navigation loading (NavProgress.svelte): a thin bar at the top and a see-through veil over the content while a
+   page is fetched; appears after a 150 ms grace period so quick pages never flash. */
+.loading { position: fixed; inset: 0 0 0 var(--layout-sidebar-width); z-index: var(--z-sticky); background: var(--bg-canvas); opacity: 0.45; pointer-events: none; animation: loading-fade var(--duration-fast) var(--ease-standard); }
+.loading__bar { position: absolute; top: 0; left: 0; height: 2px; width: 30%; background: var(--accent-500); animation: loading-slide 1.1s var(--ease-standard) infinite; }
+@keyframes loading-slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+@keyframes loading-fade { from { opacity: 0; } to { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .loading__bar { animation: none; width: 100%; } }
+
+/* Alert callout: the one thing that needs action now (an issued document not yet sent). Reuses the overdue ramp,
+   never a fill on the whole page; the message is always present so colour is not the only cue. */
+.callout { display: flex; align-items: center; gap: var(--space-4); margin: 0 0 var(--space-6); padding: var(--space-4); border: var(--border-width) solid; border-radius: var(--radius-md); }
+.callout--alert { background: var(--status-overdue-surface); border-color: var(--status-overdue-border); color: var(--text-primary); }
+.callout--alert .callout__title { color: var(--status-overdue-ink); }
+.callout__body { flex: 1 1 auto; min-width: 0; }
+.callout__title { margin: 0 0 var(--space-1); font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+.callout__body p { margin: 0; }
+.callout__actions { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+.badge--usendt { background: var(--status-overdue-surface); border-color: var(--status-overdue-border); color: var(--status-overdue-ink); }
+
+/* Attachments list (invoice editor / detail) */
+.attachlist { list-style: none; margin: 0; padding: 0; }
+.attachlist li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: var(--table-rule); }
+.attachlist li:last-child { border-bottom: 0; }
+.attachlist__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.attachlist__meta { font-family: var(--font-numeric); font-size: var(--text-2xs); color: var(--text-secondary); white-space: nowrap; }
+.attachform { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-3); }
+
 /* segments made of links or form buttons */
 .segment > form { display: contents; }
 .segment > [aria-current="true"] { background: var(--bg-row-selected); color: var(--accent-700); font-weight: var(--weight-medium); }

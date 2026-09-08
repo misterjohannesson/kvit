@@ -14,7 +14,7 @@ import { invoice, expense, cashMovement } from '../src/lib/server/schema';
 import { sql } from 'drizzle-orm';
 import { updateSettings } from '../src/lib/server/services/settings';
 import { createCustomer } from '../src/lib/server/services/customers';
-import { createDraft, creditInvoice, issueInvoice, setPaidDate, updateDraft } from '../src/lib/server/services/invoices';
+import { createDraft, creditInvoice, issueInvoice, markSent, setPaidDate, updateDraft } from '../src/lib/server/services/invoices';
 import { createExpense, type UploadFile } from '../src/lib/server/services/expenses';
 import { createMovement } from '../src/lib/server/services/cash';
 import { listAccounts } from '../src/lib/server/services/accounts';
@@ -68,29 +68,29 @@ export const SEED = {
   /** In issue order: numbers 1001..1005. Amounts in øre; `account` is the kontoplan number. */
   invoices: [
     {
-      customer: 0, issueDate: '2026-04-14', dueDate: '2026-04-28', paidDate: '2026-04-27', vatExemptReason: null,
+      customer: 0, issueDate: '2026-04-14', dueDate: '2026-04-28', paidDate: '2026-04-27', sentDate: '2026-04-14', vatExemptReason: null,
       lines: [
         { description: 'Konceptudvikling, uge 12–14', quantity: 42, unit: 'time', unitPriceOre: 95000, account: ACC.konsulent },
         { description: 'Projektledelse', quantity: 6, unit: 'time', unitPriceOre: 115000, account: ACC.konsulent }
       ]
     },
     {
-      customer: 1, issueDate: '2026-05-20', dueDate: '2026-06-03', paidDate: '2026-06-01', vatExemptReason: null,
+      customer: 1, issueDate: '2026-05-20', dueDate: '2026-06-03', paidDate: '2026-06-01', sentDate: '2026-05-20', vatExemptReason: null,
       lines: [{ description: 'Rådgivning, maj', quantity: 10, unit: 'time', unitPriceOre: 120000, account: ACC.konsulent }]
     },
     {
-      customer: 2, issueDate: '2026-07-08', dueDate: '2026-07-22', paidDate: '2026-07-20', vatExemptReason: REVERSE_CHARGE_REASON,
+      customer: 2, issueDate: '2026-07-08', dueDate: '2026-07-22', paidDate: '2026-07-20', sentDate: '2026-07-08', vatExemptReason: REVERSE_CHARGE_REASON,
       lines: [{ description: 'Softwareudvikling, sprint 14', quantity: 20, unit: 'time', unitPriceOre: 90000, account: ACC.momsfritSalg }]
     },
     {
-      customer: 0, issueDate: '2026-08-03', dueDate: '2026-08-17', paidDate: null, vatExemptReason: null,
+      customer: 0, issueDate: '2026-08-03', dueDate: '2026-08-17', paidDate: null, sentDate: '2026-08-04', vatExemptReason: null,
       lines: [
         { description: 'Workshop, designsystem', quantity: 1, unit: 'stk.', unitPriceOre: 850000, account: ACC.andetSalg },
         { description: 'Transport, Kbh–Aarhus', quantity: 1, unit: 'stk.', unitPriceOre: 120000, account: ACC.andetSalg }
       ]
     },
     {
-      customer: 1, issueDate: '2026-08-25', dueDate: '2026-09-24', paidDate: null, vatExemptReason: null,
+      customer: 1, issueDate: '2026-08-25', dueDate: '2026-09-24', paidDate: null, sentDate: null, vatExemptReason: null,
       lines: [{ description: 'Analyse og rapport', quantity: 12.5, unit: 'time', unitPriceOre: 100000, account: ACC.konsulent }]
     }
   ],
@@ -150,6 +150,8 @@ export async function seed(): Promise<void> {
     });
     const inv = await issueInvoice(draft.id);
     if (spec.paidDate) setPaidDate(inv.id, spec.paidDate);
+    // Everything but the newest invoice has gone to the customer; 1005 (and the credit note) demo the "ikke sendt" warning.
+    if (spec.sentDate) markSent(inv.id, spec.sentDate);
     issued.push(inv);
   }
   await creditInvoice(issued[SEED.creditedInvoiceIndex].id);

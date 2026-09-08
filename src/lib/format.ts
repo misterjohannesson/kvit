@@ -200,3 +200,8 @@ export function invoiceStatus(
   }
   return { label: 'Åben', cls: 'badge--aaben' };
 }
+
+/** An issued document not yet marked as sent, once its document date has arrived: it needs to go to the customer. */
+export function needsSending(inv: { status: string; sentAt: string | null; issueDate: string }, today: string): boolean {
+  return inv.status !== 'draft' && !inv.sentAt && inv.issueDate <= today;
+}

@@ -10,6 +10,8 @@ function esc(s: unknown): string {
     .replace(/"/g, '&quot;');
 }
 
+const pagesLabel = (n: number) => `${n} ${n === 1 ? 'side' : 'sider'}`;
+
 function amount(ore: number): string {
   const neg = ore < 0;
   return `<span class="amt${neg ? ' amt--neg' : ''}">${esc(formatOre(ore, false))}</span>`;
@@ -22,11 +24,21 @@ function amount(ore: number): string {
 export function renderInvoiceHtml(
   inv: InvoiceDetail,
   s: Record<string, string>,
-  tokensCss: string
+  tokensCss: string,
+  opts: { draft?: boolean } = {}
 ): { html: string; footerTemplate: string } {
   const isCredit = inv.isCreditNote;
   const title = isCredit ? 'Kreditnota' : 'Faktura';
   const c = inv.customer;
+  // Draft preview: no number exists yet, and the page says so in the top corner and the footer.
+  const number = opts.draft ? 'UDKAST' : String(inv.invoiceNumber ?? '');
+  const draftNote = opts.draft ? `<p class="draftnote">Udkast · ikke udstedt. Nummer tildeles ved udstedelse.</p>` : '';
+  const attachmentsBlock = inv.attachments.length
+    ? `<section class="attachments">
+    <p class="eyebrow">Bilag vedlagt (${pagesLabel(inv.attachments.reduce((n, a) => n + a.pages, 0))} følger)</p>
+    <ol>${inv.attachments.map((a) => `<li>${esc(a.name)} <span class="mono">(${pagesLabel(a.pages)})</span></li>`).join('')}</ol>
+  </section>`
+    : '';
   const cvr = (v: string) => v.replace(/\s/g, '').replace(/(\d{2})(?=\d)/g, '$1 ');
 
   const rows = inv.lines
@@ -60,7 +72,7 @@ export function renderInvoiceHtml(
 <html lang="da">
 <head>
 <meta charset="utf-8">
-<title>${esc(title)} ${esc(inv.invoiceNumber)}</title>
+<title>${esc(title)} ${esc(number)}</title>
 <style>
 ${tokensCss}
 </style>
@@ -141,6 +153,10 @@ td.unit { color: var(--text-secondary); }
 .totals .row--sum dt, .totals .row--sum dd { font-weight: var(--weight-semibold); color: var(--text-primary); }
 .totals .row--sum dd { font-size: var(--text-lg); }
 
+.draftnote { margin: 0 0 var(--space-4); padding: var(--space-2) var(--space-3); border: var(--border-width) dashed var(--border-strong); font-size: var(--print-text-small); color: var(--text-secondary); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
+.attachments { margin-top: var(--space-10); page-break-inside: avoid; }
+.attachments ol { margin: var(--space-1) 0 0; padding-left: var(--space-5); }
+.attachments li { padding: var(--space-1) 0; border-bottom: var(--border-width) solid var(--border-hairline); }
 .statutory { font-size: var(--print-text-small); color: var(--text-body); margin: var(--space-4) 0 0; text-align: right; orphans: 3; widows: 3; }
 
 .foot {
@@ -164,6 +180,7 @@ td.unit { color: var(--text-secondary); }
 </head>
 <body>
 <div class="doc">
+  ${draftNote}
   <header class="head">
     <div class="sender">
       <p class="sender__name">${esc(s.company_name)}</p>
@@ -174,7 +191,7 @@ td.unit { color: var(--text-secondary); }
     <div class="title">
       <h1>${esc(title)}</h1>
       <dl class="kvlist">
-        <div class="kv"><dt>${isCredit ? 'Kreditnotanr.' : 'Fakturanr.'}</dt><dd>${esc(inv.invoiceNumber)}</dd></div>
+        <div class="kv"><dt>${isCredit ? 'Kreditnotanr.' : 'Fakturanr.'}</dt><dd>${esc(number)}</dd></div>
         ${creditRef}
         <div class="kv"><dt>${isCredit ? 'Dato' : 'Fakturadato'}</dt><dd>${esc(formatDate(inv.issueDate))}</dd></div>
         <div class="kv"><dt>Forfaldsdato</dt><dd>${esc(formatDate(inv.dueDate))}</dd></div>
@@ -212,6 +229,7 @@ td.unit { color: var(--text-secondary); }
     </dl>
   </div>
   ${exemptNote}
+  ${attachmentsBlock}
 
   <footer class="foot">
     <div>
@@ -221,7 +239,7 @@ td.unit { color: var(--text-secondary); }
     </div>
     <div>
       <p>${esc(s.company_name)} · CVR <span class="mono">${esc(cvr(s.company_cvr))}</span></p>
-      <p>${esc(title)} <span class="mono">${esc(inv.invoiceNumber)}</span></p>
+      <p>${esc(title)} <span class="mono">${esc(number)}</span></p>
     </div>
   </footer>
 </div>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="da"><head><meta charset="utf-8"><title>Kvit — logo</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-canvas);color:var(--text-body);font-family:var(--font-ui);font-size:var(--text-sm);line-height:var(--leading-normal)}
+.wrap{max-width:900px;margin:0 auto;padding:var(--space-12) var(--space-8) var(--space-16);display:flex;flex-direction:column;gap:var(--space-10)}
+h1{margin:0;font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--display-weight);letter-spacing:var(--tracking-tight);color:var(--text-primary)}
+.eyebrow{margin:0 0 var(--space-2);font-size:var(--text-xs);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--text-label)}
+.lede{margin:var(--space-3) 0 0;max-width:var(--layout-prose-max);color:var(--text-secondary);text-wrap:pretty}
+.card{background:var(--bg-surface);border:var(--border-default-style);border-radius:var(--radius-md);overflow:hidden}
+.card__head{padding:var(--space-3) var(--space-4);background:var(--bg-panel-head);border-bottom:var(--border-hairline-style);font-family:var(--font-display);font-weight:var(--display-weight);color:var(--text-primary)}
+.card__body{padding:var(--space-6) var(--space-4);display:flex;gap:var(--space-8);align-items:flex-end;flex-wrap:wrap}
+figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:var(--space-2)}
+figcaption{font-family:var(--font-numeric);font-size:var(--text-2xs);color:var(--text-secondary)}
+.lock{display:flex;align-items:center;gap:var(--space-3)}
+.lock__name{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--display-weight);letter-spacing:var(--tracking-tight);color:var(--text-primary);line-height:1}
+.lock__name small{display:block;font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:400;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-secondary);margin-top:2px}
+.onnavy{background:var(--nav-bg);padding:var(--space-6) var(--space-4)}
+.onnavy .lock__name{color:var(--nav-title)}
+.onnavy .lock__name small{color:var(--nav-muted)}
+</style></head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Kvit · identitet</p>
+    <h1>Mærke og favicon</h1>
+    <p class="lede">Ét geometrisk K i messing på skiferblå. Tre lige streger i samme bredde som tabellernes tal-rytme — stammen lodret, armene i 40°. Ingen kurver, ingen gradient, intet der falder sammen ved 16&nbsp;px.</p>
+  </header>
+
+  <div class="card">
+    <div class="card__head">Størrelser</div>
+    <div class="card__body">
+      <figure><img src="logo.svg" width="128" height="128" alt="Kvit-mærke, 128 px"><figcaption>128</figcaption></figure>
+      <figure><img src="logo.svg" width="64" height="64" alt=""><figcaption>64</figcaption></figure>
+      <figure><img src="logo.svg" width="32" height="32" alt=""><figcaption>32</figcaption></figure>
+      <figure><img src="favicon.svg" width="16" height="16" alt=""><figcaption>16 · favicon</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__head">Lockup</div>
+    <div class="card__body">
+      <div class="lock">
+        <img src="logo.svg" width="40" height="40" alt="">
+        <span class="lock__name">Kvit<small>Bogholderi</small></span>
+      </div>
+    </div>
+    <div class="card__body onnavy">
+      <div class="lock">
+        <img src="logo.svg" width="40" height="40" alt="">
+        <span class="lock__name">Kvit<small>Bogholderi</small></span>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
