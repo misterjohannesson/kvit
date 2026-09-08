@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { createCustomer, listCustomers } from '$lib/server/services/customers';
 import { errorMessage, formValues, isRedirect } from '$lib/server/api';
 import { customerFormToInput } from '$lib/server/customer-form';
+import { getSettings } from '$lib/server/services/settings';
 import { db } from '$lib/server/db';
 import { invoice } from '$lib/server/schema';
 import { sql } from 'drizzle-orm';
@@ -16,7 +17,10 @@ export const load: PageServerLoad = () => {
       .all()
       .map((r) => [r.customerId, r.n])
   );
-  return { customers: listCustomers().map((c) => ({ ...c, invoiceCount: counts.get(c.id) ?? 0 })) };
+  return {
+    customers: listCustomers().map((c) => ({ ...c, invoiceCount: counts.get(c.id) ?? 0 })),
+    defaultTermsDays: Number(getSettings().payment_terms_days) || 0
+  };
 };
 
 export const actions: Actions = {

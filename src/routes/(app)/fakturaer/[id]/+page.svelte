@@ -14,7 +14,7 @@
 <svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Faktura</title></svelte:head>
 
 {#if inv.status === 'draft'}
-  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
+  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} defaultTermsDays={data.defaultTermsDays} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
 {:else}
   <div class="pagehead">
     <div>
@@ -49,7 +49,7 @@
           {:else}
             <div><dt>Refunderet</dt><dd class="mono">{inv.paidDate ? formatDate(inv.paidDate) : '—'}</dd></div>
           {/if}
-          <div><dt>Betalingsreference</dt><dd class="mono">{inv.paymentReference}</dd></div>
+          <div><dt>Betalingsreference</dt><dd class="mono">{inv.paymentReference || '—'}</dd></div>
           <div><dt>Moms</dt><dd>{#if inv.vatExemptReason}Momsfri – {inv.vatExemptReason}{:else}<span class="mono">{formatVatRate(inv.vatRateBp)}</span>{/if}</dd></div>
           {#if inv.isCreditNote}
             <div><dt>Vedrører</dt><dd><a href="/fakturaer/{inv.creditsInvoiceId}">Faktura <span class="mono">{inv.creditsInvoiceNumber}</span></a></dd></div>

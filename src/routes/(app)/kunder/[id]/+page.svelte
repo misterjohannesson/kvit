@@ -24,7 +24,7 @@
     <span class="panel__meta">Oprettet {formatDate(c.createdAt.slice(0, 10))}</span>
   </div>
   <div class="panel__body">
-    <CustomerFields values={c} />
+    <CustomerFields values={c} defaultTermsDays={data.defaultTermsDays} />
   </div>
   <div class="panel__foot">
     {#if data.invoices.length === 0}

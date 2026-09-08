@@ -146,6 +146,9 @@ periodiseringsdatoer (fakturadato / bilagsdato), kassevisningerne bruger betalin
 
 ## Regler, der er bygget ind
 
+- Betalingsreferencen på fakturaen er den tekst, kunden skriver på bankoverførslen (tom = »Faktura <nr.>«, sat ved
+  udstedelse). Reg.- og kontonummer kommer fra Indstillinger og trykkes ved siden af. Forfaldsdatoen følger
+  fakturadatoen plus kundens betalingsfrist (eller standarden fra Indstillinger) og kan rettes frit.
 - Fakturanummer tildeles kun ved udstedelse, fra `next_invoice_number`, i samme transaktion som status → `issued`.
   Udstedelser serialiseres, så samtidige forsøg altid giver fortløbende numre.
 - Udstedte fakturaer og deres linjer er skrivebeskyttede i API-laget (409 Conflict). Eneste korrektion er en kreditnota.

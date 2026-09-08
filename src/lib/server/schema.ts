@@ -10,6 +10,8 @@ export const customer = sqliteTable('customer', {
   country: text('country').notNull().default('DK'),
   cvr: text('cvr'),
   email: text('email').notNull().default(''),
+  /** Days from invoice date to due date for this customer; null = the default under settings. */
+  paymentTermsDays: integer('payment_terms_days'),
   createdAt: text('created_at').notNull()
 });
 

@@ -1,8 +1,13 @@
 <script lang="ts">
   let {
-    values = {}
-  }: { values?: Partial<Record<'name' | 'address' | 'zip' | 'city' | 'country' | 'cvr' | 'email', string | null>> } = $props();
-  const v = (k: keyof typeof values, fallback = '') => values[k] ?? fallback;
+    values = {},
+    defaultTermsDays
+  }: {
+    values?: Partial<Record<'name' | 'address' | 'zip' | 'city' | 'country' | 'cvr' | 'email' | 'paymentTermsDays', string | number | null>>;
+    /** Settings default shown when the customer has no terms of their own. */
+    defaultTermsDays: number;
+  } = $props();
+  const v = (k: keyof typeof values, fallback = '') => (values[k] === null || values[k] === undefined ? fallback : String(values[k]));
 </script>
 
 <div class="form-grid">
@@ -33,5 +38,10 @@
   <div class="field field--span-4">
     <label class="label" for="email">E-mail <span class="label__optional">(valgfri)</span></label>
     <input class="input" id="email" name="email" type="email" value={v('email')} />
+  </div>
+  <div class="field field--span-3">
+    <label class="label" for="paymentTermsDays">Betalingsfrist, dage <span class="label__optional">(valgfri)</span></label>
+    <input class="input input--num input--short" id="paymentTermsDays" name="paymentTermsDays" type="number" min="0" max="365" value={v('paymentTermsDays')} placeholder={String(defaultTermsDays)} />
+    <span class="hint">Tom = standarden fra Indstillinger (<span class="mono">{defaultTermsDays}</span> dage). Sætter forfaldsdatoen på nye fakturaer.</span>
   </div>
 </div>

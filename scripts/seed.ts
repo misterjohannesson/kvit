@@ -61,7 +61,7 @@ export const SEED = {
     opening_balance_date: '2026-01-01'
   },
   customers: [
-    { name: 'Nordhavn Arkitekter ApS', address: 'Sundkrogsgade 21', zip: '2100', city: 'København Ø', country: 'DK', cvr: '38412207', email: 'bogholderi@nordhavn-ark.dk' },
+    { name: 'Nordhavn Arkitekter ApS', address: 'Sundkrogsgade 21', zip: '2100', city: 'København Ø', country: 'DK', cvr: '38412207', email: 'bogholderi@nordhavn-ark.dk', paymentTermsDays: 30 },
     { name: 'Vestergaard Consulting', address: 'Åboulevarden 12', zip: '8000', city: 'Aarhus C', country: 'DK', cvr: null, email: 'mv@vestergaard.dk' },
     { name: 'Berlin Software GmbH', address: 'Friedrichstraße 100', zip: '10117', city: 'Berlin', country: 'DE', cvr: null, email: 'ap@berlinsoftware.de' }
   ],
@@ -145,7 +145,7 @@ export async function seed(): Promise<void> {
       issueDate: spec.issueDate,
       dueDate: spec.dueDate,
       vatExemptReason: spec.vatExemptReason,
-      paymentReference: draft.paymentReference,
+      paymentReference: '',
       lines: spec.lines.map(({ account, ...l }) => ({ ...l, accountId: acc(account) }))
     });
     const inv = await issueInvoice(draft.id);

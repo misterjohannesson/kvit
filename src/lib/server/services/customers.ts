@@ -21,7 +21,12 @@ const customerSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   email: z.string().trim().max(200).default('')
-    .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Ugyldig e-mail')
+    .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Ugyldig e-mail'),
+  /** Days from invoice date to due date; null = the default under settings. */
+  paymentTermsDays: z
+    .union([z.null(), z.literal(''), z.coerce.number({ error: 'Betalingsfrist skal være et tal' }).int('Betalingsfrist skal være hele dage').min(0, 'Betalingsfrist kan ikke være negativ').max(365, 'Betalingsfrist kan højst være 365 dage')])
+    .optional()
+    .transform((v) => (v === '' || v === undefined ? null : v))
 });
 
 function parse(input: unknown) {

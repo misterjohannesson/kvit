@@ -50,10 +50,11 @@ export function renderInvoiceHtml(
     ? `<div class="kv"><dt>Vedrører faktura</dt><dd>${esc(inv.creditsInvoiceNumber)}</dd></div>`
     : '';
 
-  const terms = Number(s.payment_terms_days) || 0;
+  const terms = Math.round((Date.parse(inv.dueDate) - Date.parse(inv.issueDate)) / 86400000);
   const paymentTerms = isCredit
     ? `Betalingsbetingelser: beløbet modregnes faktura nr. ${esc(inv.creditsInvoiceNumber)} eller udbetales · Forfaldsdato ${esc(formatDate(inv.dueDate))}`
     : `Betalingsbetingelser: netto ${terms} dage · Forfaldsdato ${esc(formatDate(inv.dueDate))}`;
+  const bankLine = s.bank_reg && s.bank_account ? `Betaling til: Reg. <span class="mono">${esc(s.bank_reg)}</span> Konto <span class="mono">${esc(s.bank_account)}</span>` : '';
 
   const html = `<!DOCTYPE html>
 <html lang="da">
@@ -215,7 +216,8 @@ td.unit { color: var(--text-secondary); }
   <footer class="foot">
     <div>
       <p>${paymentTerms}</p>
-      <p>Betaling: <span class="mono">${esc(inv.paymentReference)}</span></p>
+      ${bankLine ? `<p>${bankLine}</p>` : ''}
+      <p>Betalingsreference: <span class="mono">${esc(inv.paymentReference)}</span></p>
     </div>
     <div>
       <p>${esc(s.company_name)} · CVR <span class="mono">${esc(cvr(s.company_cvr))}</span></p>

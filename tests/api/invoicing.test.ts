@@ -17,6 +17,8 @@ type Inv = {
   creditedByInvoiceId: number | null;
   isCreditNote: boolean;
   creditsInvoiceNumber: number | null;
+  issueDate: string;
+  dueDate: string;
   lines: { quantity: number; lineTotalOre: number }[];
 };
 
@@ -186,6 +188,36 @@ describe('credit notes', () => {
     const text = (await new PDFParse({ data: Buffer.from(await pdf.arrayBuffer()) }).getText()).text;
     expect(text).toContain('Kreditnota');
     expect(text).toContain(String(orig.invoiceNumber));
+    expect(text.replace(/\s+/g, ' ')).toContain(`Betalingsreference: Kreditnota ${cr.data.invoiceNumber}`);
+  });
+});
+
+describe('payment reference and terms', () => {
+  it('an empty reference becomes "Faktura <nr.>" at issue and a given one is kept', async () => {
+    const d = await c.json<Inv>('POST', '/api/invoices', { customerId });
+    await c.json('PUT', `/api/invoices/${d.data.id}`, {
+      customerId, issueDate: '2026-09-07', dueDate: '2026-09-21', paymentReference: '',
+      lines: [{ description: 'A', quantity: 1, unit: 'stk.', unitPriceOre: 100 }]
+    });
+    const issued = (await c.json<Inv & { paymentReference: string }>('POST', `/api/invoices/${d.data.id}/issue`)).data;
+    expect(issued.paymentReference).toBe(`Faktura ${issued.invoiceNumber}`);
+    const d2 = await makeDraft();
+    const issued2 = (await c.json<Inv & { paymentReference: string }>('POST', `/api/invoices/${d2.id}/issue`)).data;
+    expect(issued2.paymentReference).toBe('Reg. 1234 Konto 1234567890');
+  });
+
+  it('a new draft takes its due date from the customer terms, else the settings default', async () => {
+    const withTerms = await c.json<{ id: number }>('POST', '/api/customers', {
+      name: 'Terms A/S', address: 'V 1', zip: '1000', city: 'K', email: '', paymentTermsDays: 30
+    });
+    const d = (await c.json<Inv>('POST', '/api/invoices', { customerId: withTerms.data.id })).data;
+    expect(Math.round((Date.parse(d.dueDate) - Date.parse(d.issueDate)) / 86400000)).toBe(30);
+    const settings = (await c.json<Record<string, string>>('GET', '/api/settings')).data;
+    const d2 = (await c.json<Inv>('POST', '/api/invoices', { customerId })).data;
+    expect(Math.round((Date.parse(d2.dueDate) - Date.parse(d2.issueDate)) / 86400000)).toBe(Number(settings.payment_terms_days));
+    await c.json('DELETE', `/api/invoices/${d.id}`);
+    await c.json('DELETE', `/api/invoices/${d2.id}`);
+    await c.json('DELETE', `/api/customers/${withTerms.data.id}`);
   });
 });
 
@@ -315,10 +347,11 @@ describe('legal invoice PDF (seed invoice 1001)', () => {
     expect(norm).toContain('Moms 25 %');
     expect(norm).toContain('11.700,00');
     expect(norm).toContain('58.500,00');
-    // payment terms / due date / payment reference
+    // payment terms / due date / bank details (from settings) / payment reference (what the customer writes)
     expect(norm).toContain('netto 14 dage');
     expect(norm).toContain('28.04.2026');
     expect(norm).toContain('Reg. 1234 Konto 1234567890');
+    expect(norm).toContain('Betalingsreference: Faktura 1001');
   });
 
   it('prints the VAT exemption reason with VAT 0 (seed invoice 1003)', async () => {

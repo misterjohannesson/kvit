@@ -154,8 +154,9 @@ export function createDraft(input: { customerId: number }): InvoiceDetail {
   const cust = db.select().from(customer).where(eq(customer.id, Number(input.customerId))).get();
   if (!cust) throw badRequest('Vælg en kunde');
   const today = todayIso();
-  const terms = Number(s.payment_terms_days) || 0;
-  const paymentReference = s.bank_reg && s.bank_account ? `Reg. ${s.bank_reg} Konto ${s.bank_account}` : '';
+  const terms = cust.paymentTermsDays ?? (Number(s.payment_terms_days) || 0);
+  // Reference text for the customer's bank transfer; empty becomes "Faktura <nr.>" at issue.
+  const paymentReference = '';
   return db.transaction(() => {
     const row = db
       .insert(invoice)
@@ -304,9 +305,9 @@ export function validateForIssue(inv: InvoiceDetail, settings: Record<string, st
   const problems: string[] = [];
   if (inv.lines.length === 0) problems.push('Fakturaen har ingen linjer');
   if (inv.dueDate < inv.issueDate) problems.push('Forfaldsdato ligger før fakturadatoen');
-  if (!inv.paymentReference) problems.push('Betalingsreference mangler');
   const missing = companyDetailsComplete(settings);
   if (missing.length) problems.push(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
+  if (!settings.bank_reg || !settings.bank_account) problems.push('Udfyld bankoplysninger (reg.nr. og kontonr.) under Indstillinger; de trykkes på fakturaen');
   return problems;
 }
 
@@ -340,7 +341,9 @@ export function issueInvoice(id: number, expectedNumber?: number): Promise<Invoi
     const absPath = path.join(INVOICE_FILES_DIR, `${number}.pdf`);
     if (fs.existsSync(absPath)) throw conflict(`Filen ${relPath} findes allerede`);
 
-    const pdf = await renderInvoicePdf({ ...inv, invoiceNumber: number, status: 'issued' }, settings);
+    // What the customer writes on the transfer; defaults to the invoice number, which only exists now.
+    const paymentReference = inv.paymentReference || `Faktura ${number}`;
+    const pdf = await renderInvoicePdf({ ...inv, invoiceNumber: number, status: 'issued', paymentReference }, settings);
 
     archivePdf(absPath, pdf, () =>
       db.transaction(() => {
@@ -353,11 +356,11 @@ export function issueInvoice(id: number, expectedNumber?: number): Promise<Invoi
           throw conflict('Nummerserien blev ændret undervejs. Prøv igen.');
         }
         db.update(invoice)
-          .set({ invoiceNumber: number, status: 'issued', pdfPath: relPath })
+          .set({ invoiceNumber: number, status: 'issued', pdfPath: relPath, paymentReference })
           .where(eq(invoice.id, id))
           .run();
         setSettingRaw('next_invoice_number', String(number + 1));
-        audit('invoice', id, 'issue', { invoiceNumber: number, pdfPath: relPath, totalOre: inv.totalOre });
+        audit('invoice', id, 'issue', { invoiceNumber: number, pdfPath: relPath, totalOre: inv.totalOre, paymentReference });
       })
     );
     return getInvoice(id);
@@ -404,6 +407,7 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
     if (expectedNumber !== undefined && expectedNumber !== number) {
       throw conflict(`Næste nummer er ${number}, ikke ${expectedNumber}. Genindlæs siden og bekræft igen.`);
     }
+    const paymentReference = `Kreditnota ${number}`;
     const relPath = path.posix.join('files', 'invoices', `${number}.pdf`);
     const absPath = path.join(INVOICE_FILES_DIR, `${number}.pdf`);
     if (fs.existsSync(absPath)) throw conflict(`Filen ${relPath} findes allerede`);
@@ -432,6 +436,7 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
       paidDate: null,
       pdfPath: relPath,
       creditedByInvoiceId: null,
+      paymentReference,
       lines,
       ...totals,
       isCreditNote: true,
@@ -463,7 +468,7 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
             totalOre: totals.totalOre,
             vatRateBp: totals.vatRateBp,
             vatExemptReason: orig.vatExemptReason,
-            paymentReference: orig.paymentReference,
+            paymentReference,
             createdAt: new Date().toISOString()
           })
           .returning()

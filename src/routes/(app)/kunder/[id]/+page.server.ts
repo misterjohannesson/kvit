@@ -6,11 +6,17 @@ import { errorMessage, routeId } from '$lib/server/api';
 import { HttpError } from '$lib/server/errors';
 import { customerFormToInput } from '$lib/server/customer-form';
 import { todayIso } from '$lib/format';
+import { getSettings } from '$lib/server/services/settings';
 
 export const load: PageServerLoad = ({ params }) => {
   try {
     const c = getCustomer(routeId(params));
-    return { today: todayIso(), customer: c, invoices: listInvoices().filter((i) => i.customerId === c.id) };
+    return {
+      today: todayIso(),
+      customer: c,
+      invoices: listInvoices().filter((i) => i.customerId === c.id),
+      defaultTermsDays: Number(getSettings().payment_terms_days) || 0
+    };
   } catch (e) {
     if (e instanceof HttpError) error(e.status, e.message);
     throw e;

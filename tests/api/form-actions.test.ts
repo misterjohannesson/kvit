@@ -176,14 +176,15 @@ describe('expense, settings and customer form actions', () => {
   });
 
   it('creates and edits a customer through the forms', async () => {
-    const r = await action('/kunder?/create', { name: 'Form A/S', address: 'Gade 1', zip: '9000', city: 'Aalborg', country: 'DK', cvr: '', email: '' });
+    const r = await action('/kunder?/create', { name: 'Form A/S', address: 'Gade 1', zip: '9000', city: 'Aalborg', country: 'DK', cvr: '', email: '', paymentTermsDays: '' });
     expect(r.status).toBe(303);
     const id = Number(r.headers.get('location')!.split('/').pop());
-    const upd = await action(`/kunder/${id}?/save`, { name: 'Form ApS', address: 'Gade 1', zip: '9000', city: 'Aalborg', country: 'DK', cvr: '87654321', email: '' });
+    const upd = await action(`/kunder/${id}?/save`, { name: 'Form ApS', address: 'Gade 1', zip: '9000', city: 'Aalborg', country: 'DK', cvr: '87654321', email: '', paymentTermsDays: '8' });
     expect(upd.status).toBe(200);
-    const cust = (await c.json<{ name: string; cvr: string }>('GET', `/api/customers/${id}`)).data;
+    const cust = (await c.json<{ name: string; cvr: string; paymentTermsDays: number | null }>('GET', `/api/customers/${id}`)).data;
     expect(cust.name).toBe('Form ApS');
     expect(cust.cvr).toBe('87654321');
+    expect(cust.paymentTermsDays).toBe(8);
     const del = await action(`/kunder/${id}?/delete`, {});
     expect(del.status).toBe(303);
   });

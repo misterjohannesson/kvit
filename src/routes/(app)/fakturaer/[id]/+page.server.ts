@@ -28,6 +28,7 @@ export const load: PageServerLoad = ({ params }) => {
       customers: listCustomers(),
       accounts: listAccounts(),
       revenueAccounts: listAccounts('revenue'),
+      defaultTermsDays: Number(settings.payment_terms_days) || 0,
       nextNumber: nextInvoiceNumber(),
       problems: inv.status === 'draft' ? validateForIssue(inv, settings) : []
     };

@@ -31,7 +31,7 @@ Base size is `--text-sm` (13px). This is the size of table cells, form fields, a
 
 1. Amounts are right-aligned, `--font-numeric`, `font-variant-numeric: tabular-nums`, thousands separated with `.` and decimals with `,` (Danish): `12.450,00 kr.` Currency suffix is `--text-secondary`, never bold.
 2. Negative amounts and credit notes: minus prefix **and** `--text-negative`. Never parentheses; never colour alone.
-3. Dates are `DD.MM.YYYY` in mono. Relative dates are permitted only as secondary metadata ("om 4 dage") at `--text-2xs`.
+3. Dates are `DD.MM.YYYY` in mono. Date *entry* in the invoice editor uses the browser's native date picker (an explicit owner decision; the control follows the browser's Danish locale). Relative dates are permitted only as secondary metadata ("om 4 dage") at `--text-2xs`.
 4. Column heads are uppercase, `--text-xs`, `--weight-medium`, `--tracking-wide`, `--text-label`. Nothing else in the UI is uppercase.
 5. Never bold body text for emphasis. Use `--text-primary` vs `--text-secondary` to create hierarchy.
 6. Line length for prose is capped at `--layout-prose-max`.

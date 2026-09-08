@@ -8,6 +8,7 @@ export function customerFormToInput(form: FormData) {
     city: str('city'),
     country: str('country') || 'DK',
     cvr: str('cvr') || null,
-    email: str('email')
+    email: str('email'),
+    paymentTermsDays: str('paymentTermsDays') === '' ? null : str('paymentTermsDays')
   };
 }

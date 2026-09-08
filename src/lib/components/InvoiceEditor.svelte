@@ -1,9 +1,9 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { formatDate, formatOre, formatQuantity, lineTotalOre, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
+  import { addDays, formatOre, formatQuantity, lineTotalOre, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
 
   type Line = { description: string; quantity: string; unit: string; unitPrice: string; accountId: number | undefined };
-  type Customer = { id: number; name: string };
+  type Customer = { id: number; name: string; paymentTermsDays: number | null };
   type Account = { id: number; number: number; name: string };
   type Invoice = {
     id: number;
@@ -19,6 +19,7 @@
     invoice,
     customers,
     accounts,
+    defaultTermsDays,
     nextNumber,
     problems,
     error,
@@ -27,6 +28,8 @@
     invoice: Invoice;
     customers: Customer[];
     accounts: Account[];
+    /** Settings default, used when the customer has no terms of their own. */
+    defaultTermsDays: number;
     nextNumber: number;
     problems: string[];
     error?: string;
@@ -49,8 +52,27 @@
   let vatExempt = $state(invoice.vatExemptReason !== null);
   // svelte-ignore state_referenced_locally
   let vatExemptReason = $state(invoice.vatExemptReason ?? 'Omvendt betalingspligt, jf. momslovens § 46');
+  // svelte-ignore state_referenced_locally
+  let customerId = $state(invoice.customerId);
+  // svelte-ignore state_referenced_locally
+  let issueDate = $state(invoice.issueDate);
+  // svelte-ignore state_referenced_locally
+  let dueDate = $state(invoice.dueDate);
   let confirming = $state(false);
   let submitting = $state(false);
+
+  /** The customer's own terms, else the settings default. */
+  const terms = $derived.by(() => {
+    const c = customers.find((x) => x.id === customerId);
+    return c?.paymentTermsDays !== null && c?.paymentTermsDays !== undefined
+      ? { days: c.paymentTermsDays, source: 'kundens aftale' }
+      : { days: defaultTermsDays, source: 'standard fra Indstillinger' };
+  });
+
+  /** Due date follows the invoice date (and the customer's terms); editing the due date changes nothing else. */
+  function recalcDue() {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) dueDate = addDays(issueDate, terms.days);
+  }
 
   function lineTotal(l: Line): number | null {
     try {
@@ -118,27 +140,30 @@
       <div class="form-grid">
         <div class="field field--span-6">
           <label class="label" for="customerId">Kunde</label>
-          <select class="select" id="customerId" name="customerId" required>
+          <select class="select" id="customerId" name="customerId" bind:value={customerId} onchange={recalcDue} required>
             {#each customers as c (c.id)}
-              <option value={c.id} selected={c.id === invoice.customerId}>{c.name}</option>
+              <option value={c.id}>{c.name}</option>
             {/each}
           </select>
         </div>
         <div class="field field--span-3 {err('issueDate') ? 'field--error' : ''}">
           <label class="label" for="issueDate">Fakturadato</label>
-          <input class="input input--date" id="issueDate" name="issueDate" inputmode="numeric" value={formatDate(invoice.issueDate)} placeholder="dd.mm.åååå" required />
+          <input class="input input--date" id="issueDate" name="issueDate" type="date" bind:value={issueDate} oninput={recalcDue} required />
           {#if err('issueDate')}<span class="error">{err('issueDate')}</span>{/if}
         </div>
         <div class="field field--span-3 {err('dueDate') ? 'field--error' : ''}">
           <label class="label" for="dueDate">Forfaldsdato</label>
-          <input class="input input--date" id="dueDate" name="dueDate" inputmode="numeric" value={formatDate(invoice.dueDate)} placeholder="dd.mm.åååå" required />
+          <input class="input input--date" id="dueDate" name="dueDate" type="date" bind:value={dueDate} required />
           {#if err('dueDate')}<span class="error">{err('dueDate')}</span>{/if}
+        </div>
+        <div class="field field--span-12">
+          <span class="hint">Betalingsbetingelser: netto <span class="mono">{terms.days}</span> dage ({terms.source}). Forfaldsdatoen følger fakturadatoen; ret den frit, hvis I har aftalt andet.</span>
         </div>
 
         <div class="field field--span-12">
-          <label class="label" for="paymentReference">Betalingsreference</label>
-          <input class="input input--wide mono" id="paymentReference" name="paymentReference" value={invoice.paymentReference} placeholder="Reg. 1234 Konto 1234567890" required />
-          <span class="hint">Bankoplysninger, som trykkes på fakturaen.</span>
+          <label class="label" for="paymentReference">Betalingsreference <span class="label__optional">(valgfri)</span></label>
+          <input class="input input--wide" id="paymentReference" name="paymentReference" value={invoice.paymentReference} placeholder="Faktura {nextNumber}" />
+          <span class="hint">Teksten kunden skal skrive på bankoverførslen. Tom = »Faktura <span class="mono">{nextNumber}</span>« ved udstedelse. Reg.- og kontonummer kommer fra Indstillinger.</span>
         </div>
 
         <fieldset class="field--span-12">
@@ -262,7 +287,6 @@
 <style>
   table.lines td:first-child { width: 100%; }
   table.lines td { vertical-align: top; }
-  table.lines th, table.lines td { padding: var(--space-1) var(--space-2); }
   .addline { margin-top: var(--space-3); }
   .summaryhint { margin: var(--space-4) 0 0; }
   .problems { margin: var(--space-3) 0 0; padding-left: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
