@@ -35,8 +35,8 @@ through a private network. No port on the machine is opened to the internet.
 5. The MCP endpoint is published on `127.0.0.1:3333` only, and it has no login of its own: whoever can reach the port
    can use every tool, including the write tools. To use it from another tailnet device, either run the AI client on
    the server itself, or forward it over the tailnet with `tailscale serve --bg --tcp 3333 tcp://127.0.0.1:3333`
-   (then every device on your tailnet has that access) and set `MCP_ALLOWED_HOSTS` in `.env` to the address clients
-   will use (details in
+   (then every device on your tailnet has that access) and add the address clients will use to `MCP_ALLOWED_HOSTS` in
+   `.env` (e.g. `MCP_ALLOWED_HOSTS=100.64.0.12:3333`; the installer carries it across reruns; details in
    [mcp/README.md](https://github.com/kvit-app/faktura/blob/main/mcp/README.md)). Never publish it on the public
    interface.
 

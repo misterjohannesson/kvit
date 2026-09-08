@@ -1464,3 +1464,8 @@ Open findings: 0
   the runtime, guide/hosting accuracy fixes, login-failure logging.
 
 Open findings: 0
+- Second verification pass (2 reviewers): the quoted .env scheme used shell escaping compose does not parse -> secrets may
+  not contain the quote or backslash characters (stated at the prompt); MCP_ALLOWED_HOSTS is carried through .env into
+  compose; no fixed compose project name; the launcher prunes old runtimes only after the app is up and honours --config
+  as a file path; URL derived from the bind address; start_interval dropped for older compose versions. Installer and
+  binary smoke tests rerun green.

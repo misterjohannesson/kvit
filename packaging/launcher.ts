@@ -133,8 +133,8 @@ async function wizard(): Promise<{ configPath: string; config: Config }> {
   log('Four questions. Enter keeps the value in brackets. Nothing you type as a password or token is shown or logged.');
   line();
   const env = process.env;
-  const explicit = opt('--config') ? path.dirname(path.resolve(opt('--config')!)) : undefined;
-  const defaultBase = explicit ?? env.FAKTURA_DIR ?? path.join(os.homedir(), 'faktura');
+  const explicitFile = opt('--config') ? path.resolve(opt('--config')!) : undefined;
+  const defaultBase = explicitFile ? path.dirname(explicitFile) : (env.FAKTURA_DIR ?? path.join(os.homedir(), 'faktura'));
   const base = path.resolve(nonInteractive ? defaultBase : await ask('Directory for configuration and data', defaultBase));
   const portStr = nonInteractive ? (env.FAKTURA_PORT ?? '3000') : await ask('Port for the web app', env.FAKTURA_PORT ?? '3000');
   const port = Number(portStr);
@@ -155,7 +155,7 @@ async function wizard(): Promise<{ configPath: string; config: Config }> {
   if (token.length < 16) throw new Error('API_TOKEN must be at least 16 characters');
 
   fs.mkdirSync(path.join(base, 'data'), { recursive: true });
-  const configPath = path.join(base, 'faktura.config.json');
+  const configPath = explicitFile ?? path.join(base, 'faktura.config.json');
   const config: Config = { version: 1, dataDir: 'data', port, host: env.FAKTURA_HOST ?? '127.0.0.1', mcpPort: Number(env.FAKTURA_MCP_PORT ?? 3333), appPassword: password, apiToken: token };
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
   try {
@@ -187,11 +187,18 @@ async function ensureRuntime(base: string): Promise<string> {
   await extract({ file: tmp, cwd: dir });
   fs.rmSync(tmp, { force: true });
   fs.writeFileSync(marker, new Date().toISOString());
-  // Older runtimes are no longer needed once this one is complete.
-  for (const e of fs.readdirSync(path.join(base, 'runtime'))) {
-    if (e !== VERSION) fs.rmSync(path.join(base, 'runtime', e), { recursive: true, force: true });
-  }
   return dir;
+}
+
+/** Older runtimes are removed only once the new app is serving, never from --mcp-stdio (an old app may still run). */
+function pruneOldRuntimes(base: string): void {
+  try {
+    for (const e of fs.readdirSync(path.join(base, 'runtime'))) {
+      if (e !== VERSION) fs.rmSync(path.join(base, 'runtime', e), { recursive: true, force: true });
+    }
+  } catch {
+    /* still in use by a previous instance; try again next start */
+  }
 }
 
 // ---------------------------------------------------------------- child processes (this binary as plain bun)
@@ -293,7 +300,9 @@ async function main(): Promise<void> {
 
   const app = runtimeChild(runtime, [path.join('build', 'index.js')], appEnv);
   const mcp = runtimeChild(runtime, [path.join('mcp', 'dist', 'http.js')], mcpEnv);
+  let stopping = false;
   const stop = () => {
+    stopping = true;
     app.kill();
     mcp.kill();
   };
@@ -318,8 +327,9 @@ async function main(): Promise<void> {
   line();
 
   void mcp.exited.then((code) => {
-    if (code !== 0) log(`MCP server exited with code ${code} (port ${config.mcpPort} in use?). The app keeps running; AI access is unavailable.`);
+    if (code !== 0 && !stopping) log(`MCP server exited with code ${code} (port ${config.mcpPort} in use?). The app keeps running; AI access is unavailable.`);
   });
+  setTimeout(() => pruneOldRuntimes(base), 30_000).unref?.();
   const appCode = await app.exited;
   stop();
   process.exit(appCode ?? 0);

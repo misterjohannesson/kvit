@@ -13,6 +13,7 @@
 # Optional in both modes, kept across reruns once set in .env: FAKTURA_MCP_PORT (3333),
 # FAKTURA_BIND (0.0.0.0; use 127.0.0.1 behind a reverse proxy), ADDRESS_HEADER and
 # XFF_DEPTH (trusted proxy header for the login throttle), FAKTURA_IMAGE.
+[ -n "${BASH_VERSION:-}" ] || { echo "Run this script with bash: bash install.sh" >&2; exit 1; }
 set -euo pipefail
 
 DEFAULT_IMAGE="__IMAGE__"
@@ -63,14 +64,15 @@ gen_secret() { # 48 hex characters from the OS random source
   if command -v openssl >/dev/null 2>&1; then openssl rand -hex 24; else od -An -N24 -tx1 /dev/urandom | tr -d ' \n'; fi
 }
 
-# .env values are single-quoted so compose takes them literally ($, #, spaces are safe); ' becomes '\''.
-env_quote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+# .env values are single-quoted so compose takes them literally ($, #, spaces and " are safe). Compose's own
+# escaping inside single quotes differs from the shell's, so ' and \ are simply not allowed in secrets (checked below).
+env_quote() { printf "'%s'" "$1"; }
 # Read KEY from .env, accepting quoted or bare values.
 env_read() { # env_read KEY FILE
   local v
   v="$(sed -n "s/^$1=//p" "$2" | tail -1)"
   case "$v" in
-    \'*\') v="${v#\'}"; v="${v%\'}"; v="$(printf '%s' "$v" | sed "s/'\\\\''/'/g")";;
+    \'*\') v="${v#\'}"; v="${v%\'}";;
     \"*\") v="${v#\"}"; v="${v%\"}";;
   esac
   printf '%s' "$v"
@@ -106,8 +108,9 @@ ENV_FILE="$FAKTURA_DIR/.env"
 COMPOSE_FILE="$FAKTURA_DIR/docker-compose.yml"
 
 # Existing installation: reuse its values as defaults without ever printing the secrets.
-CUR_PORT=""; CUR_PASSWORD=""; CUR_TOKEN=""; CUR_MCP_PORT=""; CUR_BIND=""; CUR_ADDRESS_HEADER=""; CUR_XFF_DEPTH=""; CUR_IMAGE=""
+CUR_PORT=""; CUR_PASSWORD=""; CUR_TOKEN=""; CUR_MCP_PORT=""; CUR_BIND=""; CUR_ADDRESS_HEADER=""; CUR_XFF_DEPTH=""; CUR_IMAGE=""; CUR_MCP_HOSTS=""
 if [ -f "$ENV_FILE" ]; then
+  CUR_MCP_HOSTS="$(env_read MCP_ALLOWED_HOSTS "$ENV_FILE")"
   CUR_PORT="$(env_read FAKTURA_PORT "$ENV_FILE")"
   CUR_PASSWORD="$(env_read APP_PASSWORD "$ENV_FILE")"
   CUR_TOKEN="$(env_read API_TOKEN "$ENV_FILE")"
@@ -131,6 +134,7 @@ while :; do
   say "At least 8 characters, please." >"$TTY"
 done
 case "$APP_PASSWORD" in *$'\n'*) err "The password cannot contain a line break"; exit 1;; esac
+case "$APP_PASSWORD" in *[\'\\]*) err "The password cannot contain ' or \\ (every other character is fine)"; exit 1;; esac
 
 ask_secret API_TOKEN "API token for AI/MCP access (Enter = generate one)" "$([ -n "$CUR_TOKEN" ] && echo 1 || echo 0)"
 if [ -z "$API_TOKEN" ]; then API_TOKEN="${CUR_TOKEN:-generate}"; fi
@@ -143,6 +147,8 @@ MCP_PORT="${FAKTURA_MCP_PORT:-${CUR_MCP_PORT:-3333}}"
 BIND="${FAKTURA_BIND:-${CUR_BIND:-0.0.0.0}}"
 ADDRESS_HEADER_VAL="${ADDRESS_HEADER:-${CUR_ADDRESS_HEADER:-}}"
 XFF_DEPTH_VAL="${XFF_DEPTH:-${CUR_XFF_DEPTH:-1}}"
+MCP_HOSTS_VAL="${MCP_ALLOWED_HOSTS:-${CUR_MCP_HOSTS:-}}"
+case "$BIND" in 0.0.0.0|''|::) HOST_FOR_URL="localhost";; *) HOST_FOR_URL="$BIND";; esac
 
 # ---------------------------------------------------------------- 3. Write config (secrets only in .env, mode 600)
 umask 077
@@ -156,6 +162,7 @@ umask 077
   printf 'FAKTURA_BIND=%s\n' "$BIND"
   printf 'ADDRESS_HEADER=%s\n' "$(env_quote "$ADDRESS_HEADER_VAL")"
   printf 'XFF_DEPTH=%s\n' "$XFF_DEPTH_VAL"
+  printf 'MCP_ALLOWED_HOSTS=%s\n' "$(env_quote "$MCP_HOSTS_VAL")"
   printf 'FAKTURA_IMAGE=%s\n' "$(env_quote "$IMAGE")"
 } >"$ENV_FILE"
 chmod 600 "$ENV_FILE"
@@ -163,8 +170,8 @@ umask 022
 
 cat >"$COMPOSE_FILE" <<'YAML'
 # Written by install.sh. Rerun the installer to change settings. Everything adjustable lives in .env
-# (FAKTURA_BIND, ADDRESS_HEADER, XFF_DEPTH, ports, image); this file is rewritten on every install run.
-name: faktura
+# (FAKTURA_BIND, ADDRESS_HEADER, XFF_DEPTH, MCP_ALLOWED_HOSTS, ports, image); this file is rewritten on every run.
+# The compose project is named after this directory, so two installs in different directories coexist.
 services:
   app:
     image: ${FAKTURA_IMAGE}
@@ -185,7 +192,6 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 20s
-      start_interval: 2s
 
   # AI access (MCP over HTTP). Published on localhost only: reach it through your VPN, never the open internet.
   mcp:
@@ -202,13 +208,12 @@ services:
       FAKTURA_API_TOKEN: ${API_TOKEN}
       MCP_HOST: 0.0.0.0
       MCP_PORT: "3333"
-      MCP_ALLOWED_HOSTS: localhost:${FAKTURA_MCP_PORT},127.0.0.1:${FAKTURA_MCP_PORT}
+      MCP_ALLOWED_HOSTS: localhost:${FAKTURA_MCP_PORT},127.0.0.1:${FAKTURA_MCP_PORT}${MCP_ALLOWED_HOSTS:+,}${MCP_ALLOWED_HOSTS:-}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       start_period: 10s
-      start_interval: 2s
 YAML
 
 # ---------------------------------------------------------------- 4. Pull and start
@@ -226,7 +231,6 @@ fi
 docker compose up -d --remove-orphans 2> >(grep -v 'No services to build' >&2)
 
 # ---------------------------------------------------------------- 5. Health check
-HOST_FOR_URL="localhost"
 URL="http://$HOST_FOR_URL:$FAKTURA_PORT"
 ok=0
 for _ in $(seq 1 60); do

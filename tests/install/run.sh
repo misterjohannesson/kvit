@@ -17,7 +17,7 @@ PORT="${TEST_PORT:-3651}"
 MCP_PORT="${TEST_MCP_PORT:-3652}"
 FILE_PORT="${TEST_FILE_PORT:-8765}"
 WORK="$(mktemp -d)"
-PASSWORD="smoke-$RANDOM-"'pa$$word #not-a-comment'   # a literal $$ and a " #" must survive compose interpolation
+PASSWORD="smoke-$RANDOM-"'pa$$word "q" #not-a-comment'   # $$, a double quote and " #" must survive compose interpolation
 SERVE_DIR="${SERVE_DIR:-dist}"
 [ -f "$SERVE_DIR/install.sh" ] || SERVE_DIR="."
 
@@ -67,8 +67,8 @@ echo "== MCP endpoint"
 curl -fsS "http://127.0.0.1:$MCP_PORT/healthz" | grep -q '"token_configured":true'
 
 echo "== secrets never in output"
-if grep -q -- "$PASSWORD" "$WORK/run1.out" "$WORK/run2.out"; then echo "FAIL: password echoed"; exit 1; fi
-if grep -q -- "$TOKEN" "$WORK/run1.out" "$WORK/run2.out"; then echo "FAIL: token echoed"; exit 1; fi
+if grep -qF -- "$PASSWORD" "$WORK/run1.out" "$WORK/run2.out"; then echo "FAIL: password echoed"; exit 1; fi
+if grep -qF -- "$TOKEN" "$WORK/run1.out" "$WORK/run2.out"; then echo "FAIL: token echoed"; exit 1; fi
 if ! grep -q "Faktura is running" "$WORK/run1.out"; then echo "FAIL: installer did not finish"; cat "$WORK/run1.out"; exit 1; fi
 
 echo "OK: installer smoke test passed"

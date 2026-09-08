@@ -51,12 +51,13 @@ function NewSecret {
   return (($bytes | ForEach-Object { $_.ToString('x2') }) -join '')
 }
 
-# .env values are single-quoted so compose takes them literally ($, #, spaces are safe); ' becomes '\''.
-function EnvQuote($v) { return "'" + ($v -replace "'", "'\''") + "'" }
+# .env values are single-quoted so compose takes them literally ($, #, spaces and " are safe). Compose's escaping inside
+# single quotes differs from the shell's, so ' and \ are not allowed in secrets (checked below).
+function EnvQuote($v) { return "'" + $v + "'" }
 function EnvRead($key, $file) {
   $v = ''
   foreach ($l in Get-Content $file) { if ($l -match "^$key=(.*)$") { $v = $Matches[1] } }
-  if ($v.Length -ge 2 -and $v.StartsWith("'") -and $v.EndsWith("'")) { return $v.Substring(1, $v.Length - 2) -replace "'\\''", "'" }
+  if ($v.Length -ge 2 -and $v.StartsWith("'") -and $v.EndsWith("'")) { return $v.Substring(1, $v.Length - 2) }
   if ($v.Length -ge 2 -and $v.StartsWith('"') -and $v.EndsWith('"')) { return $v.Substring(1, $v.Length - 2) }
   return $v
 }
@@ -82,8 +83,9 @@ New-Item -ItemType Directory -Force (Join-Path $Dir 'data\backups') | Out-Null
 $EnvFile = Join-Path $Dir '.env'
 $ComposeFile = Join-Path $Dir 'docker-compose.yml'
 
-$curPort = ''; $curPassword = ''; $curToken = ''; $curMcpPort = ''; $curBind = ''; $curAddrHeader = ''; $curXff = ''; $curImage = ''
+$curPort = ''; $curPassword = ''; $curToken = ''; $curMcpPort = ''; $curBind = ''; $curAddrHeader = ''; $curXff = ''; $curImage = ''; $curMcpHosts = ''
 if (Test-Path $EnvFile) {
+  $curMcpHosts = EnvRead 'MCP_ALLOWED_HOSTS' $EnvFile
   $curPort = EnvRead 'FAKTURA_PORT' $EnvFile
   $curPassword = EnvRead 'APP_PASSWORD' $EnvFile
   $curToken = EnvRead 'API_TOKEN' $EnvFile
@@ -108,6 +110,7 @@ while ($true) {
   Write-Host 'At least 8 characters, please.'
 }
 if ($Password -match "[`r`n]") { Fail 'The password cannot contain a line break' }
+if ($Password -match "['\\]") { Fail "The password cannot contain ' or \ (every other character is fine)" }
 
 $Token = AskSecret 'API_TOKEN' 'API token for AI/MCP access (Enter = generate one)' ([bool]$curToken)
 $TokenGenerated = $false
@@ -120,6 +123,8 @@ $McpPort = if ($env:FAKTURA_MCP_PORT) { $env:FAKTURA_MCP_PORT } elseif ($curMcpP
 $Bind = if ($env:FAKTURA_BIND) { $env:FAKTURA_BIND } elseif ($curBind) { $curBind } else { '0.0.0.0' }
 $AddrHeader = if ($env:ADDRESS_HEADER) { $env:ADDRESS_HEADER } elseif ($curAddrHeader) { $curAddrHeader } else { '' }
 $Xff = if ($env:XFF_DEPTH) { $env:XFF_DEPTH } elseif ($curXff) { $curXff } else { '1' }
+$McpHosts = if ($env:MCP_ALLOWED_HOSTS) { $env:MCP_ALLOWED_HOSTS } elseif ($curMcpHosts) { $curMcpHosts } else { '' }
+$HostForUrl = if ($Bind -eq '0.0.0.0' -or $Bind -eq '' -or $Bind -eq '::') { 'localhost' } else { $Bind }
 
 # ---------------------------------------------------------------- 3. Write config (secrets only in .env)
 $envText = @(
@@ -132,6 +137,7 @@ $envText = @(
   "FAKTURA_BIND=$Bind",
   "ADDRESS_HEADER=$(EnvQuote $AddrHeader)",
   "XFF_DEPTH=$Xff",
+  "MCP_ALLOWED_HOSTS=$(EnvQuote $McpHosts)",
   "FAKTURA_IMAGE=$(EnvQuote $Image)"
 ) -join "`n"
 [IO.File]::WriteAllText($EnvFile, $envText + "`n", (New-Object Text.UTF8Encoding $false))
@@ -143,8 +149,8 @@ if ((Native "icacls `"$EnvFile`" /inheritance:r /grant:r `"$me`:(F)`" >nul 2>&1"
 
 $compose = @'
 # Written by install.ps1. Rerun the installer to change settings. Everything adjustable lives in .env
-# (FAKTURA_BIND, ADDRESS_HEADER, XFF_DEPTH, ports, image); this file is rewritten on every install run.
-name: faktura
+# (FAKTURA_BIND, ADDRESS_HEADER, XFF_DEPTH, MCP_ALLOWED_HOSTS, ports, image); this file is rewritten on every run.
+# The compose project is named after this directory, so two installs in different directories coexist.
 services:
   app:
     image: ${FAKTURA_IMAGE}
@@ -165,7 +171,6 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 20s
-      start_interval: 2s
 
   # AI access (MCP over HTTP). Published on localhost only: reach it through your VPN, never the open internet.
   mcp:
@@ -182,13 +187,12 @@ services:
       FAKTURA_API_TOKEN: ${API_TOKEN}
       MCP_HOST: 0.0.0.0
       MCP_PORT: "3333"
-      MCP_ALLOWED_HOSTS: localhost:${FAKTURA_MCP_PORT},127.0.0.1:${FAKTURA_MCP_PORT}
+      MCP_ALLOWED_HOSTS: localhost:${FAKTURA_MCP_PORT},127.0.0.1:${FAKTURA_MCP_PORT}${MCP_ALLOWED_HOSTS:+,}${MCP_ALLOWED_HOSTS:-}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       start_period: 10s
-      start_interval: 2s
 '@
 [IO.File]::WriteAllText($ComposeFile, $compose.Replace("`r`n", "`n") + "`n", (New-Object Text.UTF8Encoding $false))
 
@@ -205,7 +209,7 @@ try {
 } finally { Pop-Location }
 
 # ---------------------------------------------------------------- 5. Health check
-$Url = "http://localhost:$Port"
+$Url = "http://${HostForUrl}:$Port"
 $ok = $false
 for ($i = 0; $i -lt 60 -and -not $ok; $i++) {
   try { $r = Invoke-WebRequest -UseBasicParsing -Uri "$Url/healthz" -TimeoutSec 3; if ($r.StatusCode -eq 200) { $ok = $true } } catch { Start-Sleep -Seconds 1 }
