@@ -9,3 +9,5 @@ data-*
 review
 tests
 *.log
+mcp
+spec

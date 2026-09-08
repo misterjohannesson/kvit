@@ -16,7 +16,10 @@
     "db:generate": "drizzle-kit generate",
     "test": "npm run build && vitest run",
     "test:unit": "vitest run tests/unit",
-    "test:api": "vitest run tests/api"
+    "test:api": "vitest run tests/api",
+    "mcp": "npm --prefix mcp run dev",
+    "mcp:http": "npm --prefix mcp run dev:http",
+    "mcp:test": "npm --prefix mcp test"
   },
   "dependencies": {
     "@fontsource/archivo": "^5.3.0",

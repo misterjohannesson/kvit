@@ -1,0 +1,33 @@
+{
+  "name": "kvit-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MCP server for the Kvit (Faktura) invoicing app: a thin, typed HTTP client over the app's JSON API.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "bin": {
+    "kvit-mcp": "dist/stdio.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/stdio.js",
+    "start:http": "node dist/http.js",
+    "dev": "tsx src/stdio.ts",
+    "dev:http": "tsx src/http.ts",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/stdio.js",
+    "test": "npm run build && vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
