@@ -143,6 +143,40 @@ export function quarterRange(year: number, quarter: number): { from: string; to:
   return { from: `${year}-${pad(startMonth)}-01`, to: `${year}-${pad(endMonth)}-${pad(lastDay)}` };
 }
 
+/**
+ * Settlement deadline for quarterly VAT (kvartalsmoms): 1 June, 1 September, 1 December and 1 March of the
+ * following year. Used to place expected VAT payments in the cashflow forecast.
+ */
+export function vatSettlementDate(year: number, quarter: number): string {
+  switch (quarter) {
+    case 1:
+      return `${year}-06-01`;
+    case 2:
+      return `${year}-09-01`;
+    case 3:
+      return `${year}-12-01`;
+    default:
+      return `${year + 1}-03-01`;
+  }
+}
+
+export function monthOf(iso: string): string {
+  return iso.slice(0, 7);
+}
+
+export function nextMonth(ym: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+export const MONTH_SHORT = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
+/** "sep 2026" for "2026-09". */
+export function formatMonth(ym: string): string {
+  const [y, m] = ym.split('-');
+  return `${MONTH_SHORT[Number(m) - 1]} ${y}`;
+}
+
 export const QUARTER_LABELS: Record<number, string> = {
   1: '1. kvartal (jan–mar)',
   2: '2. kvartal (apr–jun)',

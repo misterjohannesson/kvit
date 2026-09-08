@@ -141,6 +141,11 @@ periodiseringsdatoer (fakturadato / bilagsdato), kassevisningerne bruger betalin
   vises som udeladte på Cashflow-skærmen.
 - En kreditnota til en allerede betalt faktura er penge, kunden har til gode: den står som **Skyldige kreditnotaer**
   på balancen, indtil den markeres som refunderet (refusionsdatoen sætter `paid_date`, og beløbet går ud i cashflow).
+- **Prognose** på Cashflow-skærmen: den igangværende måned og månederne frem er tonede og medregner åbne fakturaer
+  efter forfaldsmåned, ubetalte udgifter, kreditnotaer til refusion og momsafregning efter frist (kvartalsmoms:
+  1. juni, 1. september, 1. december og 1. marts). Forfaldne poster ligger i den aktuelle måned. Skyldig moms fordeles
+  på kvartaler nyeste først, da betalinger antages at have dækket de ældste; det løbende kvartal er markeret
+  »foreløbig«. Bankposition nu er stadig kun betalte bevægelser.
 - **Afstemning** på Balance-skærmen: indtast bankens saldo; afviger den fra Likvider, bogføres forskellen som en
   korrektion med det indtastede tal i revisionssporet.
 

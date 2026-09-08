@@ -73,6 +73,7 @@ Tables are the product. They get the most attention.
 - Numeric columns right-aligned, text left-aligned, status centre-left in a fixed-width column so badges form a clean vertical band. Never centre numbers.
 - Totals row: top border `--border-strong-style`, `--weight-semibold`, no fill.
 - Overdue rows are **not** tinted red. The badge carries the state; tinting a row makes a healthy quarter look like a crisis.
+- Forecast rows (Cashflow, `.row--forecast`): the running month and every month ahead are tinted `--status-open-surface` with `--text-secondary` text, and the month cell carries a mono note (`igangværende` / `prognose`) so the tint is never the only cue. Closed months stay untinted. Hover `--accent-100`.
 - Empty state: single centred line at `--text-sm` / `--text-secondary` plus one secondary button. No illustrations.
 
 ---

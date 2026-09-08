@@ -1399,3 +1399,14 @@ screens on an empty database, `npm run seed` inside the container (settings incl
 `/data` volume and all data intact; `git remote -v` empty.
 
 Open findings: 0
+
+## Post-review changes (owner requests, 2026-09-08)
+
+- Invoice editor: native date pickers for fakturadato/forfaldsdato; per-customer payment terms with a note in the
+  editor; forfald follows fakturadato only; payment reference redefined as the customer's bank-transfer text
+  (default "Faktura <nr>"), bank reg./account printed from settings. Tests: 79 passing.
+- Cashflow: the running month and the months ahead are forecast rows (tinted per style.md section 3) built from open
+  invoices by due month, unpaid expenses, credit notes to refund and VAT by settlement date; "Prognose" panel lists
+  the items. Actual position (Likvider) unchanged. Tests: 81 passing.
+
+Open findings: 0

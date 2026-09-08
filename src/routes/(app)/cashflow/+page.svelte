@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { formatDate, formatOre } from '$lib/format';
+  import { formatDate, formatMonth, formatOre } from '$lib/format';
   let { data, form } = $props();
   const f = $derived(data.flow);
+  const fc = $derived(data.flow.forecast);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
   const v = (k: string, fallback = '') => form?.values?.[k] ?? fallback;
   const err = (k: string): string | undefined => form?.fields?.[k];
-  const monthLabel = (ym: string) => {
-    const [y, m] = ym.split('-');
-    const names = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-    return `${names[Number(m) - 1]} ${y}`;
-  };
   const kindLabel = (k: string) => data.kinds.find((x) => x.value === k)?.label ?? k;
+  const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
+  // Closed months show actuals; the current and future months show actuals to date plus the forecast.
+  const rowIn = (m: (typeof f.months)[number]) => m.inOre + m.forecastInOre;
+  const rowOut = (m: (typeof f.months)[number]) => m.outOre + m.forecastOutOre;
+  const forecastRows = $derived(f.months.filter((m) => m.kind !== 'closed').length);
 </script>
 
 <svelte:head><title>Cashflow · Faktura</title></svelte:head>
@@ -22,7 +23,7 @@
   </div>
 </div>
 
-<section class="kpis kpis--3" aria-label="Likviditet">
+<section class="kpis" aria-label="Likviditet">
   <div class="kpi">
     <div class="kpi__label">Åbningssaldo</div>
     <div class="kpi__value {f.openingBalanceOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(f.openingBalanceOre, false)}<span class="kpi__unit">kr.</span></div>
@@ -35,15 +36,20 @@
   </div>
   <div class="kpi">
     <div class="kpi__label">Forventet ind</div>
-    <div class="kpi__value">{formatOre(f.expected.reduce((s, e) => s + e.totalOre, 0), false)}<span class="kpi__unit">kr.</span></div>
-    <div class="kpi__sub">{f.expected.reduce((s, e) => s + e.count, 0)} åbne fakturaer inkl. moms</div>
+    <div class="kpi__value">{formatOre(fc.invoicesInOre, false)}<span class="kpi__unit">kr.</span></div>
+    <div class="kpi__sub">{sum(f.expected.map((e) => e.count))} åbne fakturaer inkl. moms</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">Prognose ultimo {formatMonth(fc.toMonth)}</div>
+    <div class="kpi__value {fc.projectedPositionOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(fc.projectedPositionOre, false)}<span class="kpi__unit">kr.</span></div>
+    <div class="kpi__sub">forventet ud: udgifter {formatOre(fc.expensesOutOre + fc.creditNotesOutOre, false)} · moms {formatOre(fc.vatOutOre, false)}</div>
   </div>
 </section>
 
 <section>
   <div class="section__head">
     <h2>Pr. måned</h2>
-    <p>Kassebasis: Ind = fakturaer efter betalingsdato (<span class="mono">{formatOre(f.months.reduce((s, m) => s + m.invoicesInOre, 0), false)}</span>) plus positive bankbevægelser (<span class="mono">{formatOre(f.months.reduce((s, m) => s + m.movementsInOre, 0), false)}</span>); Ud = udgifter efter betalingsdato (<span class="mono">{formatOre(f.months.reduce((s, m) => s + m.expensesOutOre, 0), false)}</span>), refunderede kreditnotaer (<span class="mono">{formatOre(f.months.reduce((s, m) => s + m.creditNotesOutOre, 0), false)}</span>) og negative bankbevægelser (<span class="mono">{formatOre(f.months.reduce((s, m) => s + m.movementsOutOre, 0), false)}</span>). Positionen løber fra åbningssaldoen. {#if f.excludedBeforeOpening.count > 0}<span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser dateret før åbningssaldoen (<span class="mono">{formatOre(f.excludedBeforeOpening.netOre, false)}</span> netto) er allerede indeholdt i den og tælles ikke med.{/if}</p>
+    <p>Kassebasis: Ind = fakturaer efter betalingsdato (<span class="mono">{formatOre(sum(f.months.map((m) => m.invoicesInOre)), false)}</span>) plus positive bankbevægelser (<span class="mono">{formatOre(sum(f.months.map((m) => m.movementsInOre)), false)}</span>); Ud = udgifter efter betalingsdato (<span class="mono">{formatOre(sum(f.months.map((m) => m.expensesOutOre)), false)}</span>), refunderede kreditnotaer (<span class="mono">{formatOre(sum(f.months.map((m) => m.creditNotesOutOre)), false)}</span>) og negative bankbevægelser (<span class="mono">{formatOre(sum(f.months.map((m) => m.movementsOutOre)), false)}</span>). Positionen løber fra åbningssaldoen. Tonede rækker er prognose: den igangværende måned og frem medregner åbne fakturaer efter forfaldsmåned, ubetalte udgifter, kreditnotaer til refusion og momsafregning efter frist (1. juni, 1. sept., 1. dec. og 1. marts); forfaldne poster ligger i den aktuelle måned. {#if f.excludedBeforeOpening.count > 0}<span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser dateret før åbningssaldoen (<span class="mono">{formatOre(f.excludedBeforeOpening.netOre, false)}</span> netto) er allerede indeholdt i den og tælles ikke med.{/if}</p>
   </div>
   <div class="panel">
     <div class="table-wrap">
@@ -59,22 +65,22 @@
         </thead>
         <tbody>
           {#each f.months as m (m.month)}
-            <tr>
-              <td class="mono">{monthLabel(m.month)}</td>
-              <td class="num">{formatOre(m.inOre, false)}</td>
-              <td class="num">{formatOre(m.outOre, false)}</td>
-              <td class={neg(m.netOre)}>{formatOre(m.netOre, false)}</td>
-              <td class={neg(m.positionOre)}>{formatOre(m.positionOre, false)}</td>
+            <tr class={m.kind === 'closed' ? '' : 'row--forecast'}>
+              <td class="mono">{formatMonth(m.month)}{#if m.kind === 'current'}<span class="badge-note">igangværende</span>{:else if m.kind === 'forecast'}<span class="badge-note">prognose</span>{/if}</td>
+              <td class="num">{formatOre(rowIn(m), false)}</td>
+              <td class="num">{formatOre(rowOut(m), false)}</td>
+              <td class={neg(rowIn(m) - rowOut(m))}>{formatOre(rowIn(m) - rowOut(m), false)}</td>
+              <td class={neg(m.projectedPositionOre)}>{formatOre(m.projectedPositionOre, false)}</td>
             </tr>
           {/each}
         </tbody>
         <tfoot>
           <tr>
-            <td>{f.months.length} måneder</td>
-            <td class="num">{formatOre(f.months.reduce((s, m) => s + m.inOre, 0), false)}</td>
-            <td class="num">{formatOre(f.months.reduce((s, m) => s + m.outOre, 0), false)}</td>
-            <td class={neg(f.months.reduce((s, m) => s + m.netOre, 0))}>{formatOre(f.months.reduce((s, m) => s + m.netOre, 0), false)}</td>
-            <td class={neg(f.closingPositionOre)}>{formatOre(f.closingPositionOre, false)}</td>
+            <td>{f.months.length} måneder{#if forecastRows > 0}, heraf {forecastRows} prognose{/if}</td>
+            <td class="num">{formatOre(sum(f.months.map(rowIn)), false)}</td>
+            <td class="num">{formatOre(sum(f.months.map(rowOut)), false)}</td>
+            <td class={neg(sum(f.months.map((m) => rowIn(m) - rowOut(m))))}>{formatOre(sum(f.months.map((m) => rowIn(m) - rowOut(m))), false)}</td>
+            <td class={neg(fc.projectedPositionOre)}>{formatOre(fc.projectedPositionOre, false)}</td>
           </tr>
         </tfoot>
       </table>
@@ -85,25 +91,25 @@
 <section class="layout-6-6 layout-6-6--tables">
   <div class="panel">
     <div class="panel__head">
-      <h3 class="panel__title">Forventet</h3>
-      <span class="panel__meta">åbne fakturaer efter forfaldsmåned</span>
+      <h3 class="panel__title">Prognose</h3>
+      <span class="panel__meta">fra {formatMonth(fc.fromMonth)} · netto {formatOre(fc.netOre, false)}</span>
     </div>
     <div class="table-wrap">
       <table class="data {data.dense ? 'data--dense' : ''}">
         <thead>
           <tr>
-            <th scope="col">Forfald</th>
-            <th scope="col" class="num">Fakturaer</th>
+            <th scope="col">Måned</th>
+            <th scope="col">Post</th>
             <th scope="col" class="num">Beløb inkl. moms</th>
           </tr>
         </thead>
         <tbody>
-          {#if f.expected.length === 0}<tr><td colspan="3" class="empty">Ingen åbne fakturaer. <a class="btn btn--sm" href="/fakturaer">Fakturaer</a></td></tr>{/if}
-          {#each f.expected as e (e.month)}
+          {#if fc.items.length === 0}<tr><td colspan="3" class="empty">Ingen forventede bevægelser. <a class="btn btn--sm" href="/fakturaer">Fakturaer</a></td></tr>{/if}
+          {#each fc.items as it (it.month + it.kind + it.label)}
             <tr>
-              <td class="mono">{monthLabel(e.month)}</td>
-              <td class="num">{e.count}</td>
-              <td class="num">{formatOre(e.totalOre, false)}</td>
+              <td class="mono">{formatMonth(it.month)}</td>
+              <td class="wrap">{it.label}{#if it.detail}<span class="badge-note">{it.detail}</span>{/if}</td>
+              <td class={neg(it.amountOre)}>{formatOre(it.amountOre, false)}</td>
             </tr>
           {/each}
         </tbody>
@@ -182,4 +188,3 @@
     </div>
   </div>
 </section>
-

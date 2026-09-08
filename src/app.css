@@ -531,6 +531,9 @@ table.data td.empty, .empty { text-align: center; color: var(--text-secondary); 
 
 /* whole row is the click target for the detail view */
 .rowlink { cursor: pointer; }
+/* Cashflow: months that are still open or ahead. Tint plus the mono note in the month cell; the tint is never the only cue. */
+table.data tbody tr.row--forecast { background: var(--status-open-surface); color: var(--text-secondary); }
+table.data tbody tr.row--forecast:hover { background: var(--accent-100); }
 
 /* segments made of links or form buttons */
 .segment > form { display: contents; }

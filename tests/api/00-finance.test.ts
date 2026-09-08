@@ -23,7 +23,15 @@ import { Client, loggedIn } from './client';
 
 type Balance = { likviderOre: number; debitorerOre: number; kreditorerOre: number; skyldigeKreditnotaerOre: number; skyldigMomsOre: number; nettoOre: number; accruedVatOre: number; vatPaymentsOre: number };
 type Resultat = { revenue: { account: { number: number }; totalOre: number }[]; costs: { account: { number: number }; totalOre: number }[]; revenueOre: number; costsOre: number; resultOre: number };
-type Cashflow = { openingBalanceOre: number; months: { month: string; inOre: number; outOre: number; netOre: number; positionOre: number }[]; expected: { month: string; totalOre: number; count: number }[]; closingPositionOre: number };
+type CashflowMonth = { month: string; kind: string; inOre: number; outOre: number; netOre: number; positionOre: number; forecastInOre: number; forecastOutOre: number; projectedPositionOre: number };
+type ForecastItem = { month: string; kind: string; label: string; detail: string; amountOre: number };
+type Cashflow = {
+  openingBalanceOre: number;
+  months: CashflowMonth[];
+  expected: { month: string; totalOre: number; count: number }[];
+  forecast: { fromMonth: string; toMonth: string; items: ForecastItem[]; invoicesInOre: number; expensesOutOre: number; creditNotesOutOre: number; vatOutOre: number; netOre: number; projectedPositionOre: number };
+  closingPositionOre: number;
+};
 
 let c: Client;
 beforeAll(async () => {
@@ -101,6 +109,49 @@ describe('cashflow on seed data', () => {
       { month: '2026-08', totalOre: 1_212_500, count: 1 },
       { month: '2026-09', totalOre: 1_562_500, count: 1 }
     ]);
+  });
+
+  it('forecasts open invoices, unpaid expenses, credit notes to refund and VAT by settlement date', async () => {
+    const r = await c.json<Cashflow>('GET', '/api/finance?view=cashflow');
+    const b = (await c.json<Balance>('GET', '/api/finance?view=balance')).data;
+    const fc = r.data.forecast;
+    const now = fc.fromMonth;
+    const ofKind = (k: string) => fc.items.filter((i) => i.kind === k);
+    // 1004 (due 17.08.2026, overdue) and 1005 (due 24.09.2026) are both expected in the current month once that is Sept 2026 or later.
+    expect(ofKind('invoices')).toEqual([{ month: now, kind: 'invoices', label: '2 åbne fakturaer', detail: expect.stringContaining('1004 (forfalden)'), amountOre: 2_775_000 }]);
+    // Voucher 8 (Elgiganten, 02.09.2026) is unpaid.
+    expect(ofKind('expenses')).toEqual([{ month: now, kind: 'expenses', label: '1 ubetalt udgift', detail: 'bilag 8', amountOre: -299_900 }]);
+    // 1006 credits the paid 1002 and has not been refunded.
+    expect(ofKind('credit_notes')).toEqual([{ month: now, kind: 'credit_notes', label: 'Kreditnota 1006 til refusion', detail: 'krediterer 1002', amountOre: -1_500_000 }]);
+    // Skyldig moms is what is left to pay; the seed's Q2 settlement is booked, so the rest is the running quarter, due on a settlement date.
+    const vat = ofKind('vat');
+    expect(vat.reduce((s, i) => s + i.amountOre, 0)).toBe(-b.skyldigMomsOre);
+    expect(vat.length).toBe(1);
+    expect(vat[0].label).toMatch(/^Moms, [1-4]\. kvartal 20\d\d \(foreløbig\)$/);
+    expect(vat[0].detail).toMatch(/^frist 01\.(03|06|09|12)\.20\d\d/);
+    expect(vat[0].month >= now).toBe(true);
+    expect(fc.invoicesInOre).toBe(2_775_000);
+    expect(fc.expensesOutOre).toBe(299_900);
+    expect(fc.creditNotesOutOre).toBe(1_500_000);
+    expect(fc.vatOutOre).toBe(b.skyldigMomsOre);
+    expect(fc.netOre).toBe(2_775_000 - 299_900 - 1_500_000 - b.skyldigMomsOre);
+    expect(fc.projectedPositionOre).toBe(r.data.closingPositionOre + fc.netOre);
+    // Rows: closed months carry actuals only; the current month and later carry the forecast on top; the last row ends on the projection.
+    const months = r.data.months;
+    for (const m of months.filter((x) => x.kind === 'closed')) {
+      expect(m.month < now).toBe(true);
+      expect(m.forecastInOre + m.forecastOutOre).toBe(0);
+      expect(m.projectedPositionOre).toBe(m.positionOre);
+    }
+    const current = months.find((m) => m.month === now)!;
+    expect(current.kind).toBe('current');
+    expect(current.forecastInOre).toBe(2_775_000);
+    expect(months.filter((m) => m.kind === 'forecast').every((m) => m.month > now)).toBe(true);
+    expect(months[months.length - 1].month).toBe(fc.toMonth);
+    expect(months[months.length - 1].projectedPositionOre).toBe(fc.projectedPositionOre);
+    expect(fc.toMonth >= vat[0].month).toBe(true);
+    // The actual position is untouched by the forecast.
+    expect(r.data.closingPositionOre).toBe(10_530_500);
   });
 });
 

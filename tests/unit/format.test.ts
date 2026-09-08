@@ -3,16 +3,20 @@ import {
   addDays,
   formatCvr,
   formatDate,
+  formatMonth,
   formatOre,
   formatQuantity,
   invoiceStatus,
+  monthOf,
+  nextMonth,
   parseDateInput,
   parseKrToOre,
   parseQuantity,
   quarterOf,
   quarterRange,
   roundOre,
-  todayIso
+  todayIso,
+  vatSettlementDate
 } from '../../src/lib/format';
 
 describe('money formatting', () => {
@@ -62,6 +66,16 @@ describe('dates and quarters', () => {
     expect(formatDate(null)).toBe('—');
     expect(addDays('2026-08-25', 30)).toBe('2026-09-24');
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+  });
+
+  it('knows months and the quarterly VAT settlement deadlines', () => {
+    expect(monthOf('2026-09-08')).toBe('2026-09');
+    expect(nextMonth('2026-12')).toBe('2027-01');
+    expect(formatMonth('2026-09')).toBe('sep 2026');
+    expect(vatSettlementDate(2026, 1)).toBe('2026-06-01');
+    expect(vatSettlementDate(2026, 2)).toBe('2026-09-01');
+    expect(vatSettlementDate(2026, 3)).toBe('2026-12-01');
+    expect(vatSettlementDate(2026, 4)).toBe('2027-03-01');
   });
 
   it('parses Danish and ISO date input', () => {
