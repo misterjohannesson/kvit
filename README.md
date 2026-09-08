@@ -129,7 +129,9 @@ periodiseringsdatoer (fakturadato / bilagsdato), kassevisningerne bruger betalin
   men aldrig slettes, mens de er i brug.
 - **Bankbevægelser** (momsbetalinger, ejerindskud/-hævninger, skat, korrektioner, andet) oprettes fra
   Cashflow-skærmen. De rettes aldrig – en fejl modposteres med en korrektion.
-- **Åbningssaldo** (Indstillinger) er den banksaldo, cashflow og balance tæller fra.
+- **Åbningssaldo** (Indstillinger) er den banksaldo, cashflow og balance tæller fra: saldoen ved dagens begyndelse på den
+  angivne dato. Betalinger og bevægelser på selve datoen og senere tælles med; ældre er allerede indeholdt i saldoen og
+  vises som udeladte på Cashflow-skærmen.
 - En kreditnota til en allerede betalt faktura er penge, kunden har til gode: den står som **Skyldige kreditnotaer**
   på balancen, indtil den markeres som refunderet (refusionsdatoen sætter `paid_date`, og beløbet går ud i cashflow).
 - **Afstemning** på Balance-skærmen: indtast bankens saldo; afviger den fra Likvider, bogføres forskellen som en
