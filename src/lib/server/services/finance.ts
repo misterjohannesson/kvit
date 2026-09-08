@@ -22,16 +22,40 @@ export interface AccountTotal {
   totalOre: number;
 }
 
+/** Accounts sharing a kontoplan group, with the group's subtotal. Groups are ordered by their lowest account number. */
+export interface AccountGroupTotal {
+  group: string;
+  accounts: AccountTotal[];
+  totalOre: number;
+}
+
 export interface Resultat {
   year: number;
   quarter: number | null;
   from: string;
   to: string;
+  /** Every account of the type (archived included), by number. */
   revenue: AccountTotal[];
   costs: AccountTotal[];
+  /** The same rows grouped by the kontoplan's group heading. */
+  revenueGroups: AccountGroupTotal[];
+  costGroups: AccountGroupTotal[];
   revenueOre: number;
   costsOre: number;
   resultOre: number;
+}
+
+export function groupTotals(rows: AccountTotal[]): AccountGroupTotal[] {
+  const groups = new Map<string, AccountGroupTotal>();
+  for (const r of rows) {
+    const key = r.account.group.trim();
+    const g = groups.get(key) ?? { group: key, accounts: [], totalOre: 0 };
+    g.accounts.push(r);
+    g.totalOre += r.totalOre;
+    groups.set(key, g);
+  }
+  // rows arrive by number, so the first account of each group is its lowest number
+  return [...groups.values()];
 }
 
 /** Revenue per revenue account (issued invoices ex VAT, credit notes netting out) and costs per cost account (expenses ex VAT). Accrual basis. */
@@ -60,7 +84,19 @@ export function resultat(year: number, quarter: number | null): Resultat {
   const costs = accounts.filter((a) => a.type === 'cost').map((a) => ({ account: a, totalOre: cost.get(a.id) ?? 0 }));
   const revenueOre = revenue.reduce((s, r) => s + r.totalOre, 0);
   const costsOre = costs.reduce((s, r) => s + r.totalOre, 0);
-  return { year, quarter, from: range.from, to: range.to, revenue, costs, revenueOre, costsOre, resultOre: revenueOre - costsOre };
+  return {
+    year,
+    quarter,
+    from: range.from,
+    to: range.to,
+    revenue,
+    costs,
+    revenueGroups: groupTotals(revenue),
+    costGroups: groupTotals(costs),
+    revenueOre,
+    costsOre,
+    resultOre: revenueOre - costsOre
+  };
 }
 
 export interface CashflowMonth {

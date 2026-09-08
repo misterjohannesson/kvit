@@ -73,6 +73,10 @@ export interface Account {
   number: number;
   name: string;
   type: 'revenue' | 'cost';
+  /** Kontoplan group heading (report subtotals); '' when ungrouped. */
+  group: string;
+  /** Archived accounts keep their history but take no new records. */
+  archived: boolean;
 }
 
 export interface Expense {

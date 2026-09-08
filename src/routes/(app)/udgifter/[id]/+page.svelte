@@ -72,7 +72,7 @@
           <label class="label" for="accountId">Konto</label>
           <select class="select" id="accountId" name="accountId" required>
             {#each data.accounts as a (a.id)}
-              <option value={a.id} selected={Number(v('accountId', String(e.accountId))) === a.id}>{a.number} {a.name}</option>
+              <option value={a.id} selected={Number(v('accountId', String(e.accountId))) === a.id}>{a.number} {a.name}{a.archived ? ' (arkiveret)' : ''}</option>
             {/each}
           </select>
           {#if err('accountId')}<span class="error">{err('accountId')}</span>{/if}

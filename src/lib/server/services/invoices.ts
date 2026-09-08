@@ -209,9 +209,11 @@ function applyDraft(id: number, data: DraftData): void {
   if (!cust) throw badRequest('Kunden findes ikke');
 
   const fallbackAccount = data.lines.some((l) => l.accountId === undefined) ? defaultRevenueAccountId() : 0;
+  // Accounts archived since the draft was written stay usable on this draft; new choices must be active.
+  const alreadyUsed = db.select({ accountId: invoiceLine.accountId }).from(invoiceLine).where(eq(invoiceLine.invoiceId, id)).all().map((r) => r.accountId);
   const lines = data.lines.map((l) => {
     const accountId = l.accountId ?? fallbackAccount;
-    requireAccountOfType(accountId, 'revenue');
+    requireAccountOfType(accountId, 'revenue', alreadyUsed);
     return {
       invoiceId: id,
       description: l.description,

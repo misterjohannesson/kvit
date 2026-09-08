@@ -90,7 +90,10 @@ export function cashMovementsCsv(): string {
 
 export function accountsCsv(): string {
   const rows = db.select().from(account).orderBy(asc(account.number)).all();
-  return toCsv(['id', 'kontonr', 'navn', 'type'], rows.map((r) => [r.id, r.number, r.name, r.type === 'revenue' ? 'salg' : 'omkostning']));
+  return toCsv(
+    ['id', 'kontonr', 'navn', 'type', 'gruppe', 'arkiveret'],
+    rows.map((r) => [r.id, r.number, r.name, r.type === 'revenue' ? 'salg' : 'omkostning', r.group, r.archived ? 'ja' : 'nej'])
+  );
 }
 
 export function auditLogCsv(): string {

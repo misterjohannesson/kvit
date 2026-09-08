@@ -624,14 +624,20 @@ export function registerTools(server: McpServer, client: FakturaClient): void {
     'list_accounts',
     {
       title: 'List accounts (kontoplan)',
-      description: 'The chart of accounts: id, number, name and type (revenue | cost). Use the ids for create_draft_invoice (revenue) and create_expense (cost).',
-      inputSchema: { type: z.enum(['revenue', 'cost']).optional().describe('Filter by type.') },
+      description:
+        'The chart of accounts: id, number, name, type (revenue | cost) and group (the heading the P&L subtotals on). Use the ids for create_draft_invoice (revenue) and create_expense (cost). Archived accounts are left out unless include_archived is set; they refuse new records.',
+      inputSchema: {
+        type: z.enum(['revenue', 'cost']).optional().describe('Filter by type.'),
+        include_archived: z.boolean().optional().describe('Also list archived accounts (marked archived: true).')
+      },
       annotations: { readOnlyHint: true, openWorldHint: false }
     },
-    async ({ type }) =>
+    async ({ type, include_archived }) =>
       run(async () => {
         const rows = await client.listAccounts();
-        const list = (type ? rows.filter((a) => a.type === type) : rows).map((a) => ({ id: a.id, number: a.number, name: a.name, type: a.type }));
+        const list = rows
+          .filter((a) => (!type || a.type === type) && (include_archived || !a.archived))
+          .map((a) => ({ id: a.id, number: a.number, name: a.name, type: a.type, group: a.group, archived: a.archived }));
         return { count: list.length, accounts: list };
       })
   );

@@ -15,7 +15,7 @@ import { addAttachment, removeAttachment } from '$lib/server/services/attachment
 import { uploadFromForm } from '$lib/server/expense-form';
 import { listCustomers } from '$lib/server/services/customers';
 import { getSettings } from '$lib/server/services/settings';
-import { listAccounts } from '$lib/server/services/accounts';
+import { listAccounts, selectableAccounts } from '$lib/server/services/accounts';
 import { errorMessage, expectedNumberFrom, isRedirect, routeId } from '$lib/server/api';
 import { formDataToDraft } from '$lib/server/invoice-form';
 import { HttpError } from '$lib/server/errors';
@@ -30,7 +30,7 @@ export const load: PageServerLoad = ({ params }) => {
       invoice: inv,
       customers: listCustomers(),
       accounts: listAccounts(),
-      revenueAccounts: listAccounts('revenue'),
+      revenueAccounts: selectableAccounts('revenue', inv.lines.map((l) => l.accountId)),
       defaultTermsDays: Number(settings.payment_terms_days) || 0,
       nextNumber: nextInvoiceNumber(),
       problems: inv.status === 'draft' ? validateForIssue(inv, settings) : [],

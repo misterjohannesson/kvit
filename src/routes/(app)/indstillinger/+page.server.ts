@@ -1,7 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getSettings, updateSettings } from '$lib/server/services/settings';
-import { accountUsage, createAccount, deleteAccount, listAccounts, renameAccount } from '$lib/server/services/accounts';
+import { accountUsageMap, createAccount, deleteAccount, listAccounts, updateAccount } from '$lib/server/services/accounts';
+import { describeImport, importKontoplan, KONTOPLAN_MAX_BYTES } from '$lib/server/services/accounts-csv';
 import { errorMessage } from '$lib/server/api';
 import { parseDateInput, parseKrToOre } from '$lib/format';
 import { badRequest } from '$lib/server/errors';
@@ -12,10 +13,25 @@ function accountIdFrom(form: FormData): number {
   return n;
 }
 
-export const load: PageServerLoad = () => ({
-  settings: getSettings(),
-  accounts: listAccounts().map((a) => ({ ...a, usage: accountUsage(a.id) }))
-});
+/** Only the fields the form sent change; `?/renameAccount` sends the name alone. */
+function accountPatch(form: FormData): Record<string, string> {
+  const patch: Record<string, string> = {};
+  for (const k of ['name', 'group', 'archived'] as const) {
+    const v = form.get(k);
+    if (typeof v === 'string') patch[k] = v;
+  }
+  return patch;
+}
+
+export const load: PageServerLoad = () => {
+  const usage = accountUsageMap();
+  const accounts = listAccounts().map((a) => ({ ...a, usage: usage.get(a.id) ?? 0 }));
+  return {
+    settings: getSettings(),
+    accounts,
+    groups: [...new Set(accounts.map((a) => a.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'da'))
+  };
+};
 
 export const actions: Actions = {
   save: async ({ request }) => {
@@ -54,7 +70,12 @@ export const actions: Actions = {
   addAccount: async ({ request }) => {
     const form = await request.formData();
     try {
-      createAccount({ number: String(form.get('number') ?? ''), name: String(form.get('name') ?? ''), type: String(form.get('type') ?? '') });
+      createAccount({
+        number: String(form.get('number') ?? ''),
+        name: String(form.get('name') ?? ''),
+        type: String(form.get('type') ?? ''),
+        group: String(form.get('group') ?? '')
+      });
       return { saved: true };
     } catch (e) {
       const { status, message } = errorMessage(e);
@@ -62,10 +83,23 @@ export const actions: Actions = {
     }
   },
 
+  /** Name, group and archived from the row form. */
+  updateAccount: async ({ request }) => {
+    const form = await request.formData();
+    try {
+      updateAccount(accountIdFrom(form), accountPatch(form));
+      return { saved: true };
+    } catch (e) {
+      const { status, message } = errorMessage(e);
+      return fail(status, { error: message });
+    }
+  },
+
+  /** Kept for older forms and scripts: same as updateAccount with the name only. */
   renameAccount: async ({ request }) => {
     const form = await request.formData();
     try {
-      renameAccount(accountIdFrom(form), { name: String(form.get('name') ?? '') });
+      updateAccount(accountIdFrom(form), { name: String(form.get('name') ?? '') });
       return { saved: true };
     } catch (e) {
       const { status, message } = errorMessage(e);
@@ -78,6 +112,22 @@ export const actions: Actions = {
     try {
       deleteAccount(accountIdFrom(form));
       return { saved: true };
+    } catch (e) {
+      const { status, message } = errorMessage(e);
+      return fail(status, { error: message });
+    }
+  },
+
+  /** Upload kontoplan.csv; atomic, so an error leaves the kontoplan as it was. */
+  importAccounts: async ({ request }) => {
+    const form = await request.formData();
+    try {
+      const file = form.get('file');
+      if (!(file instanceof File) || file.size === 0) throw badRequest('Vælg den CSV-fil, du har redigeret');
+      if (file.size > KONTOPLAN_MAX_BYTES) throw badRequest('Filen er for stor til at være en kontoplan (maks. 256 KB)');
+      const text = Buffer.from(await file.arrayBuffer()).toString('utf8');
+      const result = importKontoplan(text, { prune: form.get('prune') === 'on' });
+      return { imported: describeImport(result) };
     } catch (e) {
       const { status, message } = errorMessage(e);
       return fail(status, { error: message });

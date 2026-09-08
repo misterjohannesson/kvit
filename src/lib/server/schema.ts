@@ -15,14 +15,20 @@ export const customer = sqliteTable('customer', {
   createdAt: text('created_at').notNull()
 });
 
-/** Flat mini-kontoplan. Seeded by migration 0006; accounts can be added and renamed, never deleted while referenced. */
+/**
+ * Kontoplan. Seeded by migrations 0006 and 0012; accounts can be added, renamed, regrouped and archived, never
+ * deleted while referenced. Number and type are immutable (trigger account_identity_immutable). `group` is a free
+ * heading the reports subtotal on; archived accounts keep their history but are hidden from new records.
+ */
 export const account = sqliteTable(
   'account',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     number: integer('number').notNull(),
     name: text('name').notNull(),
-    type: text('type', { enum: ['revenue', 'cost'] }).notNull()
+    type: text('type', { enum: ['revenue', 'cost'] }).notNull(),
+    group: text('group_name').notNull().default(''),
+    archived: integer('archived', { mode: 'boolean' }).notNull().default(false)
   },
   (t) => [uniqueIndex('account_number_unique').on(t.number)]
 );

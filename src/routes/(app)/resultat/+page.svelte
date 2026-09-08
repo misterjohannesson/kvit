@@ -4,6 +4,12 @@
   const r = $derived(data.report);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
   const href = (year: number, quarter: number | null) => `/resultat?year=${year}${quarter ? `&quarter=${quarter}` : ''}`;
+  type Group = (typeof r)['revenueGroups'][number];
+  /** Archived accounts without movement in the period are left out; a group shows only when something remains. */
+  const visibleGroups = (groups: Group[]): Group[] =>
+    groups
+      .map((g) => ({ ...g, accounts: g.accounts.filter((a) => !a.account.archived || a.totalOre !== 0) }))
+      .filter((g) => g.accounts.length > 0);
 </script>
 
 <svelte:head><title>Resultat · Kvit</title></svelte:head>
@@ -66,12 +72,17 @@
           </tr>
         </thead>
         <tbody>
-          {#each r.revenue as row (row.account.id)}
-            <tr>
-              <td class="mono">{row.account.number}</td>
-              <td>{row.account.name}</td>
-              <td class={neg(row.totalOre)}>{formatOre(row.totalOre, false)}</td>
-            </tr>
+          {#each visibleGroups(r.revenueGroups) as g (g.group)}
+            {#if r.revenueGroups.length > 1}
+              <tr class="group"><th scope="rowgroup" colspan="2">{g.group || 'Uden gruppe'}</th><td class={neg(g.totalOre)}>{formatOre(g.totalOre, false)}</td></tr>
+            {/if}
+            {#each g.accounts as row (row.account.id)}
+              <tr class={row.account.archived ? 'archived' : ''}>
+                <td class="mono">{row.account.number}</td>
+                <td>{row.account.name}{row.account.archived ? ' (arkiveret)' : ''}</td>
+                <td class={neg(row.totalOre)}>{formatOre(row.totalOre, false)}</td>
+              </tr>
+            {/each}
           {/each}
         </tbody>
         <tfoot>
@@ -95,12 +106,17 @@
           </tr>
         </thead>
         <tbody>
-          {#each r.costs as row (row.account.id)}
-            <tr>
-              <td class="mono">{row.account.number}</td>
-              <td>{row.account.name}</td>
-              <td class={neg(row.totalOre)}>{formatOre(row.totalOre, false)}</td>
-            </tr>
+          {#each visibleGroups(r.costGroups) as g (g.group)}
+            {#if r.costGroups.length > 1}
+              <tr class="group"><th scope="rowgroup" colspan="2">{g.group || 'Uden gruppe'}</th><td class={neg(g.totalOre)}>{formatOre(g.totalOre, false)}</td></tr>
+            {/if}
+            {#each g.accounts as row (row.account.id)}
+              <tr class={row.account.archived ? 'archived' : ''}>
+                <td class="mono">{row.account.number}</td>
+                <td>{row.account.name}{row.account.archived ? ' (arkiveret)' : ''}</td>
+                <td class={neg(row.totalOre)}>{formatOre(row.totalOre, false)}</td>
+              </tr>
+            {/each}
           {/each}
         </tbody>
         <tfoot>
@@ -110,4 +126,11 @@
     </div>
   </div>
 </section>
+
+<style>
+  /* Group heading rows carry the subtotal; the accounts below are indented by the mono number column. */
+  tr.group th { text-align: left; font-weight: 600; background: var(--bg-thead); }
+  tr.group td { background: var(--bg-thead); font-weight: 600; }
+  tr.archived td { color: var(--text-secondary); }
+</style>
 

@@ -4,7 +4,7 @@
 
   type Line = { description: string; quantity: string; unit: string; unitPrice: string; accountId: number | undefined };
   type Customer = { id: number; name: string; paymentTermsDays: number | null };
-  type Account = { id: number; number: number; name: string };
+  type Account = { id: number; number: number; name: string; archived?: boolean };
   type Invoice = {
     id: number;
     customerId: number;
@@ -44,7 +44,9 @@
     accountId: l.accountId
   });
   // svelte-ignore state_referenced_locally
-  const defaultAccountId = (accounts.find((a) => a.number === 1000) ?? accounts[0])?.id;
+  const active = accounts.filter((a) => !a.archived);
+  // svelte-ignore state_referenced_locally
+  const defaultAccountId = (active.find((a) => a.number === 1000) ?? active[0] ?? accounts[0])?.id;
 
   // svelte-ignore state_referenced_locally
   let lines = $state<Line[]>(invoice.lines.length ? invoice.lines.map(toLine) : [{ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: defaultAccountId }]);
@@ -189,7 +191,7 @@
                       <div class="cell-stack">
                         <input class="input input--cell" aria-label="Beskrivelse, linje {i + 1}" bind:value={line.description} placeholder="Ydelse" />
                         <select class="select input--cell" aria-label="Konto, linje {i + 1}" bind:value={line.accountId}>
-                          {#each accounts as a (a.id)}<option value={a.id}>{a.number} {a.name}</option>{/each}
+                          {#each accounts as a (a.id)}<option value={a.id}>{a.number} {a.name}{a.archived ? ' (arkiveret)' : ''}</option>{/each}
                         </select>
                       </div>
                     </td>

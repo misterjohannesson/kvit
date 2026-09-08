@@ -104,7 +104,11 @@
 <section>
   <div class="section__head">
     <h2>Kontoplan</h2>
-    <p>Salgskonti bruges på fakturalinjer, omkostningskonti på udgifter. Konti kan tilføjes og omdøbes, men aldrig slettes, mens de er i brug.</p>
+    <p>
+      Salgskonti bruges på fakturalinjer, omkostningskonti på udgifter. Grupper giver Resultat sine mellemsummer og
+      vises i rækkefølge efter laveste kontonummer. En konto kan omdøbes, flyttes til en anden gruppe og arkiveres
+      (skjules for nye bilag, historikken bliver), men aldrig slettes, mens den er i brug. Nummer og type er faste.
+    </p>
   </div>
   <div class="panel">
     <div class="table-wrap">
@@ -114,26 +118,39 @@
             <th scope="col">Konto</th>
             <th scope="col">Type</th>
             <th scope="col">Navn</th>
+            <th scope="col">Gruppe</th>
+            <th scope="col">Status</th>
             <th scope="col" class="num">I brug</th>
             <th scope="col" class="col-actions"><span hidden>Handlinger</span></th>
           </tr>
         </thead>
         <tbody>
           {#each data.accounts as a (a.id)}
-            <tr>
+            <tr class={a.archived ? 'archived' : ''}>
               <td class="mono">{a.number}</td>
               <td>{a.type === 'revenue' ? 'Salg' : 'Omkostning'}</td>
               <td>
-                <form method="POST" action="?/renameAccount" class="inline">
-                  <input type="hidden" name="id" value={a.id} />
-                  <label class="label" for="acc-{a.id}" hidden>Navn</label>
-                  <input class="input input--cell" id="acc-{a.id}" name="name" value={a.name} required />
-                  <button type="submit" class="btn btn--ghost btn--sm">Omdøb</button>
-                </form>
+                <label class="label" for="acc-name-{a.id}" hidden>Navn</label>
+                <input class="input input--cell" id="acc-name-{a.id}" name="name" value={a.name} form="acc-form-{a.id}" required />
+              </td>
+              <td>
+                <label class="label" for="acc-group-{a.id}" hidden>Gruppe</label>
+                <input class="input input--cell" id="acc-group-{a.id}" name="group" value={a.group} list="account-groups" form="acc-form-{a.id}" maxlength="60" />
+              </td>
+              <td>
+                <label class="label" for="acc-archived-{a.id}" hidden>Status</label>
+                <select class="select input--cell" id="acc-archived-{a.id}" name="archived" form="acc-form-{a.id}">
+                  <option value="nej" selected={!a.archived}>Aktiv</option>
+                  <option value="ja" selected={a.archived}>Arkiveret</option>
+                </select>
               </td>
               <td class="num">{a.usage}</td>
               <td>
                 <div class="row-actions">
+                  <form method="POST" action="?/updateAccount" id="acc-form-{a.id}">
+                    <input type="hidden" name="id" value={a.id} />
+                    <button type="submit" class="btn btn--ghost btn--sm">Gem</button>
+                  </form>
                   {#if a.usage === 0}
                     <form method="POST" action="?/deleteAccount">
                       <input type="hidden" name="id" value={a.id} />
@@ -146,6 +163,9 @@
           {/each}
         </tbody>
       </table>
+      <datalist id="account-groups">
+        {#each data.groups as g (g)}<option value={g}></option>{/each}
+      </datalist>
     </div>
     <form method="POST" action="?/addAccount">
       <div class="panel__body">
@@ -156,9 +176,13 @@
               <label class="label" for="new-number">Kontonr.</label>
               <input class="input input--num input--short mono" id="new-number" name="number" inputmode="numeric" placeholder="2700" required />
             </div>
-            <div class="field field--span-6">
+            <div class="field field--span-4">
               <label class="label" for="new-name">Navn</label>
               <input class="input" id="new-name" name="name" required />
+            </div>
+            <div class="field field--span-3">
+              <label class="label" for="new-group">Gruppe</label>
+              <input class="input" id="new-group" name="group" list="account-groups" maxlength="60" placeholder="fx Administration" />
             </div>
             <div class="field field--span-3">
               <label class="label" for="new-type">Type</label>
@@ -177,7 +201,45 @@
   </div>
 </section>
 
+<section>
+  <div class="section__head">
+    <h2>Kontoplan som fil</h2>
+    <p>
+      Hent kontoplanen som CSV, ret den i et regneark og indlæs den igen. Kolonnerne er
+      <span class="mono">kontonr;navn;type;gruppe;arkiveret</span> med type <span class="mono">salg</span> eller
+      <span class="mono">omkostning</span> og arkiveret <span class="mono">ja</span>/<span class="mono">nej</span>.
+      Kontonummeret er nøglen: kendte numre får nyt navn, gruppe og status, nye numre oprettes. Type kan ikke ændres.
+      Indlæsningen sker samlet – er der én fejl, ændres intet.
+    </p>
+  </div>
+  <div class="panel">
+    {#if form?.imported}
+      <div class="panel__body"><p class="hint">{form.imported}</p></div>
+    {/if}
+    <form method="POST" action="?/importAccounts" enctype="multipart/form-data">
+      <div class="panel__body">
+        <div class="form-grid">
+          <div class="field field--span-6">
+            <label class="label" for="kontoplan-file">Redigeret kontoplan (CSV)</label>
+            <input class="input input--md input--file" id="kontoplan-file" name="file" type="file" accept=".csv,text/csv,text/plain" required />
+          </div>
+          <div class="field field--span-6">
+            <span class="label">Konti, der ikke står i filen</span>
+            <label class="check"><input type="checkbox" name="prune" /> Slet dem (kun konti uden bilag; konti i brug skal stå i filen, evt. som arkiveret)</label>
+          </div>
+        </div>
+      </div>
+      <div class="panel__foot">
+        <a class="btn" href="/api/accounts/csv" download="kontoplan.csv">Hent kontoplan.csv</a>
+        <button type="submit" class="btn btn--primary">Indlæs fil</button>
+      </div>
+    </form>
+  </div>
+</section>
+
 <style>
   fieldset.first { border-top: 0; }
-  .inline { display: flex; align-items: center; gap: var(--space-2); }
+  tr.archived td { color: var(--text-secondary); }
+  tr.archived td.mono { text-decoration: line-through; }
+  .row-actions { display: flex; gap: var(--space-2); }
 </style>

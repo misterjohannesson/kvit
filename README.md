@@ -1,7 +1,7 @@
 # Kvit (Faktura) — developer README
 
 Invoicing and bookkeeping for one Danish business, single user, DKK only: invoices and credit notes with an unbroken
-number series, expenses with receipts, quarterly VAT, a flat chart of accounts with P&L / cashflow / balance views,
+number series, expenses with receipts, quarterly VAT, a grouped chart of accounts (editable as CSV) with P&L / cashflow / balance views,
 a full export for the accountant, and an MCP server so an AI assistant can read the books and post routine entries.
 Everything lives in one data folder (a SQLite file plus the PDFs and receipts).
 

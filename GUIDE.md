@@ -23,10 +23,20 @@ Betalingsfristen (standard 14 dage) bruges til at foreslå forfaldsdato; den kan
 
 ![Indstillinger](review/shots/11-indstillinger.png)
 
-**Kontoplan.** Under Indstillinger ligger en lille, flad kontoplan: salgskonti (1000 Konsulentydelser, 1100 Andet
-salg, 1200 Momsfrit salg) og omkostningskonti (2000 Software og hosting … 2900 Øvrige omkostninger). Hver
-fakturalinje og hver udgift bogføres på én konto. Du kan tilføje og omdøbe konti, men ikke slette en konto, der er i
-brug – ellers ville gamle bilag pege på noget, der ikke findes.
+**Kontoplan.** Under Indstillinger ligger kontoplanen: salgskonti (1000 Konsulentydelser, 1100 Andet salg, 1200
+Momsfrit salg, salg til og uden for EU, viderefakturerede udlæg) og omkostningskonti i grupper – Direkte
+omkostninger, IT og software, Kontor og lokaler, Salg og repræsentation, Rejser og transport, Administration,
+Personale, Afskrivninger og finansielle poster samt 2900 Øvrige omkostninger. Grupperne giver Resultat sine
+mellemsummer og vises efter laveste kontonummer. Hver fakturalinje og hver udgift bogføres på én konto. Du kan
+tilføje konti, omdøbe dem, flytte dem til en anden gruppe og arkivere dem (så de ikke tilbydes til nye bilag, men
+historikken bliver stående). En konto, der er i brug, kan ikke slettes – ellers ville gamle bilag pege på noget, der
+ikke findes – og nummer og type kan ikke ændres.
+
+Kontoplanen kan også rettes i et regneark: *Hent kontoplan.csv* under Indstillinger giver kolonnerne
+`kontonr;navn;type;gruppe;arkiveret`. Ret navne, grupper og status (ja/nej), tilføj rækker med nye numre, og indlæs
+filen igen. Kontonummeret er nøglen, type kan ikke ændres, og indlæsningen sker samlet – er der én fejl, ændres intet.
+Konti, der mangler i filen, beholdes, medmindre du sætter kryds ved *Slet dem*; konti med bilag kan aldrig slettes den
+vej, kun arkiveres.
 
 **Åbningssaldo.** Indtast den saldo, din bankkonto havde ved dagens begyndelse på den dato, du starter bogføringen.
 Alle bevægelser fra og med den dato tælles med, og cashflow og balance regner videre fra tallet. Uden en korrekt

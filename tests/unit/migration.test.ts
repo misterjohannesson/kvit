@@ -53,8 +53,10 @@ describe('migrating a populated database', () => {
       expect(count('expense')).toBe(1);
       expect(count('audit_log')).toBe(1);
       expect(sqlite.pragma('foreign_key_check')).toEqual([]);
-      // Accounts were seeded by migration 0006 and existing rows got the defaults.
-      expect((sqlite.prepare('SELECT count(*) AS n FROM account').get() as { n: number }).n).toBe(11);
+      // Accounts were seeded by migrations 0006 (11, ids 1..11) and 0012 (18 more, grouped); existing rows got the defaults.
+      expect((sqlite.prepare('SELECT count(*) AS n FROM account').get() as { n: number }).n).toBe(29);
+      expect(sqlite.prepare('SELECT id, group_name, archived FROM account WHERE number = 2900').get()).toEqual({ id: 11, group_name: 'Øvrige', archived: 0 });
+      expect((sqlite.prepare("SELECT count(*) AS n FROM account WHERE group_name = ''").get() as { n: number }).n).toBe(0);
       expect(sqlite.prepare('SELECT account_id FROM expense WHERE voucher_number = 1').get()).toEqual({ account_id: 11 });
       expect(sqlite.prepare('SELECT account_id FROM invoice_line WHERE invoice_id = 1').get()).toEqual({ account_id: 1 });
       expect((sqlite.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'category'").get() as { n: number }).n).toBe(0);

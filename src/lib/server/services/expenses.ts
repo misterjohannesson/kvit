@@ -121,8 +121,9 @@ export function createExpense(input: unknown, file?: UploadFile | null): Expense
 export function updateExpense(id: number, input: unknown): Expense {
   const data = parse(input);
   return db.transaction(() => {
-    getExpense(id);
-    requireAccountOfType(data.accountId, 'cost');
+    const before = getExpense(id);
+    // The expense may stay on an account archived after it was booked; a new choice must be active.
+    requireAccountOfType(data.accountId, 'cost', [before.accountId]);
     const row = db
       .update(expense)
       .set({ ...data, amountInclOre: data.amountExVatOre + data.vatOre })

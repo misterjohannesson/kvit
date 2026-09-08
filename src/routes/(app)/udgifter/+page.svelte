@@ -115,7 +115,7 @@
         <div class="field field--span-4 {err('accountId') ? 'field--error' : ''}">
           <label class="label" for="accountId">Konto</label>
           <select class="select" id="accountId" name="accountId" required>
-            {#each data.accounts.filter((a) => a.type === 'cost') as a (a.id)}
+            {#each data.costAccounts as a (a.id)}
               <option value={a.id} selected={v('accountId') === String(a.id)}>{a.number} {a.name}</option>
             {/each}
           </select>

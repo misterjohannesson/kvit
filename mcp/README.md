@@ -127,7 +127,7 @@ Read:
 | `vat_report` | salgsmoms, købsmoms, momstilsvar, deadline; `estimate: true` for future quarters | `quarter?` (`"2026-Q3"`, default current) |
 | `resultat` | P&L per account, accrual basis; budget/variance columns (always null until a budget exists) | `year?`, `quarter?` |
 | `budget_status` | YTD actual vs budget per account (budget_exists: false until a budget exists) | `year?` |
-| `list_accounts` | kontoplan ids for the write tools | `type?` |
+| `list_accounts` | kontoplan ids for the write tools, with each account's group; archived accounts only with `include_archived` | `type?`, `include_archived?` |
 | `list_customers` | customer ids for drafts | – |
 
 Write (append-only or reversible, all audit-logged as `actor = api`):
