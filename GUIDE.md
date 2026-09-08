@@ -23,20 +23,19 @@ Betalingsfristen (standard 14 dage) bruges til at foreslå forfaldsdato; den kan
 
 ![Indstillinger](review/shots/11-indstillinger.png)
 
-**Kontoplan.** Under Indstillinger ligger kontoplanen: salgskonti (1000 Konsulentydelser, 1100 Andet salg, 1200
-Momsfrit salg, salg til og uden for EU, viderefakturerede udlæg) og omkostningskonti i grupper – Direkte
-omkostninger, IT og software, Kontor og lokaler, Salg og repræsentation, Rejser og transport, Administration,
-Personale, Afskrivninger og finansielle poster samt 2900 Øvrige omkostninger. Grupperne giver Resultat sine
-mellemsummer og vises efter laveste kontonummer. Hver fakturalinje og hver udgift bogføres på én konto. Du kan
-tilføje konti, omdøbe dem, flytte dem til en anden gruppe og arkivere dem (så de ikke tilbydes til nye bilag, men
-historikken bliver stående). En konto, der er i brug, kan ikke slettes – ellers ville gamle bilag pege på noget, der
-ikke findes – og nummer og type kan ikke ændres.
+**Kontoplan.** Under Indstillinger ligger en lille, flad kontoplan: salgskonti (1000 Konsulentydelser, 1100 Andet
+salg, 1200 Momsfrit salg) og omkostningskonti (2000 Software og hosting … 2900 Øvrige omkostninger). Hver
+fakturalinje og hver udgift bogføres på én konto. Du kan tilføje konti, omdøbe dem, give dem en gruppe og arkivere
+dem (så de ikke tilbydes til nye bilag, men historikken bliver stående). En konto, der er i brug, kan ikke slettes –
+ellers ville gamle bilag pege på noget, der ikke findes – og nummer og type kan ikke ændres. Sætter du grupper på
+konti, får Resultat en mellemsum pr. gruppe, i rækkefølge efter laveste kontonummer; uden grupper ser det ud som før.
 
 Kontoplanen kan også rettes i et regneark: *Hent kontoplan.csv* under Indstillinger giver kolonnerne
 `kontonr;navn;type;gruppe;arkiveret`. Ret navne, grupper og status (ja/nej), tilføj rækker med nye numre, og indlæs
 filen igen. Kontonummeret er nøglen, type kan ikke ændres, og indlæsningen sker samlet – er der én fejl, ændres intet.
 Konti, der mangler i filen, beholdes, medmindre du sætter kryds ved *Slet dem*; konti med bilag kan aldrig slettes den
-vej, kun arkiveres.
+vej, kun arkiveres. Vil du have mere end de elleve konti, ligger der et forslag til en udvidet, grupperet kontoplan
+(direkte omkostninger, personale, finansielle poster) som download samme sted – hent, ret og indlæs.
 
 **Åbningssaldo.** Indtast den saldo, din bankkonto havde ved dagens begyndelse på den dato, du starter bogføringen.
 Alle bevægelser fra og med den dato tælles med, og cashflow og balance regner videre fra tallet. Uden en korrekt
@@ -216,11 +215,26 @@ sikkerhedsmodellen.
 
 ## 8. Eksport og revisor
 
-**Eksport-zippen.** Under **Eksport** henter du én zip med `invoices.csv`, `invoice_lines.csv`, `expenses.csv`,
-`cash_movements.csv`, `accounts.csv` og `audit_log.csv` (UTF-8, semikolon, dansk decimalkomma) plus alle PDF'er og
-bilag. Det er pakken til revisor: »her er alt«.
+**Eksport-zippen.** Under **Eksport** henter du én zip med `invoices.csv`, `invoice_lines.csv`,
+`invoice_attachments.csv`, `customers.csv`, `expenses.csv`, `cash_movements.csv`, `accounts.csv`, `settings.csv`,
+`audit_log.csv` og `posteringer.csv` (UTF-8, semikolon, dansk decimalkomma) plus alle PDF'er og bilag. Det er pakken
+til revisor: »her er alt«.
+
+**Posteringer til revisors system.** `posteringer.csv` er en afledt kassekladde: hver faktura, betaling, udgift og
+bankbevægelse står som debet og kredit mod kontoplanen og de balancekonti, du kan navngive under **Indstillinger**
+(bank, debitorer, kreditorer, salgs- og købsmoms, momsafregning, skat, mellemregning med ejer, afstemning og
+egenkapital som modpost til åbningssaldoen). Ret numrene, så de passer til revisors kontoplan, og revisor kan læse
+kladden direkte ind i stedet for at taste. Appen fører stadig ingen balance selv – filen beregnes ved eksporten.
 
 ![Eksport](review/shots/12-eksport.png)
+
+**Gendan fra eksport.** Samme zip kan læses ind igen under **Eksport → Gendan fra eksport**, fx når revisor har rettet
+noget i CSV-filerne (en udgift på en anden konto, et kundenavn) eller når du vil tilbage til en ældre kopi. Programmet
+kontrollerer først filen – beløb skal passe til linjerne, fakturanumre må ikke gentages, konti og kunder skal findes –
+og viser en opsummering med antal i zippen mod antal i appen. Først når du sætter kryds og bekræfter, erstattes alle
+data, og inden da kopieres de nuværende data til `data/backups/data.bak01/` (næste gang `data.bak02/` osv.) med
+databasen, alle filer og den indlæste zip. Udstedte fakturaer kan ikke ændres i appen, men rettes de i CSV'en, skal
+beløbene stadig stemme med linjerne, ellers afvises filen. Gendannelse findes bevidst ikke som MCP-værktøj.
 
 **Fem års opbevaring.** Bogføringsloven kræver, at regnskabsmaterialet gemmes i fem år, og at der findes en
 sikkerhedskopi hos en tredjepart (et andet sted end på din egen maskine). Se hosting-vejledningen
@@ -234,6 +248,6 @@ sikkerhedskopi hos en tredjepart (et andet sted end på din egen maskine). Se ho
 | `data/files/invoices/<nummer>.pdf` | De udstedte fakturaer og kreditnotaer – de juridiske dokumenter |
 | `data/files/invoices/bilag/` | PDF-bilag vedhæftet fakturaer |
 | `data/files/expenses/<bilagsnr>.<type>` | Uploadede udgiftsbilag |
-| `data/backups/` | Automatiske kopier af databasen fra før hver opdatering |
+| `data/backups/` | Automatiske kopier af databasen fra før hver opdatering, og `data.bakNN/` med alt fra før hver gendannelse |
 
 Kopiér mappen, og du har hele bogholderiet.

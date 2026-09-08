@@ -1,6 +1,7 @@
 /**
- * Kontoplan round trip: download, edit, upload (form action and API), groups, archiving. Runs after the finance
- * tests (alphabetical order) and puts the kontoplan back the way it found it, so later files see the seed.
+ * Kontoplan round trip: download, edit, upload (form action and API), the optional larger template, groups on the
+ * P&L, archiving. Runs after the finance tests (alphabetical order) and puts the kontoplan back the way it found it,
+ * so later files see the seed.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Client, loggedIn } from './client';
@@ -9,8 +10,8 @@ type Account = { id: number; number: number; name: string; type: 'revenue' | 'co
 
 let c: Client;
 
-async function download(): Promise<{ status: number; text: string; disposition: string | null; type: string | null }> {
-  const r = await c.raw('GET', '/api/accounts/csv');
+async function download(query = ''): Promise<{ status: number; text: string; disposition: string | null; type: string | null }> {
+  const r = await c.raw('GET', '/api/accounts/csv' + query);
   return { status: r.status, text: (await r.text()).replace(/^﻿/, ''), disposition: r.headers.get('content-disposition'), type: r.headers.get('content-type') };
 }
 
@@ -42,7 +43,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Restore: the seed's accounts as they were, and drop what this file created.
+  // Restore: the seed's eleven accounts as they were, and drop what this file created.
   await upload(original, { prune: true });
 });
 
@@ -54,15 +55,43 @@ describe('kontoplan.csv download', () => {
     expect(d.disposition).toContain('kontoplan.csv');
     const lines = d.text.trim().split('\r\n');
     expect(lines[0]).toBe('kontonr;navn;type;gruppe;arkiveret');
-    expect(lines.length - 1).toBe((await accounts()).length);
+    expect(lines.length - 1).toBe(11);
+    expect(lines).toContain('1000;Konsulentydelser;salg;;nej');
+    expect(lines).toContain('2900;Øvrige omkostninger;omkostning;;nej');
+  });
+
+  it('offers the larger grouped plan as a template that keeps the owner\'s eleven accounts', async () => {
+    const d = await download('?template=udvidet');
+    expect(d.disposition).toContain('kontoplan-udvidet.csv');
+    const lines = d.text.trim().split('\r\n');
+    expect(lines.length - 1).toBe(29);
     expect(lines).toContain('1000;Konsulentydelser;salg;Omsætning;nej');
     expect(lines).toContain('7500;Afskrivninger;omkostning;Afskrivninger og finansielle poster;nej');
+    // The template is not applied by downloading it.
+    expect((await accounts()).length).toBe(11);
   });
 });
 
 describe('kontoplan.csv upload', () => {
+  it('applies the template: creates, groups, and the P&L gets group subtotals ordered by lowest number', async () => {
+    const template = (await download('?template=udvidet')).text;
+    const r = await upload(template);
+    expect(r.status).toBe(200);
+    expect(JSON.parse(r.body)).toMatchObject({ created: 18, updated: 11, deleted: 0, accounts: 29 });
+    expect(await byNumber(4000)).toMatchObject({ name: 'Løn', group: 'Personale', type: 'cost', archived: false });
+    expect(await byNumber(2900)).toMatchObject({ id: 11, group: 'Øvrige' });
+    type Groups = { costGroups: { group: string; totalOre: number; accounts: unknown[] }[]; costsOre: number; costs: unknown[] };
+    const res = await c.json<Groups>('GET', '/api/finance?view=resultat&year=2026');
+    expect(res.data.costGroups.map((g) => g.group)).toEqual([
+      'IT og software', 'Kontor og lokaler', 'Salg og repræsentation', 'Rejser og transport', 'Administration', 'Øvrige',
+      'Direkte omkostninger', 'Personale', 'Afskrivninger og finansielle poster'
+    ]);
+    expect(res.data.costGroups.reduce((s, g) => s + g.totalOre, 0)).toBe(res.data.costsOre);
+    expect(res.data.costGroups.reduce((s, g) => s + g.accounts.length, 0)).toBe(res.data.costs.length);
+  });
+
   it('renames, regroups, archives and creates in one atomic pass through the form action', async () => {
-    const edited = original
+    const edited = (await download()).text
       .replace('2550;Faglitteratur og abonnementer;omkostning;Administration;nej', '2550;Faglitteratur;omkostning;Personale;ja')
       .concat('2700;Telefoni;omkostning;Kontor og lokaler;nej\r\n');
     const r = await upload(edited, { viaForm: true });
@@ -71,7 +100,7 @@ describe('kontoplan.csv upload', () => {
     expect(r.body).toContain('1 ændret');
     expect(await byNumber(2550)).toMatchObject({ name: 'Faglitteratur', group: 'Personale', archived: true });
     expect(await byNumber(2700)).toMatchObject({ name: 'Telefoni', group: 'Kontor og lokaler', type: 'cost', archived: false });
-    // Archived accounts are hidden from the active list and from the MCP-facing default, but still exported.
+    // Archived accounts are hidden from the active list but still exported.
     const active = (await c.json<Account[]>('GET', '/api/accounts?active=1&type=cost')).data;
     expect(active.some((a) => a.number === 2550)).toBe(false);
     expect((await download()).text).toContain('2550;Faglitteratur;omkostning;Personale;ja');
@@ -114,11 +143,11 @@ describe('kontoplan.csv upload', () => {
   it('rejects type changes, duplicates, bad rows and a missing header without touching anything', async () => {
     const before = (await download()).text;
     const cases: [string, RegExp][] = [
-      [original.replace('1200;Momsfrit salg;salg;', '1200;Momsfrit salg;omkostning;'), /type kan ikke ændres/],
-      [original + '1000;Dobbelt;salg;;nej\r\n', /står også på linje/],
-      [original + '999;For lavt;salg;;nej\r\n', /Linje \d+: Kontonummer/],
-      [original + '8000;;salg;;nej\r\n', /navn er påkrævet/],
-      [original + '8100;Måske;salg;;måske\r\n', /Arkiveret skal være ja eller nej/],
+      [before.replace('1200;Momsfrit salg;salg;', '1200;Momsfrit salg;omkostning;'), /type kan ikke ændres/],
+      [before + '1000;Dobbelt;salg;;nej\r\n', /står også på linje/],
+      [before + '999;For lavt;salg;;nej\r\n', /Linje \d+: Kontonummer/],
+      [before + '8000;;salg;;nej\r\n', /navn er påkrævet/],
+      [before + '8100;Måske;salg;;måske\r\n', /Arkiveret skal være ja eller nej/],
       ['navn;type\r\nX;salg\r\n', /mangler kolonnen .{0,2}kontonr/],
       ['', /tom|Send CSV/]
     ];
@@ -131,7 +160,8 @@ describe('kontoplan.csv upload', () => {
   });
 
   it('keeps the last active revenue account and refuses a file that archives them all', async () => {
-    const allRevenueArchived = original.replace(/;salg;([^;]*);nej/g, ';salg;$1;ja');
+    const current = (await download()).text;
+    const allRevenueArchived = current.replace(/;salg;([^;]*);nej/g, ';salg;$1;ja');
     const r = await upload(allRevenueArchived);
     expect(r.status).toBe(409);
     expect(r.body).toContain('mindst én aktiv salgskonto');
@@ -146,20 +176,21 @@ describe('kontoplan.csv upload', () => {
   });
 
   it('prune deletes unused accounts missing from the file and refuses when a used one is missing', async () => {
-    const withoutUsed = original.split('\r\n').filter((l) => !l.startsWith('2900;')).join('\r\n');
+    const current = (await download()).text;
+    const withoutUsed = current.split('\r\n').filter((l) => !l.startsWith('2900;')).join('\r\n');
     const refused = await upload(withoutUsed, { prune: true });
     expect(refused.status).toBe(409);
     expect(refused.body).toContain('2900');
     expect(refused.body).toContain('i brug');
     expect(await byNumber(2900)).toBeDefined();
 
-    const withoutUnused = original.split('\r\n').filter((l) => !l.startsWith('7500;')).join('\r\n');
+    const withoutUnused = current.split('\r\n').filter((l) => !l.startsWith('7500;')).join('\r\n');
     const ok = await upload(withoutUnused, { prune: true });
     expect(ok.status).toBe(200);
-    expect(JSON.parse(ok.body)).toMatchObject({ deleted: expect.any(Number), message: expect.stringContaining('slettet') });
+    expect(JSON.parse(ok.body)).toMatchObject({ deleted: 1, message: expect.stringContaining('slettet') });
     expect(await byNumber(7500)).toBeUndefined();
     // Without prune the same file leaves accounts alone and says so.
-    expect((await upload(original)).status).toBe(200);
+    expect((await upload(current)).status).toBe(200);
     expect(await byNumber(7500)).toBeDefined();
     const kept = JSON.parse((await upload(withoutUnused)).body) as { kept: number; message: string };
     expect(kept.kept).toBe(1);
@@ -172,5 +203,13 @@ describe('kontoplan.csv upload', () => {
     expect(r.status).toBe(200);
     expect(await byNumber(8200)).toMatchObject({ name: 'Kurser, eksterne', type: 'cost', group: 'Personale', archived: true });
     expect((await c.json('DELETE', `/api/accounts/${(await byNumber(8200)).id}`)).status).toBe(200);
+  });
+
+  it('going back to the eleven accounts with prune removes the template accounts and clears the groups', async () => {
+    const r = await upload(original, { prune: true });
+    expect(r.status).toBe(200);
+    const acc = await accounts();
+    expect(acc.length).toBe(11);
+    expect(acc.every((a) => a.group === '' && !a.archived)).toBe(true);
   });
 });

@@ -8,8 +8,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { audit } from '../audit';
 import { badRequest, conflict } from '../errors';
-import { parseCsv } from '../../csv';
-import { toCsv } from './export';
+import { parseCsv, toCsv } from '../../csv';
 import {
   accountNumberSchema,
   accountTypeLabel,
@@ -34,6 +33,56 @@ export function kontoplanCsv(): string {
   return toCsv(
     [...KONTOPLAN_HEADER],
     listAccounts().map((a) => [a.number, a.name, accountTypeLabel(a.type), a.group, a.archived ? 'ja' : 'nej'])
+  );
+}
+
+/**
+ * An optional, larger grouped kontoplan for owners who want more than the eleven default accounts. Offered as a
+ * download from Indstillinger and applied by uploading it; it keeps the eleven defaults (same numbers) and adds
+ * accounts for a one-person business with staff costs, direct costs and finance items.
+ */
+export const KONTOPLAN_TEMPLATE_FILE_NAME = 'kontoplan-udvidet.csv';
+const TEMPLATE_ROWS: [number, string, AccountType, string][] = [
+  [1000, 'Konsulentydelser', 'revenue', 'Omsætning'],
+  [1100, 'Andet salg', 'revenue', 'Omsætning'],
+  [1200, 'Momsfrit salg', 'revenue', 'Omsætning'],
+  [1300, 'Salg til EU-kunder (omvendt betalingspligt)', 'revenue', 'Omsætning'],
+  [1400, 'Salg uden for EU', 'revenue', 'Omsætning'],
+  [1500, 'Viderefakturerede udlæg', 'revenue', 'Omsætning'],
+  [2000, 'Software og hosting', 'cost', 'IT og software'],
+  [2050, 'Hardware og IT-udstyr', 'cost', 'IT og software'],
+  [2100, 'Kontorhold', 'cost', 'Kontor og lokaler'],
+  [2110, 'Husleje og kontorplads', 'cost', 'Kontor og lokaler'],
+  [2120, 'Telefon og internet', 'cost', 'Kontor og lokaler'],
+  [2130, 'Inventar og småanskaffelser', 'cost', 'Kontor og lokaler'],
+  [2200, 'Repræsentation', 'cost', 'Salg og repræsentation'],
+  [2300, 'Rejser og transport', 'cost', 'Rejser og transport'],
+  [2310, 'Kørselsgodtgørelse', 'cost', 'Rejser og transport'],
+  [2400, 'Forsikring og kontingenter', 'cost', 'Administration'],
+  [2500, 'Revisor og rådgivning', 'cost', 'Administration'],
+  [2550, 'Faglitteratur og abonnementer', 'cost', 'Administration'],
+  [2600, 'Markedsføring', 'cost', 'Salg og repræsentation'],
+  [2900, 'Øvrige omkostninger', 'cost', 'Øvrige'],
+  [3000, 'Underleverandører og freelancere', 'cost', 'Direkte omkostninger'],
+  [3100, 'Varekøb og materialer', 'cost', 'Direkte omkostninger'],
+  [3200, 'Udlæg for kunder', 'cost', 'Direkte omkostninger'],
+  [4000, 'Løn', 'cost', 'Personale'],
+  [4100, 'Pension og sociale bidrag', 'cost', 'Personale'],
+  [4200, 'Kurser og uddannelse', 'cost', 'Personale'],
+  [7000, 'Renteudgifter', 'cost', 'Afskrivninger og finansielle poster'],
+  [7100, 'Gebyrer (bank og betaling)', 'cost', 'Afskrivninger og finansielle poster'],
+  [7500, 'Afskrivninger', 'cost', 'Afskrivninger og finansielle poster']
+];
+
+/** The template, with the owner's current names kept for numbers that already exist so a download never renames anything. */
+export function kontoplanTemplateCsv(): string {
+  const current = new Map(listAccounts().map((a) => [a.number, a]));
+  return toCsv(
+    [...KONTOPLAN_HEADER],
+    TEMPLATE_ROWS.map(([number, name, type, group]) => {
+      const own = current.get(number);
+      return [number, own?.name ?? name, accountTypeLabel(own?.type ?? type), own?.group || group, own?.archived ? 'ja' : 'nej'];
+    })
   );
 }
 

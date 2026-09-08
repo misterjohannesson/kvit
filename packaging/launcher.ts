@@ -280,7 +280,7 @@ async function main(): Promise<void> {
     API_TOKEN: config.apiToken,
     PORT: String(config.port),
     HOST: config.host,
-    BODY_SIZE_LIMIT: process.env.BODY_SIZE_LIMIT ?? '25M',
+    BODY_SIZE_LIMIT: process.env.BODY_SIZE_LIMIT ?? '512M',
     PLAYWRIGHT_BROWSERS_PATH: browsersPath
   };
   const mcpEnv = {

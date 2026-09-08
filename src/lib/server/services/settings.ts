@@ -4,7 +4,7 @@ import { db } from '../db';
 import { setting } from '../schema';
 import { audit } from '../audit';
 import { badRequest } from '../errors';
-import { DEFAULT_SETTINGS, SETTING_KEYS } from './settings-defaults';
+import { BALANCE_ACCOUNTS, balanceNameKey, balanceNumberKey, DEFAULT_SETTINGS, SETTING_KEYS } from './settings-defaults';
 import { withIssueLock } from './issue-lock';
 import { isoDate } from '../zod-shared';
 
@@ -56,7 +56,21 @@ const settingsSchema = z.object({
   vat_registered: z
     .union([z.literal('1'), z.literal('0'), z.literal('on'), z.boolean()])
     .transform((v) => (v === true || v === '1' || v === 'on' ? '1' : '0'))
-    .optional()
+    .optional(),
+  // Balance account numbers and names for the derived journal in the export.
+  ...Object.fromEntries(
+    BALANCE_ACCOUNTS.flatMap((b) => [
+      [
+        balanceNumberKey(b.key),
+        z
+          .union([z.number(), z.string()])
+          .transform((v) => String(v).trim())
+          .pipe(z.string().regex(/^\d{4}$/, `${b.label}: kontonummer skal være fire cifre`))
+          .optional()
+      ],
+      [balanceNameKey(b.key), z.string().trim().min(1, `${b.label}: navn er påkrævet`).max(60).optional()]
+    ])
+  )
 });
 
 /**

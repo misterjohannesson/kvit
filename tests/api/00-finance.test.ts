@@ -232,31 +232,20 @@ describe('reconciliation and forms', () => {
 });
 
 describe('cash movements and accounts API', () => {
-  it('lists the four seeded movements and the 29 seeded accounts with their groups', async () => {
+  it('lists the four seeded movements and the eleven seeded accounts, ungrouped and active', async () => {
     const mv = await c.json<{ kind: string; date: string }[]>('GET', '/api/cash-movements');
     // Earlier tests in this file book further movements (all dated after the seed's last one).
     const seeded = mv.data.filter((x) => x.date <= '2026-09-01');
     expect(seeded.map((x) => x.kind).sort()).toEqual(['other', 'owner', 'tax', 'vat_payment']);
     const acc = await c.json<{ id: number; number: number; type: string; group: string; archived: boolean }[]>('GET', '/api/accounts');
-    expect(acc.data.map((a) => a.number)).toEqual([
-      1000, 1100, 1200, 1300, 1400, 1500,
-      2000, 2050, 2100, 2110, 2120, 2130, 2200, 2300, 2310, 2400, 2500, 2550, 2600, 2900,
-      3000, 3100, 3200, 4000, 4100, 4200, 7000, 7100, 7500
-    ]);
-    expect(acc.data.filter((a) => a.type === 'revenue').length).toBe(6);
-    expect(acc.data.every((a) => a.archived === false)).toBe(true);
-    // The 0006 rows keep their ids (invoice_line and expense defaults point at 1 and 11) and got a group from 0012.
-    expect(acc.data.find((a) => a.number === 1000)).toMatchObject({ id: 1, group: 'Omsætning' });
-    expect(acc.data.find((a) => a.number === 2900)).toMatchObject({ id: 11, group: 'Øvrige' });
-    expect(acc.data.find((a) => a.number === 4000)).toMatchObject({ group: 'Personale' });
-    // Groups on the P&L: ordered by lowest account number, subtotals add up to the type total.
+    expect(acc.data.map((a) => a.number)).toEqual([1000, 1100, 1200, 2000, 2100, 2200, 2300, 2400, 2500, 2600, 2900]);
+    expect(acc.data.filter((a) => a.type === 'revenue').length).toBe(3);
+    expect(acc.data.every((a) => a.archived === false && a.group === '')).toBe(true);
+    // Without groups the P&L has one unnamed group per side whose total is the type total.
     const r = await c.json<Resultat & { costGroups: { group: string; totalOre: number; accounts: unknown[] }[] }>('GET', '/api/finance?view=resultat&year=2026');
-    expect(r.data.costGroups.map((g) => g.group)).toEqual([
-      'IT og software', 'Kontor og lokaler', 'Salg og repræsentation', 'Rejser og transport', 'Administration', 'Øvrige',
-      'Direkte omkostninger', 'Personale', 'Afskrivninger og finansielle poster'
-    ]);
-    expect(r.data.costGroups.reduce((s, g) => s + g.totalOre, 0)).toBe(r.data.costsOre);
-    expect(r.data.costGroups.reduce((s, g) => s + g.accounts.length, 0)).toBe(r.data.costs.length);
+    expect(r.data.costGroups.map((g) => g.group)).toEqual(['']);
+    expect(r.data.costGroups[0].totalOre).toBe(r.data.costsOre);
+    expect(r.data.costGroups[0].accounts.length).toBe(r.data.costs.length);
   });
 
   it('rejects a cost account on an invoice line and a revenue account on an expense', async () => {

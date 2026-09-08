@@ -1,17 +1,30 @@
 import type { RequestHandler } from './$types';
 import { api } from '$lib/server/api';
 import { HttpError } from '$lib/server/errors';
-import { describeImport, importKontoplan, kontoplanCsv, KONTOPLAN_FILE_NAME, KONTOPLAN_MAX_BYTES } from '$lib/server/services/accounts-csv';
+import {
+  describeImport,
+  importKontoplan,
+  kontoplanCsv,
+  kontoplanTemplateCsv,
+  KONTOPLAN_FILE_NAME,
+  KONTOPLAN_MAX_BYTES,
+  KONTOPLAN_TEMPLATE_FILE_NAME
+} from '$lib/server/services/accounts-csv';
 
-/** The kontoplan as `kontonr;navn;type;gruppe;arkiveret` for editing in a spreadsheet. */
-export const GET: RequestHandler = () =>
-  new Response(kontoplanCsv(), {
+/**
+ * The kontoplan as `kontonr;navn;type;gruppe;arkiveret` for editing in a spreadsheet.
+ * `?template=udvidet` returns the optional larger grouped plan instead (upload it to adopt it).
+ */
+export const GET: RequestHandler = ({ url }) => {
+  const template = url.searchParams.get('template') === 'udvidet';
+  return new Response(template ? kontoplanTemplateCsv() : kontoplanCsv(), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${KONTOPLAN_FILE_NAME}"`,
+      'Content-Disposition': `attachment; filename="${template ? KONTOPLAN_TEMPLATE_FILE_NAME : KONTOPLAN_FILE_NAME}"`,
       'Cache-Control': 'no-store'
     }
   });
+};
 
 /**
  * Upload the edited file: the body is the CSV text (text/csv) or a multipart form with a `file` field.

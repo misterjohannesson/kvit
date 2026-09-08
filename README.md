@@ -1,8 +1,9 @@
 # Kvit (Faktura) — developer README
 
 Invoicing and bookkeeping for one Danish business, single user, DKK only: invoices and credit notes with an unbroken
-number series, expenses with receipts, quarterly VAT, a grouped chart of accounts (editable as CSV) with P&L / cashflow / balance views,
-a full export for the accountant, and an MCP server so an AI assistant can read the books and post routine entries.
+number series, expenses with receipts, quarterly VAT, a small chart of accounts (groups and archiving optional, editable
+as CSV) with P&L / cashflow / balance views, a full export for the accountant with a derived journal (posteringer.csv)
+that also restores the data set, and an MCP server so an AI assistant can read the books and post routine entries.
 Everything lives in one data folder (a SQLite file plus the PDFs and receipts).
 
 This file is for developers: how to run, build, test and release. Other documents:
@@ -53,7 +54,7 @@ Environment variables:
 | `DATA_DIR` | database, PDFs, receipts, `backups/` | `/data` |
 | `PROJECT_ROOT` | where `tokens.css`, `style.md`, `example.html` and `drizzle/` live | working directory |
 | `PORT`, `HOST` | adapter-node listen address | `3000`, `0.0.0.0` |
-| `BODY_SIZE_LIMIT` | request body cap (uploads are refused above 20 MB regardless) | `25M` in Docker |
+| `BODY_SIZE_LIMIT` | request body cap; bilag uploads are refused above 20 MB regardless, the cap exists for restoring an export zip | `512M` in Docker and the binaries |
 | `ADDRESS_HEADER`, `XFF_DEPTH` | trusted proxy header for the login throttle (adapter-node) | unset |
 | `TZ` | log timestamps only; business dates are always computed in Europe/Copenhagen | – |
 
@@ -100,7 +101,8 @@ MCP client over an in-memory transport; `tests/install/` needs Docker and is run
 ## Project layout
 
 ```
-src/lib/server/services/   business rules: invoices (numbering, issue, credit), expenses, finance, cash, accounts, attachments
+src/lib/server/services/   business rules: invoices (numbering, issue, credit), expenses, finance, cash, accounts (+ CSV), attachments,
+                           journal (derived posteringer.csv), export, restore (export zip -> data set, with data.bakNN copies)
 src/lib/server/db.ts       database bootstrap, migrations, REQUIRED_TRIGGERS assertion, pre-migration copies
 src/lib/server/audit.ts    append-only audit log with the request actor (ui | api)
 src/lib/server/pdf.ts, invoice-template.ts   Playwright rendering, the invoice HTML template

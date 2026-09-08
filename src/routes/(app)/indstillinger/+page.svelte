@@ -85,6 +85,29 @@
       </fieldset>
 
       <fieldset class="field--span-12">
+        <legend>Balancekonti til revisor-eksporten</legend>
+        <div class="form-grid">
+          <div class="field field--span-12">
+            <span class="hint">
+              Appen fører ingen balance selv. Numrene her bruges kun i eksportens <span class="mono">posteringer.csv</span>, hvor hver faktura,
+              betaling, udgift og bankbevægelse står som debet og kredit mod kontoplanen og disse konti, så revisors system kan læse
+              kladden direkte. Ret numrene, så de passer til revisors kontoplan.
+            </span>
+          </div>
+          {#each data.balanceAccounts as b (b.key)}
+            <div class="field field--span-2">
+              <label class="label" for={b.numberKey}>{b.label}</label>
+              <input class="input input--num input--short mono" id={b.numberKey} name={b.numberKey} value={s[b.numberKey]} inputmode="numeric" pattern="[0-9]{'{'}4{'}'}" required />
+            </div>
+            <div class="field field--span-4">
+              <label class="label" for={b.nameKey}>Navn</label>
+              <input class="input" id={b.nameKey} name={b.nameKey} value={s[b.nameKey]} maxlength="60" required />
+            </div>
+          {/each}
+        </div>
+      </fieldset>
+
+      <fieldset class="field--span-12">
         <legend>Nummerserie</legend>
         <div class="form-grid">
           <div class="field field--span-3">
@@ -209,7 +232,9 @@
       <span class="mono">kontonr;navn;type;gruppe;arkiveret</span> med type <span class="mono">salg</span> eller
       <span class="mono">omkostning</span> og arkiveret <span class="mono">ja</span>/<span class="mono">nej</span>.
       Kontonummeret er nøglen: kendte numre får nyt navn, gruppe og status, nye numre oprettes. Type kan ikke ændres.
-      Indlæsningen sker samlet – er der én fejl, ændres intet.
+      Indlæsningen sker samlet – er der én fejl, ændres intet. Vil du have en større kontoplan med grupper
+      (direkte omkostninger, personale, finansielle poster), så hent forslaget og indlæs det; det beholder dine
+      elleve konti og deres navne.
     </p>
   </div>
   <div class="panel">
@@ -230,6 +255,7 @@
         </div>
       </div>
       <div class="panel__foot">
+        <a class="btn btn--ghost" href="/api/accounts/csv?template=udvidet" download="kontoplan-udvidet.csv">Hent forslag til udvidet kontoplan</a>
         <a class="btn" href="/api/accounts/csv" download="kontoplan.csv">Hent kontoplan.csv</a>
         <button type="submit" class="btn btn--primary">Indlæs fil</button>
       </div>

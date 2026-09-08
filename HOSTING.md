@@ -238,6 +238,12 @@ Keep the remote copies for at least five years (the rclone rotation above only p
 
 ### Test a restore, regularly
 
+**Restoring from an export zip.** The export under *Eksport* is also a restore format: upload it on the same screen
+(or `POST /api/restore`, then `POST /api/restore/{id}` with `{"confirm": true}`), check the summary and confirm. Before
+anything is replaced the app copies the current database and files to `data/backups/data.bak01/` (then `02`, …)
+together with the zip that was applied, so a restore can itself be undone by restoring the copy. `BODY_SIZE_LIMIT`
+(512M in the image and the binaries) caps the upload.
+
 A backup you have never restored is a hope, not a backup. Twice a year:
 
 1. On another machine (or in a temporary folder), `mkdir restore-test && tar xzf faktura-backup-YYYY-MM-DD.tar.gz -C restore-test`.

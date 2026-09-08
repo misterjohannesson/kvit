@@ -155,11 +155,11 @@ describe('read tools on seed data', () => {
 
   it('list_accounts and list_customers resolve ids', async () => {
     const a = await mcp.call<{ count: number; accounts: { number: number; type: string }[] }>('list_accounts');
-    expect(a.data.count).toBe(29);
-    expect(a.data.accounts[0]).toMatchObject({ number: 1000, group: 'Omsætning', archived: false });
+    expect(a.data.count).toBe(11);
+    expect(a.data.accounts[0]).toMatchObject({ number: 1000, group: '', archived: false });
     const cost = await mcp.call<{ accounts: { type: string }[] }>('list_accounts', { type: 'cost' });
     expect(cost.data.accounts.every((x) => x.type === 'cost')).toBe(true);
-    expect(cost.data.accounts.length).toBe(23);
+    expect(cost.data.accounts.length).toBe(8);
     const c = await mcp.call<{ count: number; customers: { name: string; payment_terms_days: number | null }[] }>('list_customers');
     expect(c.data.count).toBe(3);
     expect(c.data.customers.find((x) => x.name.startsWith('Nordhavn'))?.payment_terms_days).toBe(30);

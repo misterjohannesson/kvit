@@ -7,7 +7,7 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     DATA_DIR=/data \
     PROJECT_ROOT=/app \
-    BODY_SIZE_LIMIT=25M
+    BODY_SIZE_LIMIT=512M
 
 WORKDIR /app
 

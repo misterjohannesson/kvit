@@ -70,3 +70,31 @@ export function parseCsv(text: string): ParsedCsv {
   if (cell !== '' || cells.length) endRow();
   return { delimiter, rows };
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Writing: the export's dialect (UTF-8 with BOM, `;`, CRLF, Danish decimal comma, quotes only where needed).
+
+const BOM = String.fromCharCode(0xfeff);
+
+export function csvCell(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  if (/[";\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/** Integer øre -> "1234,56" (Danish decimal comma, no thousands separator). */
+export function oreToCsv(ore: number): string {
+  const neg = ore < 0;
+  const abs = Math.abs(ore);
+  return `${neg ? '-' : ''}${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
+}
+
+export function decimalToCsv(n: number): string {
+  return String(n).replace('.', ',');
+}
+
+export function toCsv(header: string[], rows: unknown[][]): string {
+  const lines = [header.map(csvCell).join(';'), ...rows.map((r) => r.map(csvCell).join(';'))];
+  return BOM + lines.join('\r\n') + '\r\n';
+}

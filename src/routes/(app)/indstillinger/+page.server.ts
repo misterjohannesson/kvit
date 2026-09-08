@@ -6,6 +6,7 @@ import { describeImport, importKontoplan, KONTOPLAN_MAX_BYTES } from '$lib/serve
 import { errorMessage } from '$lib/server/api';
 import { parseDateInput, parseKrToOre } from '$lib/format';
 import { badRequest } from '$lib/server/errors';
+import { BALANCE_ACCOUNTS, balanceNameKey, balanceNumberKey } from '$lib/server/services/settings-defaults';
 
 function accountIdFrom(form: FormData): number {
   const n = Number(String(form.get('id') ?? ''));
@@ -29,7 +30,8 @@ export const load: PageServerLoad = () => {
   return {
     settings: getSettings(),
     accounts,
-    groups: [...new Set(accounts.map((a) => a.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'da'))
+    groups: [...new Set(accounts.map((a) => a.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'da')),
+    balanceAccounts: BALANCE_ACCOUNTS.map((b) => ({ key: b.key, label: b.label, numberKey: balanceNumberKey(b.key), nameKey: balanceNameKey(b.key) }))
   };
 };
 
@@ -39,9 +41,11 @@ export const actions: Actions = {
     const input: Record<string, string> = {};
     for (const key of [
       'company_name', 'company_address', 'company_zip', 'company_city', 'company_cvr',
-      'bank_reg', 'bank_account', 'payment_terms_days', 'next_invoice_number'
+      'bank_reg', 'bank_account', 'payment_terms_days', 'next_invoice_number',
+      ...BALANCE_ACCOUNTS.flatMap((b) => [balanceNumberKey(b.key), balanceNameKey(b.key)])
     ]) {
-      input[key] = String(form.get(key) ?? '').trim();
+      const v = form.get(key);
+      if (typeof v === 'string') input[key] = v.trim();
     }
     input.vat_registered = form.get('vat_registered') === 'on' ? '1' : '0';
     try {

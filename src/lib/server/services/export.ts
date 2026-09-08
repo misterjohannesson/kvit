@@ -3,34 +3,14 @@ import fs from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { asc } from 'drizzle-orm';
 import { db } from '../db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, setting } from '../schema';
 import { FILES_DIR } from '../env';
 import { audit } from '../audit';
+import { decimalToCsv, oreToCsv, toCsv } from '../../csv';
+import { SETTING_KEYS } from './settings-defaults';
+import { journalCsv } from './journal';
 
-const BOM = String.fromCharCode(0xfeff);
-
-function csvCell(v: unknown): string {
-  if (v === null || v === undefined) return '';
-  const s = String(v);
-  if (/[";\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-/** Integer øre -> "1234,56" (Danish decimal comma, no thousands separator). */
-export function oreToCsv(ore: number): string {
-  const neg = ore < 0;
-  const abs = Math.abs(ore);
-  return `${neg ? '-' : ''}${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
-}
-
-function decimalToCsv(n: number): string {
-  return String(n).replace('.', ',');
-}
-
-export function toCsv(header: string[], rows: unknown[][]): string {
-  const lines = [header.map(csvCell).join(';'), ...rows.map((r) => r.map(csvCell).join(';'))];
-  return BOM + lines.join('\r\n') + '\r\n';
-}
+export { oreToCsv, toCsv };
 
 function accountMap() {
   return new Map(db.select().from(account).all().map((a) => [a.id, a]));
@@ -68,6 +48,22 @@ export function invoiceLinesCsv(): string {
   );
 }
 
+export function invoiceAttachmentsCsv(): string {
+  const rows = db.select().from(invoiceAttachment).orderBy(asc(invoiceAttachment.id)).all();
+  return toCsv(
+    ['id', 'faktura_id', 'position', 'navn', 'fil', 'sider', 'stoerrelse_bytes', 'oprettet'],
+    rows.map((r) => [r.id, r.invoiceId, r.position, r.name, r.filePath, r.pages, r.sizeBytes, r.createdAt])
+  );
+}
+
+export function customersCsv(): string {
+  const rows = db.select().from(customer).orderBy(asc(customer.id)).all();
+  return toCsv(
+    ['id', 'navn', 'adresse', 'postnr', 'by', 'land', 'cvr', 'email', 'betalingsfrist_dage', 'oprettet'],
+    rows.map((r) => [r.id, r.name, r.address, r.zip, r.city, r.country, r.cvr, r.email, r.paymentTermsDays, r.createdAt])
+  );
+}
+
 export function expensesCsv(): string {
   const accounts = accountMap();
   const rows = db.select().from(expense).orderBy(asc(expense.voucherNumber)).all();
@@ -99,21 +95,34 @@ export function accountsCsv(): string {
 export function auditLogCsv(): string {
   const rows = db.select().from(auditLog).orderBy(asc(auditLog.id)).all();
   return toCsv(
-    ['id', 'tidspunkt', 'entitet', 'entitet_id', 'handling', 'detaljer'],
-    rows.map((r) => [r.id, r.timestamp, r.entity, r.entityId, r.action, r.detailJson])
+    ['id', 'tidspunkt', 'entitet', 'entitet_id', 'handling', 'detaljer', 'aktoer'],
+    rows.map((r) => [r.id, r.timestamp, r.entity, r.entityId, r.action, r.detailJson, r.actor])
   );
 }
 
-const CSV_FILES: Record<string, () => string> = {
+/** Company details, number series, opening balance and balance-account mapping; no secrets live in `setting`. */
+export function settingsCsv(): string {
+  const rows = db.select().from(setting).orderBy(asc(setting.key)).all().filter((r) => SETTING_KEYS.includes(r.key));
+  return toCsv(['noegle', 'vaerdi'], rows.map((r) => [r.key, r.value]));
+}
+
+/** The CSVs in the export. Everything except posteringer.csv (derived) is read back by a restore. */
+export const CSV_FILES: Record<string, () => string> = {
   'invoices.csv': invoicesCsv,
   'invoice_lines.csv': invoiceLinesCsv,
+  'invoice_attachments.csv': invoiceAttachmentsCsv,
+  'customers.csv': customersCsv,
   'expenses.csv': expensesCsv,
   'cash_movements.csv': cashMovementsCsv,
   'accounts.csv': accountsCsv,
-  'audit_log.csv': auditLogCsv
+  'settings.csv': settingsCsv,
+  'audit_log.csv': auditLogCsv,
+  'posteringer.csv': journalCsv
 };
 
-/** Zip with the six CSVs and every file under /data/files/. Streams to the returned readable. */
+export const CSV_FILE_NAMES = Object.keys(CSV_FILES);
+
+/** Zip with the ten CSVs and every file under /data/files/. Streams to the returned readable. */
 export function exportZipStream(): PassThrough {
   const out = new PassThrough();
   const zip = new ZipArchive({ zlib: { level: 6 } });
