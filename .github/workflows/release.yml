@@ -1,7 +1,10 @@
 # On a version tag: build the artifacts with `npm run release` (the same script a developer
 # runs locally), push the multi-arch image, and publish a release with the notes rendered
-# from release-template.md. Shell steps where possible; buildx/login/release use actions
-# because they are the platform's own plumbing.
+# from release-template.md. Shell steps throughout; only actions/checkout is used.
+#
+# Portability note: `gh release create` and ghcr.io are GitHub-specific. On a Forgejo runner,
+# replace the last two steps with `tea release create` (or the Forgejo API) and point
+# RELEASE_IMAGE at your own registry; everything before them runs unchanged.
 name: release
 
 on:
@@ -12,13 +15,10 @@ permissions:
   contents: write
   packages: write
 
-env:
-  RELEASE_IMAGE: ghcr.io/${{ github.repository_owner }}/faktura
-
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,6 +31,11 @@ jobs:
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
 
+      - name: Derive the image name (lowercase) and repository slug
+        run: |
+          echo "RELEASE_IMAGE=ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/faktura" >> "$GITHUB_ENV"
+          echo "RELEASE_REPO=${{ github.repository }}" >> "$GITHUB_ENV"
+
       - name: Install dependencies
         run: |
           npm ci
@@ -42,9 +47,10 @@ jobs:
       - name: Log in to the container registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Set up QEMU and buildx for arm64
-        uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - name: Enable arm64 emulation and a buildx builder
+        run: |
+          docker run --privileged --rm tonistiigi/binfmt --install arm64
+          docker buildx create --use --name faktura-builder
 
       - name: Build and push the multi-arch image
         run: |

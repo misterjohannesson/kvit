@@ -23,7 +23,7 @@ describe('HOSTING.md', () => {
     expect(body.startsWith(DISCLAIMER)).toBe(true);
   });
 
-  it('has the five sections in order', () => {
+  it('has the four numbered sections in order', () => {
     const idx = ['## 1. Recommended: VPN-only', '## 2. If you must go public', '## 3. Backups', '## 4. Updating'].map((h) => md.indexOf(h));
     expect(idx.every((i) => i > 0)).toBe(true);
     expect([...idx].sort((a, b) => a - b)).toEqual(idx);
@@ -99,7 +99,8 @@ describe('release-template.md', () => {
     expect(md).toMatch(/\*\*Windows:\*\*[\s\S]*double-click/);
     expect(md).toMatch(/\*\*Mac[^*]*\*\*[\s\S]*faktura-darwin-arm64/);
     expect(md).toMatch(/\*\*Linux[^*]*\*\*[\s\S]*faktura-linux-x64/);
-    expect(md).toMatch(/curl -fsSL https:\/\/github\.com\/OWNER\/REPO\/releases\/latest\/download\/install\.sh \| bash/);
+    expect(md).toMatch(/curl -fsSL https:\/\/github\.com\/kvit-app\/faktura\/releases\/latest\/download\/install\.sh \| bash/);
+    expect(md).not.toMatch(/OWNER\/REPO/);
     expect(md).toMatch(/sha256sum --check/);
     expect(md).toMatch(/\*\*Updating never deletes data\.\*\*/);
     expect(md).toMatch(/\{\{version\}\}/);
@@ -116,7 +117,9 @@ describe('site/', () => {
     for (const f of ['site/index.html', 'site/whitepaper.html']) {
       const html = read(f);
       expect(html).toMatch(/href="\.?\/?tokens\.css"/);
-      expect(html, f).not.toMatch(/\bv?\d+\.\d+\.\d+\b/);
+      // no version numbers (semver tags or versioned file names); IPv4 addresses and dates are not versions
+      expect(html, f).not.toMatch(/\bv\d+\.\d+\.\d+\b|faktura-[a-z0-9-]+-\d+\.\d+\.\d+/);
+      expect(html, f).not.toMatch(/OWNER\/REPO/);
     }
     const index = read('site/index.html');
     expect(index).toContain('Faktura is built for one user on a private network.');

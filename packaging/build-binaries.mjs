@@ -27,6 +27,9 @@ export function binaryName(target, version) {
 export async function buildBinaries({ targets = Object.keys(TARGETS), reuseRuntime = false, outDir = path.join(ROOT, 'dist') } = {}) {
   const version = gitVersion();
   if (!reuseRuntime || !fs.existsSync(path.join(STAGE, 'runtime.tar.gz'))) await buildRuntime();
+  // The tarball's own VERSION must match what is stamped on the binary (stale --reuse-runtime is refused).
+  const inner = fs.existsSync(path.join(STAGE, 'runtime', 'VERSION')) ? fs.readFileSync(path.join(STAGE, 'runtime', 'VERSION'), 'utf8').trim() : version;
+  if (inner !== version) throw new Error(`Staged runtime is ${inner} but HEAD is ${version}; rebuild without --reuse-runtime`);
   fs.writeFileSync(path.join(STAGE, 'VERSION'), version);
   fs.mkdirSync(outDir, { recursive: true });
   const built = [];
@@ -35,7 +38,10 @@ export async function buildBinaries({ targets = Object.keys(TARGETS), reuseRunti
     if (!spec) throw new Error(`Unknown target ${t}`);
     const outfile = path.join(outDir, binaryName(t, version));
     console.log(`bun build --compile --target=${spec.bun} -> ${outfile}`);
-    execFileSync('bun', ['build', 'packaging/launcher.ts', '--compile', `--target=${spec.bun}`, '--outfile', outfile], { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+    // On Windows `bun` is a .cmd shim, so a shell is needed; quote every argument ourselves.
+    const bunArgs = ['build', 'packaging/launcher.ts', '--compile', `--target=${spec.bun}`, '--outfile', outfile];
+    if (process.platform === 'win32') execFileSync(`bun ${bunArgs.map((a) => `"${a}"`).join(' ')}`, { cwd: ROOT, stdio: 'inherit', shell: true });
+    else execFileSync('bun', bunArgs, { cwd: ROOT, stdio: 'inherit' });
     built.push(outfile);
   }
   return { version, built };

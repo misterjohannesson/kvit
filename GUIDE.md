@@ -12,7 +12,8 @@ Indhold: 1. Kom i gang · 2. Fakturaer · 3. Udgifter · 4. Moms · 5. Månedsru
 ## 1. Kom i gang
 
 **Første login.** Åbn adressen, som installationen viste (typisk `http://localhost:3000`), og log ind med det
-kodeord, du valgte. Der er ét kodeord og én bruger: programmet er dit bogholderi, ikke en tjeneste med konti.
+kodeord, du valgte. I skærmbilledet hedder programmet **Kvit** (af *kvit og frit*); Faktura er projektets navn, og de to
+bruges om det samme. Der er ét kodeord og én bruger: programmet er dit bogholderi, ikke en tjeneste med konti.
 
 ![Login](review/shots/00-login.png)
 
@@ -101,7 +102,7 @@ Den kvartalsvise rutine tager få minutter:
    (eller have tilbage). Fristerne for kvartalsmoms er 1. juni, 1. september, 1. december og 1. marts; programmet
    viser den næste frist nederst i menuen.
 3. Når betalingen er trukket på banken, bogfører du den på **Cashflow** som en bankbevægelse af typen *Momsbetaling*
-   (`vat_payment`) med beløbet som negativt tal, fx `−14.550,25`. Så falder *Skyldig moms* på balancen, og
+   med beløbet som negativt tal, fx `−14.550,25`. Så falder *Skyldig moms* på balancen, og
    bankpositionen passer igen.
 
 ![Momsindberetning](review/shots/08-moms.png)
@@ -139,7 +140,8 @@ for det løbende kvartal – og en advarsel, hvis et udstedt dokument ikke er ma
 **Cashflow** viser ind, ud, netto og løbende bankposition pr. måned efter betalingsdato. Afsluttede måneder er faktiske
 tal. Den igangværende måned og månederne frem er tonede og markeret *igangværende* og *prognose*: her lægger programmet
 åbne fakturaer efter forfaldsmåned, ubetalte udgifter, kreditnotaer til refusion og skyldig moms efter fristen oven i.
-Det er, hvad »projected« betyder: en fremskrivning ud fra det, der allerede er kendt – ikke et gæt.
+Prognosen er en fremskrivning ud fra det, der allerede er kendt – ikke et gæt. (AI-værktøjet kalder de samme rækker
+»projected«.)
 
 ![Cashflow](review/shots/16-cashflow.png)
 
@@ -158,7 +160,8 @@ Cashflow-prognosen det bedste billede af de kommende måneder.
 veldefinerede »værktøjer«. Faktura leverer en MCP-server, så din assistent kan læse dine tal og bogføre rutineposter –
 uden nogensinde at rode i databasen direkte.
 
-**Tilslutning.** Installationen skrev et konfigurationsudsnit til dig. Med Docker-installationen kører MCP-serveren ved
+**Tilslutning.** Installationen viste et konfigurationsudsnit til sidst (kør installationen igen, hvis du mistede
+det; data bevares). Med Docker-installationen kører MCP-serveren ved
 siden af programmet på din egen maskine, og du indsætter dette i din AI-klient (Claude Code, Claude Desktop eller
 en anden MCP-klient):
 
@@ -180,7 +183,8 @@ behøver den ikke, når du bruger `http`-varianten på samme maskine eller over 
 - »Lav en kladde til Nordhavn Arkitekter: 12 timer rådgivning à 950 kr.«
 - »Opret en udgift: Hetzner, serverhosting september, 380 kr uden moms, konto 2000.«
 
-Alt, assistenten skriver, står i revisionssporet med afsender *api*, så du altid kan se, hvad der kom fra AI'en.
+Alt, assistenten skriver, står i revisionssporet med afsender *api* (`audit_log.csv` i eksport-zippen, se afsnit 8),
+så du altid kan se, hvad der kom fra AI'en.
 
 **Det kan AI'en ikke:**
 
@@ -203,8 +207,8 @@ bilag. Det er pakken til revisor: »her er alt«.
 ![Eksport](review/shots/12-eksport.png)
 
 **Fem års opbevaring.** Bogføringsloven kræver, at regnskabsmaterialet gemmes i fem år, og at der findes en
-sikkerhedskopi hos en tredjepart (et andet sted end på din egen maskine). Se `HOSTING.md` for et natligt
-backup-eksempel; en backup er ganske enkelt en kopi af datamappen.
+sikkerhedskopi hos en tredjepart (et andet sted end på din egen maskine). Se hosting-vejledningen
+(<https://github.com/kvit-app/faktura/blob/main/HOSTING.md>) for et natligt backup-eksempel; en backup er ganske enkelt en kopi af datamappen.
 
 **Hvor alt ligger på disken.** Alt persistent ligger i datamappen (`data/` under den mappe, du valgte ved installationen):
 

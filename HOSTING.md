@@ -32,9 +32,13 @@ through a private network. No port on the machine is opened to the internet.
 4. From any device on the tailnet, open `http://100.64.0.12:3000` (or the MagicDNS name). Optionally turn on Tailscale
    HTTPS (`tailscale cert`, or `tailscale serve --bg 3000`, which gives you `https://faktura.tailnet-name.ts.net`
    with a real certificate, still tailnet-only).
-5. The MCP endpoint is published on `127.0.0.1:3333` only. To use it from another tailnet device, either run the AI
-   client on the server itself, or forward it over the tailnet with `tailscale serve --bg --tcp 3333 tcp://127.0.0.1:3333`
-   and set `MCP_ALLOWED_HOSTS` accordingly (see `mcp/README.md`). Never publish it on the public interface.
+5. The MCP endpoint is published on `127.0.0.1:3333` only, and it has no login of its own: whoever can reach the port
+   can use every tool, including the write tools. To use it from another tailnet device, either run the AI client on
+   the server itself, or forward it over the tailnet with `tailscale serve --bg --tcp 3333 tcp://127.0.0.1:3333`
+   (then every device on your tailnet has that access) and set `MCP_ALLOWED_HOSTS` in `.env` to the address clients
+   will use (details in
+   [mcp/README.md](https://github.com/kvit-app/faktura/blob/main/mcp/README.md)). Never publish it on the public
+   interface.
 
 ### Firewall (Linux, ufw)
 
@@ -127,17 +131,20 @@ faktura.example.com {
 }
 ```
 
-Because Caddy adds `X-Forwarded-For`, tell the app to trust it so its own login throttle (five failures, then a
-30-second pause, per address) sees the real client address. In the install directory, add to `.env`:
+Two settings go with the proxy, both in the install directory's `.env` (the installer keeps them across reruns, so
+updating never undoes them; never hand-edit `docker-compose.yml`, which the installer rewrites):
 
 ```text
+FAKTURA_BIND=127.0.0.1
 ADDRESS_HEADER=x-forwarded-for
 XFF_DEPTH=1
 ```
 
-and add both variables under `environment:` of the `app` service in `docker-compose.yml`, then `docker compose up -d`.
-Also make sure the app's own port is not reachable from outside: bind it to localhost by changing the port mapping to
-`"127.0.0.1:3000:3000"`. The MCP service is already bound to `127.0.0.1` and must stay that way; use the VPN for it.
+`FAKTURA_BIND=127.0.0.1` keeps the app's own port off the public interface so only Caddy reaches it. `ADDRESS_HEADER`
+and `XFF_DEPTH` (read by the app's Node adapter) make the app trust Caddy's `X-Forwarded-For`, so its own login throttle
+(five failures, then a 30-second pause, per address) and the `Login failed from …` log lines see the real client
+address instead of Caddy's. Apply with `docker compose up -d` in the install directory, or by rerunning the installer.
+The MCP service is bound to `127.0.0.1` regardless and must stay that way; use the VPN for it.
 
 ### Firewall for a public host
 
@@ -159,7 +166,8 @@ sudo ufw enable
 - SSH with keys only (`PasswordAuthentication no` in `/etc/ssh/sshd_config`).
 - Keep Docker updated (`sudo apt upgrade docker-ce docker-compose-plugin`), and let Watchtower or a weekly
   `docker compose pull && docker compose up -d` bring in Faktura updates (section 4).
-- Watch the login log once in a while: `docker compose logs app | grep -i login`.
+- Watch the login log once in a while: `docker compose logs app | grep -i "login failed"` (the app logs every failed
+  attempt with the client address).
 
 ---
 
@@ -220,14 +228,15 @@ Faktura is updated by rerunning the installer with the same directory (or, equiv
 docker compose up -d` in the install directory):
 
 ```bash
-curl -fsSL https://github.com/OWNER/REPO/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash
 ```
 
-The installer keeps your `.env` values as defaults (press Enter to keep them; the secrets are never shown) and
-restarts the containers on the new image. On first start the new version applies its database migrations; before it
+The installer keeps your `.env` values as defaults (press Enter to keep them; the secrets are never shown), including
+the proxy settings from section 2, and restarts the containers on the new image. It rewrites `docker-compose.yml`, so
+keep your own adjustments in `.env`, not in that file. On first start the new version applies its database migrations; before it
 touches anything it writes a consistent copy of the database to `data/backups/app-<timestamp>-pre-migration-…db`.
 Updating never deletes data. If an update ever misbehaves, stop the containers, put the pre-migration copy back as
-`data/app.db`, and start the previous image (`FAKTURA_IMAGE=ghcr.io/OWNER/faktura:<previous version>` in `.env`).
+`data/app.db`, and start the previous image (`FAKTURA_IMAGE=ghcr.io/kvit-app/faktura:<previous version>` in `.env`).
 
 For the standalone binary: download the new binary, replace the old one, start it. It finds the existing
 `faktura.config.json`, unpacks its own runtime next to the previous version's and runs the same migration with the

@@ -18,8 +18,9 @@ Tre veje, alle beskrevet i klart sprog på udgivelsessiden (`release-template.md
 - **Selvstændig fil uden Docker:** `faktura-linux-x64-<version>`, `faktura-darwin-arm64-<version>`,
   `faktura-windows-x64-<version>.exe` (bygget med `bun build --compile`; `packaging/`). Første start kører den samme
   wizard og skriver `faktura.config.json` ved siden af datamappen; Chromium til PDF hentes ved første start (ca. 150 MB)
-  – indtil da nægter appen at udstede. Kun linux-x64 køres automatisk i CI; macOS og Windows bygges på hver udgivelse,
-  men er ikke afprøvet af vedligeholderen på de platforme (se udgivelsesnoterne).
+  – indtil da nægter appen at udstede. Kun linux-x64 køres automatisk i CI; Windows-filen er afprøvet manuelt af
+  vedligeholderen (wizard, Chromium-download, udstedelse); macOS-filen bygges på hver udgivelse men er ikke afprøvet
+  på en Mac (se udgivelsesnoterne).
 - **Fra kildekode / compose direkte:** som nedenfor.
 
 Udgivelser: `npm run release` bygger `dist/` (installer-scripts, de tre binære filer, `SHA256SUMS`, udgivelsesnoter);
@@ -49,6 +50,8 @@ docker compose exec app npm run seed
 
 Seed afbrydes, hvis databasen allerede indeholder fakturaer eller udgifter. Den kører som en separat proces mod
 den samme SQLite-fil (WAL gør det sikkert); brug den kun på en tom database, aldrig mens der udstedes fakturaer.
+Kør den aldrig fra værten mod en datamappe, en kørende container har åben: Docker Desktops bind-mounts deler ikke
+SQLites `-shm`-fil, så containeren ser ikke rækkerne. Brug `docker compose exec app npm run seed`.
 
 ### Lokal udvikling
 

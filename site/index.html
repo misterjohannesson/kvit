@@ -41,10 +41,9 @@
   </div>
 
   <h1>Bookkeeping for one Danish business, without the drama.</h1>
-  <p>Faktura issues invoices with an unbroken number series, keeps receipts and expenses with their VAT, and turns four quarterly deadlines into three figures you copy into skat.dk. It runs on your own computer or server, and everything it knows lives in one folder you can copy for backup.</p>
-  <p>An AI assistant can read your numbers and book routine entries through the built-in MCP server, but it can never issue an invoice, create a credit note or delete anything. That restriction is the design, not a missing feature.</p>
+  <p>Faktura issues invoices with an unbroken number series, keeps receipts and expenses with their VAT, and turns four quarterly deadlines into the three figures you copy into skat.dk. It runs on your own computer or server, and everything it knows lives in one folder you can copy for backup. An AI assistant can read your numbers and book routine entries through the built-in MCP server, but it can never issue an invoice, create a credit note or delete anything.</p>
 
-  <p><a class="btn" href="https://github.com/OWNER/REPO/releases/latest">Download the latest release</a></p>
+  <p><a class="btn" href="https://github.com/kvit-app/faktura/releases/latest">Download the latest release</a></p>
 
   <div class="panel">
     <div class="panel__head">Get it</div>
@@ -52,20 +51,20 @@
       <table>
         <thead><tr><th>You have</th><th>Download</th></tr></thead>
         <tbody>
-          <tr><td>Windows</td><td><a href="https://github.com/OWNER/REPO/releases/latest/">faktura-windows-x64.exe</a> — double-click, answer four questions</td></tr>
-          <tr><td>Mac (Apple Silicon)</td><td><a href="https://github.com/OWNER/REPO/releases/latest/">faktura-darwin-arm64</a></td></tr>
-          <tr><td>Linux</td><td><a href="https://github.com/OWNER/REPO/releases/latest/">faktura-linux-x64</a></td></tr>
-          <tr><td>A server with Docker (recommended)</td><td><a href="https://github.com/OWNER/REPO/releases/latest/download/install.sh">install.sh</a> · <a href="https://github.com/OWNER/REPO/releases/latest/download/install.ps1">install.ps1</a></td></tr>
+          <tr><td>Windows</td><td><a href="https://github.com/kvit-app/faktura/releases/latest/">the Windows build (.exe)</a> — double-click, answer four questions</td></tr>
+          <tr><td>Mac (Apple Silicon)</td><td><a href="https://github.com/kvit-app/faktura/releases/latest/">the Mac build</a></td></tr>
+          <tr><td>Linux</td><td><a href="https://github.com/kvit-app/faktura/releases/latest/">the Linux build</a></td></tr>
+          <tr><td>A server with Docker (recommended)</td><td><a href="https://github.com/kvit-app/faktura/releases/latest/download/install.sh">install.sh</a> · <a href="https://github.com/kvit-app/faktura/releases/latest/download/install.ps1">install.ps1</a></td></tr>
         </tbody>
       </table>
-      <pre>curl -fsSL https://github.com/OWNER/REPO/releases/latest/download/install.sh | bash</pre>
-      <p style="margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary)">Checksums for every file are in <a href="https://github.com/OWNER/REPO/releases/latest/download/SHA256SUMS">SHA256SUMS</a>. Updating never deletes data.</p>
+      <pre>curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash</pre>
+      <p style="margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary)">Checksums for every file are in <a href="https://github.com/kvit-app/faktura/releases/latest/download/SHA256SUMS">SHA256SUMS</a>. Updating never deletes data.</p>
     </div>
   </div>
 
-  <p style="margin-top:var(--space-8)">Read why it is built the way it is: <a href="./whitepaper.html">the whitepaper</a> (two pages). Running it for real: <a href="https://github.com/OWNER/REPO/blob/main/HOSTING.md">hosting guide</a>, <a href="https://github.com/OWNER/REPO/blob/main/GUIDE.md">user guide (Danish)</a>.</p>
+  <p style="margin-top:var(--space-8)">Read why it is built the way it is: <a href="./whitepaper.html">the whitepaper</a> (two pages). Running it for real: <a href="https://github.com/kvit-app/faktura/blob/main/HOSTING.md">hosting guide</a>, <a href="https://github.com/kvit-app/faktura/blob/main/GUIDE.md">user guide (Danish)</a>.</p>
 
-  <div class="disclaimer">Faktura is built for one user on a private network. It has a single shared password, no 2FA, no brute-force lockout, and has not been security audited. The recommended setup is VPN-only access (e.g. Tailscale). Exposing it directly to the internet is at your own risk.</div>
+  <div class="disclaimer">Faktura is built for one user on a private network. Run it on your own machine or behind a VPN; see the <a href="https://github.com/kvit-app/faktura/blob/main/HOSTING.md">hosting guide</a> before exposing it to the internet.</div>
 
   <p class="foot">Open source. One business per installation. Danish UI, DKK only.</p>
 </div>

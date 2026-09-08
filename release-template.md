@@ -26,13 +26,13 @@ Rendering PDFs needs the usual Chromium system libraries; if issuing an invoice 
 **Any computer or server with Docker** (the recommended way to run Faktura for real). Paste this into a terminal:
 
 ```bash
-curl -fsSL https://github.com/OWNER/REPO/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash
 ```
 
 On Windows with Docker Desktop, in PowerShell:
 
 ```powershell
-irm https://github.com/OWNER/REPO/releases/latest/download/install.ps1 -OutFile install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1
+irm https://github.com/kvit-app/faktura/releases/latest/download/install.ps1 -OutFile install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 The installer asks the same four questions, starts Faktura, and prints the address to open plus a ready-made snippet
@@ -45,8 +45,8 @@ The Docker image is `{{image}}:{{version}}` (also `latest`), for amd64 and arm64
 For readers who know what a terminal is: download, verify, read, then run.
 
 ```bash
-curl -fsSLO https://github.com/OWNER/REPO/releases/latest/download/install.sh
-curl -fsSLO https://github.com/OWNER/REPO/releases/latest/download/SHA256SUMS
+curl -fsSLO https://github.com/kvit-app/faktura/releases/latest/download/install.sh
+curl -fsSLO https://github.com/kvit-app/faktura/releases/latest/download/SHA256SUMS
 sha256sum --check --ignore-missing SHA256SUMS
 less install.sh
 bash install.sh

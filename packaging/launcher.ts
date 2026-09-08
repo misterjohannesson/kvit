@@ -133,7 +133,8 @@ async function wizard(): Promise<{ configPath: string; config: Config }> {
   log('Four questions. Enter keeps the value in brackets. Nothing you type as a password or token is shown or logged.');
   line();
   const env = process.env;
-  const defaultBase = env.FAKTURA_DIR ?? path.join(os.homedir(), 'faktura');
+  const explicit = opt('--config') ? path.dirname(path.resolve(opt('--config')!)) : undefined;
+  const defaultBase = explicit ?? env.FAKTURA_DIR ?? path.join(os.homedir(), 'faktura');
   const base = path.resolve(nonInteractive ? defaultBase : await ask('Directory for configuration and data', defaultBase));
   const portStr = nonInteractive ? (env.FAKTURA_PORT ?? '3000') : await ask('Port for the web app', env.FAKTURA_PORT ?? '3000');
   const port = Number(portStr);
@@ -163,6 +164,11 @@ async function wizard(): Promise<{ configPath: string; config: Config }> {
     /* Windows */
   }
   log(`Configuration written to ${configPath} (private: it holds the password and the token).`);
+  if (process.platform === 'win32') {
+    const me = Bun.spawnSync(['cmd', '/c', 'whoami']).stdout.toString().trim();
+    if (me) Bun.spawnSync(['icacls', configPath, '/inheritance:r', '/grant:r', `${me}:(F)`]);
+  }
+  if (base !== path.join(os.homedir(), 'faktura')) log(`Start with: ${process.execPath} --config ${configPath}`);
   if (generated && !nonInteractive) log('An API token was generated and stored in that file.');
   return { configPath, config: readConfig(configPath) };
 }
@@ -181,6 +187,10 @@ async function ensureRuntime(base: string): Promise<string> {
   await extract({ file: tmp, cwd: dir });
   fs.rmSync(tmp, { force: true });
   fs.writeFileSync(marker, new Date().toISOString());
+  // Older runtimes are no longer needed once this one is complete.
+  for (const e of fs.readdirSync(path.join(base, 'runtime'))) {
+    if (e !== VERSION) fs.rmSync(path.join(base, 'runtime', e), { recursive: true, force: true });
+  }
   return dir;
 }
 
@@ -307,7 +317,10 @@ async function main(): Promise<void> {
   log(`database is copied to ${path.join(config.dataDir, 'backups')} before any schema change.`);
   line();
 
-  const [appCode] = await Promise.all([app.exited, mcp.exited.then(() => undefined)]);
+  void mcp.exited.then((code) => {
+    if (code !== 0) log(`MCP server exited with code ${code} (port ${config.mcpPort} in use?). The app keeps running; AI access is unavailable.`);
+  });
+  const appCode = await app.exited;
   stop();
   process.exit(appCode ?? 0);
 }

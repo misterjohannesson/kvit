@@ -71,10 +71,19 @@ export function preMigrationBackup(): string | null {
   fs.mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const target = path.join(dir, `app-${stamp}-pre-migration-${applied}-to-${journal.entries.length}.db`);
-  sqlite.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
+  try {
+    sqlite.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
+  } catch (e) {
+    // A partial copy must not look like a backup; refusing to migrate is the safe outcome.
+    fs.rmSync(target, { force: true });
+    throw new Error(`Could not write the pre-migration copy ${target} (disk full or unwritable?): ${(e as Error).message}. The migration was not started; fix the disk and start again.`);
+  }
   console.warn(`Pre-migration copy of the database written to ${target}`);
   return target;
 }
+
+// backups/ exists from the first start, so backup recipes that include it never fail on a fresh install.
+fs.mkdirSync(path.join(DATA_DIR, 'backups'), { recursive: true });
 
 export const PRE_MIGRATION_BACKUP = preMigrationBackup();
 

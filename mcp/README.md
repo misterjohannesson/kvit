@@ -100,8 +100,8 @@ Read:
 | `cash_position` | what is my current bank: likvider, debitorer, kreditorer, skyldig moms, nettoposition, last reconciliation | – |
 | `cashflow` | monthly in/out/net/position, `actual` vs `projected` months | `months_back?` (6), `months_forward?` |
 | `vat_report` | salgsmoms, købsmoms, momstilsvar, deadline; `estimate: true` for future quarters | `quarter?` (`"2026-Q3"`, default current) |
-| `resultat` | P&L per account, accrual basis, budget/variance columns | `year?`, `quarter?` |
-| `budget_status` | YTD actual vs budget per account | `year?` |
+| `resultat` | P&L per account, accrual basis; budget/variance columns (always null until a budget exists) | `year?`, `quarter?` |
+| `budget_status` | YTD actual vs budget per account (budget_exists: false until a budget exists) | `year?` |
 | `list_accounts` | kontoplan ids for the write tools | `type?` |
 | `list_customers` | customer ids for drafts | – |
 

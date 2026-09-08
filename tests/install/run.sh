@@ -17,7 +17,7 @@ PORT="${TEST_PORT:-3651}"
 MCP_PORT="${TEST_MCP_PORT:-3652}"
 FILE_PORT="${TEST_FILE_PORT:-8765}"
 WORK="$(mktemp -d)"
-PASSWORD="smoke-test-password-$RANDOM"
+PASSWORD="smoke-$RANDOM-"'pa$$word #not-a-comment'   # a literal $$ and a " #" must survive compose interpolation
 SERVE_DIR="${SERVE_DIR:-dist}"
 [ -f "$SERVE_DIR/install.sh" ] || SERVE_DIR="."
 
@@ -41,7 +41,8 @@ export FAKTURA_NONINTERACTIVE=1 FAKTURA_DIR="$WORK/inst" FAKTURA_PORT="$PORT" FA
 
 echo "== curl | bash"
 curl -fsSL "http://127.0.0.1:$FILE_PORT/install.sh" | bash >"$WORK/run1.out" 2>&1
-TOKEN="$(sed -n 's/^API_TOKEN=//p' "$WORK/inst/.env")"
+# .env values are single-quoted by the installer
+TOKEN="$(sed -n "s/^API_TOKEN='\(.*\)'\$/\1/p" "$WORK/inst/.env")"
 [ "${#TOKEN}" -ge 16 ] || { echo "FAIL: no token written"; cat "$WORK/run1.out"; exit 1; }
 
 echo "== health + login"
@@ -54,8 +55,8 @@ curl -fsS -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' 
 AUDIT1="$(curl -fsS -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:$PORT/api/audit?limit=1")"
 
 echo "== rerun (idempotent)"
-API_TOKEN= bash "$SERVE_DIR/install.sh" >"$WORK/run2.out" 2>&1
-TOKEN2="$(sed -n 's/^API_TOKEN=//p' "$WORK/inst/.env")"
+API_TOKEN= APP_PASSWORD= bash "$SERVE_DIR/install.sh" >"$WORK/run2.out" 2>&1
+TOKEN2="$(sed -n "s/^API_TOKEN='\(.*\)'\$/\1/p" "$WORK/inst/.env")"
 [ "$TOKEN" = "$TOKEN2" ] || { echo "FAIL: token changed on rerun"; exit 1; }
 sleep 3
 curl -fsS -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:$PORT/api/customers" | grep -q 'Smoke ApS' || { echo "FAIL: data lost on rerun"; exit 1; }

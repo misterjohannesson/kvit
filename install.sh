@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Faktura installer (macOS / Linux). Wraps Docker.
 #
-#   curl -fsSL https://github.com/OWNER/REPO/releases/latest/download/install.sh | bash
+#   curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash
 #   — or —  bash install.sh
 #
 # Idempotent: rerunning with the same directory keeps your data and only updates
@@ -10,10 +10,13 @@
 #
 # Non-interactive use (CI, scripts): set FAKTURA_NONINTERACTIVE=1 and provide
 # FAKTURA_DIR, FAKTURA_PORT, APP_PASSWORD, API_TOKEN (or API_TOKEN=generate).
+# Optional in both modes, kept across reruns once set in .env: FAKTURA_MCP_PORT (3333),
+# FAKTURA_BIND (0.0.0.0; use 127.0.0.1 behind a reverse proxy), ADDRESS_HEADER and
+# XFF_DEPTH (trusted proxy header for the login throttle), FAKTURA_IMAGE.
 set -euo pipefail
 
-IMAGE="${FAKTURA_IMAGE:-__IMAGE__}"
-case "$IMAGE" in __IMAGE__*) IMAGE="ghcr.io/kvit-app/faktura:latest";; esac
+DEFAULT_IMAGE="__IMAGE__"
+if [ "$DEFAULT_IMAGE" = "__IMAGE""__" ]; then DEFAULT_IMAGE="ghcr.io/kvit-app/faktura:latest"; fi
 
 say()  { printf '%s\n' "$*"; }
 err()  { printf 'Error: %s\n' "$*" >&2; }
@@ -21,7 +24,15 @@ line() { printf '\n%s\n' "──────────────────
 
 # Prompts read from the terminal even when the script itself arrives on stdin (curl | bash).
 TTY=/dev/tty
-if [ "${FAKTURA_NONINTERACTIVE:-}" = "1" ]; then TTY=""; elif [ ! -r /dev/tty ]; then TTY=""; fi
+if [ "${FAKTURA_NONINTERACTIVE:-}" = "1" ]; then
+  TTY=""
+elif ! { : </dev/tty; } 2>/dev/null; then
+  TTY=""
+  if [ -z "${APP_PASSWORD:-}" ]; then
+    err "No terminal is available for the questions. Set FAKTURA_NONINTERACTIVE=1 and FAKTURA_DIR, FAKTURA_PORT, APP_PASSWORD, API_TOKEN in the environment."
+    exit 1
+  fi
+fi
 
 ask() { # ask VAR "Question" "default"
   local var="$1" q="$2" def="$3" ans=""
@@ -36,7 +47,7 @@ ask() { # ask VAR "Question" "default"
   printf -v "$var" '%s' "$ans"
 }
 
-ask_secret() { # ask_secret VAR "Question" "keep-current?"  (never echoed, never logged)
+ask_secret() { # ask_secret VAR "Question" keep-current(0|1)  (never echoed, never logged)
   local var="$1" q="$2" keep="$3" ans=""
   if [ -z "$TTY" ]; then
     eval "ans=\"\${$var:-}\""
@@ -50,6 +61,19 @@ ask_secret() { # ask_secret VAR "Question" "keep-current?"  (never echoed, never
 
 gen_secret() { # 48 hex characters from the OS random source
   if command -v openssl >/dev/null 2>&1; then openssl rand -hex 24; else od -An -N24 -tx1 /dev/urandom | tr -d ' \n'; fi
+}
+
+# .env values are single-quoted so compose takes them literally ($, #, spaces are safe); ' becomes '\''.
+env_quote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+# Read KEY from .env, accepting quoted or bare values.
+env_read() { # env_read KEY FILE
+  local v
+  v="$(sed -n "s/^$1=//p" "$2" | tail -1)"
+  case "$v" in
+    \'*\') v="${v#\'}"; v="${v%\'}"; v="$(printf '%s' "$v" | sed "s/'\\\\''/'/g")";;
+    \"*\") v="${v#\"}"; v="${v%\"}";;
+  esac
+  printf '%s' "$v"
 }
 
 # ---------------------------------------------------------------- 1. Docker
@@ -70,25 +94,31 @@ fi
 
 line
 say "Faktura — installation"
-say "Four questions. Enter keeps the value in brackets."
+if [ -n "$TTY" ]; then say "Four questions. Enter keeps the value in brackets."; else say "Non-interactive mode: answers taken from the environment."; fi
 line
 
 # ---------------------------------------------------------------- 2. Questions
 DEFAULT_DIR="${FAKTURA_DIR:-$HOME/faktura}"
 ask FAKTURA_DIR "Directory for configuration and data" "$DEFAULT_DIR"
 FAKTURA_DIR="${FAKTURA_DIR/#\~/$HOME}"
-mkdir -p "$FAKTURA_DIR/data"
+mkdir -p "$FAKTURA_DIR/data/backups"
 ENV_FILE="$FAKTURA_DIR/.env"
 COMPOSE_FILE="$FAKTURA_DIR/docker-compose.yml"
 
 # Existing installation: reuse its values as defaults without ever printing the secrets.
-CUR_PORT=""; CUR_PASSWORD=""; CUR_TOKEN=""
+CUR_PORT=""; CUR_PASSWORD=""; CUR_TOKEN=""; CUR_MCP_PORT=""; CUR_BIND=""; CUR_ADDRESS_HEADER=""; CUR_XFF_DEPTH=""; CUR_IMAGE=""
 if [ -f "$ENV_FILE" ]; then
-  CUR_PORT="$(sed -n 's/^FAKTURA_PORT=//p' "$ENV_FILE" | tail -1)"
-  CUR_PASSWORD="$(sed -n 's/^APP_PASSWORD=//p' "$ENV_FILE" | tail -1)"
-  CUR_TOKEN="$(sed -n 's/^API_TOKEN=//p' "$ENV_FILE" | tail -1)"
+  CUR_PORT="$(env_read FAKTURA_PORT "$ENV_FILE")"
+  CUR_PASSWORD="$(env_read APP_PASSWORD "$ENV_FILE")"
+  CUR_TOKEN="$(env_read API_TOKEN "$ENV_FILE")"
+  CUR_MCP_PORT="$(env_read FAKTURA_MCP_PORT "$ENV_FILE")"
+  CUR_BIND="$(env_read FAKTURA_BIND "$ENV_FILE")"
+  CUR_ADDRESS_HEADER="$(env_read ADDRESS_HEADER "$ENV_FILE")"
+  CUR_XFF_DEPTH="$(env_read XFF_DEPTH "$ENV_FILE")"
+  CUR_IMAGE="$(env_read FAKTURA_IMAGE "$ENV_FILE")"
   say "Existing installation found in $FAKTURA_DIR — this run updates it; data is kept."
 fi
+IMAGE="${FAKTURA_IMAGE:-${CUR_IMAGE:-$DEFAULT_IMAGE}}"
 
 ask FAKTURA_PORT "Port for the web app" "${FAKTURA_PORT:-${CUR_PORT:-3000}}"
 case "$FAKTURA_PORT" in ''|*[!0-9]*) err "Port must be a number"; exit 1;; esac
@@ -100,37 +130,52 @@ while :; do
   if [ -z "$TTY" ]; then err "APP_PASSWORD must be at least 8 characters"; exit 1; fi
   say "At least 8 characters, please." >"$TTY"
 done
+case "$APP_PASSWORD" in *$'\n'*) err "The password cannot contain a line break"; exit 1;; esac
 
 ask_secret API_TOKEN "API token for AI/MCP access (Enter = generate one)" "$([ -n "$CUR_TOKEN" ] && echo 1 || echo 0)"
 if [ -z "$API_TOKEN" ]; then API_TOKEN="${CUR_TOKEN:-generate}"; fi
-if [ "$API_TOKEN" = "generate" ]; then API_TOKEN="$(gen_secret)"; TOKEN_GENERATED=1; else TOKEN_GENERATED=0; fi
+TOKEN_GENERATED=0
+if [ "$API_TOKEN" = "generate" ]; then API_TOKEN="$(gen_secret)"; TOKEN_GENERATED=1; fi
 if [ "${#API_TOKEN}" -lt 16 ]; then err "API_TOKEN must be at least 16 characters"; exit 1; fi
+case "$API_TOKEN" in *[[:space:]\'\"]*) err "The API token cannot contain spaces or quotes"; exit 1;; esac
+
+MCP_PORT="${FAKTURA_MCP_PORT:-${CUR_MCP_PORT:-3333}}"
+BIND="${FAKTURA_BIND:-${CUR_BIND:-0.0.0.0}}"
+ADDRESS_HEADER_VAL="${ADDRESS_HEADER:-${CUR_ADDRESS_HEADER:-}}"
+XFF_DEPTH_VAL="${XFF_DEPTH:-${CUR_XFF_DEPTH:-1}}"
 
 # ---------------------------------------------------------------- 3. Write config (secrets only in .env, mode 600)
 umask 077
 {
   printf '# Faktura configuration. Keep this file private: it holds the login password and the API token.\n'
-  printf 'APP_PASSWORD=%s\n' "$APP_PASSWORD"
-  printf 'API_TOKEN=%s\n' "$API_TOKEN"
+  printf '# Values are single-quoted so $ and # inside them are taken literally.\n'
+  printf 'APP_PASSWORD=%s\n' "$(env_quote "$APP_PASSWORD")"
+  printf 'API_TOKEN=%s\n' "$(env_quote "$API_TOKEN")"
   printf 'FAKTURA_PORT=%s\n' "$FAKTURA_PORT"
-  printf 'FAKTURA_MCP_PORT=%s\n' "${FAKTURA_MCP_PORT:-3333}"
-  printf 'FAKTURA_IMAGE=%s\n' "$IMAGE"
+  printf 'FAKTURA_MCP_PORT=%s\n' "$MCP_PORT"
+  printf 'FAKTURA_BIND=%s\n' "$BIND"
+  printf 'ADDRESS_HEADER=%s\n' "$(env_quote "$ADDRESS_HEADER_VAL")"
+  printf 'XFF_DEPTH=%s\n' "$XFF_DEPTH_VAL"
+  printf 'FAKTURA_IMAGE=%s\n' "$(env_quote "$IMAGE")"
 } >"$ENV_FILE"
 chmod 600 "$ENV_FILE"
 umask 022
 
 cat >"$COMPOSE_FILE" <<'YAML'
-# Written by install.sh. Rerun the installer to change settings; edit by hand if you know compose.
+# Written by install.sh. Rerun the installer to change settings. Everything adjustable lives in .env
+# (FAKTURA_BIND, ADDRESS_HEADER, XFF_DEPTH, ports, image); this file is rewritten on every install run.
+name: faktura
 services:
   app:
     image: ${FAKTURA_IMAGE}
-    container_name: faktura
     restart: unless-stopped
     ports:
-      - "${FAKTURA_PORT}:3000"
+      - "${FAKTURA_BIND}:${FAKTURA_PORT}:3000"
     environment:
       APP_PASSWORD: ${APP_PASSWORD}
       API_TOKEN: ${API_TOKEN}
+      ADDRESS_HEADER: ${ADDRESS_HEADER}
+      XFF_DEPTH: ${XFF_DEPTH}
       TZ: Europe/Copenhagen
     volumes:
       # The only state: the SQLite database and all PDFs/receipts. Back up this folder.
@@ -140,11 +185,11 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 20s
+      start_interval: 2s
 
   # AI access (MCP over HTTP). Published on localhost only: reach it through your VPN, never the open internet.
   mcp:
     image: ${FAKTURA_IMAGE}
-    container_name: faktura-mcp
     restart: unless-stopped
     command: ["node", "mcp/dist/http.js"]
     depends_on:
@@ -163,6 +208,7 @@ services:
       interval: 30s
       timeout: 5s
       start_period: 10s
+      start_interval: 2s
 YAML
 
 # ---------------------------------------------------------------- 4. Pull and start
@@ -177,10 +223,11 @@ if ! docker compose pull --quiet 2>/dev/null; then
     exit 1
   fi
 fi
-docker compose up -d --remove-orphans
+docker compose up -d --remove-orphans 2> >(grep -v 'No services to build' >&2)
 
 # ---------------------------------------------------------------- 5. Health check
-URL="http://localhost:$FAKTURA_PORT"
+HOST_FOR_URL="localhost"
+URL="http://$HOST_FOR_URL:$FAKTURA_PORT"
 ok=0
 for _ in $(seq 1 60); do
   if curl -fsS "$URL/healthz" >/dev/null 2>&1; then ok=1; break; fi
@@ -191,7 +238,7 @@ if [ "$ok" != "1" ]; then
   exit 1
 fi
 
-# ---------------------------------------------------------------- 6. Summary (no secrets echoed except the generated token, once, on request)
+# ---------------------------------------------------------------- 6. Summary (secrets stay in .env; a freshly generated token is shown once, on the terminal only)
 line
 say "Faktura is running."
 say ""
@@ -200,29 +247,25 @@ say "  Log in with: the app password you chose"
 say "  Data:        $FAKTURA_DIR/data   (app.db + files/ — back this folder up)"
 say "  Config:      $ENV_FILE  (private; holds the secrets)"
 say ""
-MCP_PORT_OUT="${FAKTURA_MCP_PORT:-3333}"
-say "AI / MCP access — the MCP server runs alongside the app on this machine only (localhost:$MCP_PORT_OUT)."
+say "AI / MCP access — the MCP server runs alongside the app on this machine only (localhost:$MCP_PORT)."
 say "Put this in your MCP client config (Claude Code, Claude Desktop, …) on this machine or over your VPN:"
 say ""
 cat <<JSON
-  { "mcpServers": { "kvit": { "type": "http", "url": "http://localhost:$MCP_PORT_OUT/mcp" } } }
+  { "mcpServers": { "kvit": { "type": "http", "url": "http://localhost:$MCP_PORT/mcp" } } }
 JSON
 say ""
-say "For a client that only speaks stdio, this runs the MCP server inside the app container (token filled in):"
+say "For a client that only speaks stdio, this runs the MCP server inside the app container (the token is read"
+say "from the container's own environment, so it appears nowhere in your client config):"
 say ""
-if [ -n "$TTY" ]; then
-  # The token is shown once, on the terminal only, never in piped output or logs.
-  cat >"$TTY" <<JSON
+cat <<JSON
   { "mcpServers": { "kvit": { "command": "docker", "args": ["compose", "-f", "$COMPOSE_FILE", "exec", "-i", "-T",
-      "-e", "FAKTURA_URL=http://127.0.0.1:3000", "-e", "FAKTURA_API_TOKEN=$API_TOKEN", "app", "node", "mcp/dist/stdio.js"] } } }
+      "-e", "FAKTURA_URL=http://127.0.0.1:3000", "app", "sh", "-c", "FAKTURA_API_TOKEN=\$API_TOKEN exec node mcp/dist/stdio.js"] } } }
 JSON
-else
-  cat <<JSON
-  { "mcpServers": { "kvit": { "command": "docker", "args": ["compose", "-f", "$COMPOSE_FILE", "exec", "-i", "-T",
-      "-e", "FAKTURA_URL=http://127.0.0.1:3000", "-e", "FAKTURA_API_TOKEN=<API_TOKEN from $ENV_FILE>", "app", "node", "mcp/dist/stdio.js"] } } }
-JSON
+say ""
+if [ "$TOKEN_GENERATED" = "1" ] && [ -n "$TTY" ]; then
+  say "A new API token was generated. It is stored in $ENV_FILE; shown here once, on the terminal only:" >"$TTY"
+  printf '  API_TOKEN=%s\n\n' "$API_TOKEN" >"$TTY"
 fi
-say ""
 say "Update later: rerun this installer with the same directory. Your data is kept, and the database is copied"
 say "to $FAKTURA_DIR/data/backups/ before any schema change."
 line

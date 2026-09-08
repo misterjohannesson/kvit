@@ -40,16 +40,37 @@ function commitList(version) {
   }
 }
 
-export function renderReleaseNotes(version, image) {
+/** owner/name of the repository the release is published on: RELEASE_REPO, GITHUB_REPOSITORY, the git remote, or the default. */
+export function repoSlug() {
+  if (process.env.RELEASE_REPO) return process.env.RELEASE_REPO;
+  if (process.env.GITHUB_REPOSITORY) return process.env.GITHUB_REPOSITORY;
+  try {
+    const url = execSync('git remote get-url origin', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const m = url.match(/[:/]([^/:]+\/[^/]+?)(?:\.git)?$/);
+    if (m) return m[1];
+  } catch {
+    /* no remote configured */
+  }
+  return 'kvit-app/faktura';
+}
+
+/** The sources carry the default slug kvit-app/faktura; every published copy gets the real repository substituted. */
+export function withRepo(text, repo) {
+  return text.replaceAll('github.com/kvit-app/faktura', `github.com/${repo}`);
+}
+
+export function renderReleaseNotes(version, image, repo = repoSlug()) {
   const template = fs.readFileSync(path.join(ROOT, 'release-template.md'), 'utf8');
-  return template.replaceAll('{{version}}', version).replaceAll('{{image}}', image).replaceAll('{{commits}}', commitList(version));
+  return withRepo(template.replaceAll('{{version}}', version).replaceAll('{{image}}', image).replaceAll('{{commits}}', commitList(version)), repo);
 }
 
 export async function release() {
   const version = gitVersion();
-  const image = process.env.RELEASE_IMAGE ?? 'ghcr.io/kvit-app/faktura';
+  // Registries want lowercase repository names.
+  const image = (process.env.RELEASE_IMAGE ?? 'ghcr.io/kvit-app/faktura').toLowerCase();
+  const repo = repoSlug();
   const targets = process.env.RELEASE_TARGETS ? process.env.RELEASE_TARGETS.split(',') : Object.keys(TARGETS);
-  console.log(`Release ${version} (image ${image}, targets ${targets.join(', ')})`);
+  console.log(`Release ${version} (repo ${repo}, image ${image}, targets ${targets.join(', ')})`);
 
   fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(DIST, { recursive: true });
@@ -61,11 +82,12 @@ export async function release() {
   await buildBinaries({ targets, outDir: DIST });
 
   for (const f of ['install.sh', 'install.ps1']) {
-    const text = fs.readFileSync(path.join(ROOT, f), 'utf8').replaceAll('__IMAGE__', `${image}:latest`);
+    // Only the DEFAULT_IMAGE assignment carries the sentinel; the guard next to it is spelled '__IMAGE''__' and survives.
+    const text = withRepo(fs.readFileSync(path.join(ROOT, f), 'utf8').replaceAll('__IMAGE__', `${image}:latest`), repo);
     fs.writeFileSync(path.join(DIST, f), text, { mode: 0o755 });
   }
   fs.writeFileSync(path.join(DIST, 'VERSION'), version + '\n');
-  fs.writeFileSync(path.join(DIST, 'RELEASE_NOTES.md'), renderReleaseNotes(version, image));
+  fs.writeFileSync(path.join(DIST, 'RELEASE_NOTES.md'), renderReleaseNotes(version, image, repo));
 
   const sums = fs
     .readdirSync(DIST)

@@ -15,3 +15,7 @@ mcp/dist
 mcp/test
 site
 dist
+packaging/stage
+.github
+HOSTING.md
+GUIDE.md

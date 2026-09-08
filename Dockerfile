@@ -30,7 +30,7 @@ RUN npm run build && npm prune --omit=dev --no-audit --no-fund \
 # into every generated PDF, so they ship with the image.
 RUN test -f tokens.css && test -f style.md && test -f example.html && test -f mcp/dist/http.js
 
-VOLUME ["/data"]
+# No VOLUME instruction: compose bind-mounts ./data into the app service, and the mcp service (same image) needs none.
 EXPOSE 3000 3333
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \

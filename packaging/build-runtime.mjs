@@ -76,17 +76,34 @@ export function buildRuntime() {
     copyDir(dir, path.join(TREE, 'mcp', rel));
   }
 
-  // Trim what no runtime needs (docs, tests, typings) to keep the binary small.
-  const junk = /(^|[\\/])(README(\.md)?|CHANGELOG(\.md)?|LICENSE(\.md)?|\.github|test|tests|__tests__|docs|\.d\.ts|\.d\.mts|\.d\.cts|tsconfig\.json)$/i;
-  const prune = (dir) => {
+  // Trim what no runtime needs to keep the binary small: package-top-level docs/tests directories and typings.
+  // LICENSE files stay (redistribution requires the notices); nothing below a package's top level is touched
+  // except .d.ts files, so packages that load a nested `test` or `docs` folder at runtime keep working.
+  const topLevelJunk = /^(README(\.md)?|CHANGELOG(\.md)?|\.github|test|tests|__tests__|docs|tsconfig\.json)$/i;
+  const typings = /\.d\.[mc]?ts$/i;
+  const pruneTypings = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
-      if (junk.test(e.name) && dir.includes('node_modules')) fs.rmSync(p, { recursive: true, force: true });
-      else if (e.isDirectory()) prune(p);
+      if (e.isDirectory()) pruneTypings(p);
+      else if (typings.test(e.name)) fs.rmSync(p, { force: true });
     }
   };
-  prune(path.join(TREE, 'node_modules'));
-  prune(path.join(TREE, 'mcp', 'node_modules'));
+  const prunePackages = (nm) => {
+    if (!fs.existsSync(nm)) return;
+    for (const e of fs.readdirSync(nm, { withFileTypes: true })) {
+      if (!e.isDirectory()) continue;
+      const pkgDirs = e.name.startsWith('@') ? fs.readdirSync(path.join(nm, e.name)).map((n) => path.join(nm, e.name, n)) : [path.join(nm, e.name)];
+      for (const pkg of pkgDirs) {
+        if (!fs.statSync(pkg).isDirectory()) continue;
+        for (const f of fs.readdirSync(pkg)) if (topLevelJunk.test(f)) fs.rmSync(path.join(pkg, f), { recursive: true, force: true });
+        const nested = path.join(pkg, 'node_modules');
+        if (fs.existsSync(nested)) prunePackages(nested);
+      }
+    }
+    pruneTypings(nm);
+  };
+  prunePackages(path.join(TREE, 'node_modules'));
+  prunePackages(path.join(TREE, 'mcp', 'node_modules'));
 
   fs.writeFileSync(path.join(TREE, 'VERSION'), version + '\n');
   const tarball = path.join(STAGE, 'runtime.tar.gz');

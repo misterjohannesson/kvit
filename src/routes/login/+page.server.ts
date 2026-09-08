@@ -28,6 +28,7 @@ export const actions: Actions = {
     if (!checkPassword(password)) {
       const next = { count: (state?.count ?? 0) + 1, until: Date.now() + LOCK_MS };
       failures.set(ip, next);
+      console.warn(`Login failed from ${ip}`);
       return fail(401, { error: 'Forkert kodeord' });
     }
     failures.delete(ip);

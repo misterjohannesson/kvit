@@ -1445,3 +1445,22 @@ Open findings: 0
   bearer handling, reconcile computed once, token length, port validation, test hardening, description/README fixes.
 
 Open findings: 0
+
+## Distribution (spec: installer, hosting guide, user guide, 2026-09-08)
+
+- Tier 1: install.sh / install.ps1 (four questions, hidden secrets, .env + compose written into the chosen directory,
+  app + MCP services, health check, snippets; idempotent). Tier 2: bun-compiled binaries for linux-x64, darwin-arm64,
+  windows-x64 (wizard, embedded runtime, Chromium via Playwright installer, app + MCP supervised as children).
+- npm run release -> dist/ (installers with image + repo filled in, three binaries, SHA256SUMS, VERSION, notes from
+  release-template.md); ci.yml / release.yml / pages.yml call the same scripts. HOSTING.md, GUIDE.md (Danish, 14
+  screenshots), site/ (index + whitepaper on tokens.css). Pre-migration database copies and /healthz in the app.
+- Verified locally: installer smoke (served script piped into bash, login, API write, idempotent rerun with both secrets
+  unset, MCP endpoint, no secret in captured output, password containing $$ and #), linux-x64 binary on ubuntu:24.04
+  without Node (wizard, serve, login, issue refused without Chromium), Windows binary end to end incl. Chromium download
+  and an issued PDF, docs checks, 104 app tests, 17 MCP tests. macOS binary built, not executed.
+- Reviewers (spec, quality, user-run + guides): 13 + 34 + 21 findings, none blocking after fixes: quoted .env values,
+  PowerShell 5.1-safe native calls, repository slug substitution at release/pages time, .env-driven bind/proxy settings
+  that survive reruns, backups/ created at first start, Docker context excludes packaging output, LICENSE files kept in
+  the runtime, guide/hosting accuracy fixes, login-failure logging.
+
+Open findings: 0
