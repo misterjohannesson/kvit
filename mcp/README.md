@@ -66,6 +66,12 @@ Which transport to use:
 
 The HTTP server prints its URL and whether a token is configured when it starts.
 
+With the Docker installers' HTTPS option (`FAKTURA_TLS`, see HOSTING.md) the endpoint is also available as
+`https://<machine>.<tailnet>.ts.net:8443/mcp` (tailscale) or `https://kvit.localhost:8443/mcp` (local; loopback only,
+certificate from the install directory's `kvit-root-ca.crt`, which Claude Code needs via `NODE_EXTRA_CA_CERTS`). The
+installer adds those host names to `MCP_ALLOWED_HOSTS` for you. Neither makes the connector dialog work: it still needs
+a public address.
+
 stdio, e.g. Claude Code (`claude mcp add-json kvit '<json>'`) or Claude Desktop (`claude_desktop_config.json`):
 
 ```json

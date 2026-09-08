@@ -29,9 +29,9 @@ through a private network. No port on the machine is opened to the internet.
 3. Install Faktura as usual. The installer binds the web app to all interfaces on the port you chose (default 3000),
    but the machine's firewall (below) keeps it off the public interface; Tailscale traffic arrives on the `tailscale0`
    interface and is allowed.
-4. From any device on the tailnet, open `http://100.64.0.12:3000` (or the MagicDNS name). Optionally turn on Tailscale
-   HTTPS (`tailscale cert`, or `tailscale serve --bg 3000`, which gives you `https://faktura.tailnet-name.ts.net`
-   with a real certificate, still tailnet-only).
+4. From any device on the tailnet, open `http://100.64.0.12:3000` (or the MagicDNS name). For HTTPS with a real
+   certificate, answer `tailscale` to the installer's HTTPS question (next subsection), or run
+   `tailscale serve --bg 3000` yourself for `https://faktura.tailnet-name.ts.net`, still tailnet-only.
 5. The MCP endpoint is published on `127.0.0.1:3333` only, and it has no login of its own: whoever can reach the port
    can use every tool, including the write tools. To use it from another tailnet device, either run the AI client on
    the server itself, or forward it over the tailnet with `tailscale serve --bg --tcp 3333 tcp://127.0.0.1:3333`
@@ -39,6 +39,36 @@ through a private network. No port on the machine is opened to the internet.
    `.env` (e.g. `MCP_ALLOWED_HOSTS=100.64.0.12:3333`; the installer carries it across reruns; details in
    [mcp/README.md](https://github.com/kvit-app/faktura/blob/main/mcp/README.md)). Never publish it on the public
    interface.
+
+### HTTPS from the installer
+
+Both installers end with an optional fifth answer, `FAKTURA_TLS`, kept in `.env` across reruns like everything else.
+The default, `none`, is the plain setup above. Neither option makes Faktura reachable from the internet, and neither
+one satisfies the "Add custom connector" dialog in claude.ai or Claude Desktop: that dialog connects from Anthropic's
+servers and needs a public `https` address, so a local or tailnet-only server is added over stdio there (see the MCP
+README). The value of HTTPS here is for browsers and for Claude Code and other MCP clients on your own devices.
+
+**`tailscale`.** The installer runs `tailscale serve` for you: the app on `https://<machine>.<tailnet>.ts.net`
+(port 443) and the MCP endpoint on port 8443 of the same name, both with a real Let's Encrypt certificate, both
+reachable from your tailnet only. Requirements: the Tailscale CLI on the server, MagicDNS and *HTTPS Certificates*
+enabled in the admin console (DNS page). The MCP host name is added to the endpoint's allowed hosts automatically. The
+first certificate can take a minute. `tailscale serve status` lists the mounts; `tailscale serve --https=443 off`
+removes one; the installer removes both when you switch back to `none`. Remember that the MCP endpoint has no login:
+with this option every device on your tailnet can use every tool.
+
+**`local`.** For one machine without Tailscale: Caddy runs as a third compose service with its own certificate
+authority and serves the app on `https://kvit.localhost` (port 443, or the port you choose) and the MCP endpoint on
+`https://kvit.localhost:8443/mcp`, bound to loopback only like the plain MCP port. The root certificate is copied to
+`<install dir>/kvit-root-ca.crt`. Nothing on the machine is changed unless you answer yes to the follow-up question,
+which adds `127.0.0.1 kvit.localhost` to the hosts file and imports the root into the system trust store
+(macOS keychain, Debian/Ubuntu `update-ca-certificates`, Fedora `update-ca-trust`, the current user's store on
+Windows); that step needs `sudo`, or an elevated PowerShell for the hosts file on Windows. Browsers and Claude Desktop
+read the system store; Claude Code does not, so start it with `NODE_EXTRA_CA_CERTS=<install dir>/kvit-root-ca.crt`.
+Do not use this option on a shared server: a root certificate you trust can sign for any name, so keep the `caddy/`
+folder and `kvit-root-ca.crt` as private as `.env`.
+
+Non-interactive equivalents: `FAKTURA_TLS`, `FAKTURA_DOMAIN`, `FAKTURA_TLS_PORT`, `FAKTURA_MCP_TLS_PORT`,
+`FAKTURA_TRUST_LOCAL=1`, and `FAKTURA_TAILSCALE_BIN` when the CLI is not on `PATH`.
 
 ### Firewall (Linux, ufw)
 

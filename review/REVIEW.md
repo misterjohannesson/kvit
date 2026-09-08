@@ -18,6 +18,7 @@ the relevant reviewer re-ran, and a slice was closed only at zero open findings.
 | Kvit "Kontor" design adoption | design | fonts self-hosted, brand mark, VAT deadline in the rail, one accent KPI per screen | 0 |
 | MCP server + bearer API | spec, quality, two verification passes | 8 + 17 raised; fixed (atomic draft creation, DNS-rebinding protection, strict bearer handling, reconcile computed once, quarter parsing) | 0 |
 | Distribution (installers, binaries, release, HOSTING, GUIDE, site, workflows) | spec, quality, user-run, two verification passes | 13 + 34 + 21 raised; fixed (compose-safe `.env` quoting, PowerShell 5.1 native calls, real repository URLs, `.env`-driven proxy settings, `backups/` from first start, launcher edges) | 0 |
+| Installer HTTPS option (`FAKTURA_TLS=local` with Caddy's own CA, `FAKTURA_TLS=tailscale` via `tailscale serve`) | user-run on Linux containers and Windows | 3 fixed: root certificate read through `exec` instead of `compose cp`; a PowerShell variable-case collision that overwrote the Caddyfile path; Compose letting the caller's environment (`API_TOKEN=generate`) override `.env`, which had also affected non-interactive `install.ps1` before | 0 |
 
 ## What is verified automatically
 

@@ -169,6 +169,12 @@ en anden MCP-klient):
 { "mcpServers": { "kvit": { "type": "http", "url": "http://localhost:3333/mcp" } } }
 ```
 
+Valgte du HTTPS i installationen (spørgsmålet »HTTPS: none, local eller tailscale«), står adressen i stedet som
+`https://…:8443/mcp`; installationen viser den præcise adresse til sidst. Med `tailscale` kan alle enheder på dit
+tailnet nå MCP-serveren, så den bør kun bruges på et tailnet, du selv styrer. Med `local` skal certifikatet
+(`kvit-root-ca.crt` i installationsmappen) være betroet på maskinen; Claude Code skal startes med
+`NODE_EXTRA_CA_CERTS=<mappe>/kvit-root-ca.crt`. Detaljer i hosting-vejledningen (engelsk).
+
 Bruger du den selvstændige version (én fil), viser den ved start både et `http`-udsnit og et `command`-udsnit, hvor
 programmet selv kører som MCP-server over stdio. Nøglen (API-token) ligger i konfigurationen på din maskine; klienten
 behøver den ikke, når du bruger `http`-varianten på samme maskine eller over din VPN.

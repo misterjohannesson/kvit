@@ -67,6 +67,39 @@ describe('HOSTING.md', () => {
   });
 });
 
+describe('installers', () => {
+  const sh = read('install.sh');
+  const ps = read('install.ps1');
+
+  it('both installers know the same .env keys, including the HTTPS option, and write the same compose services', () => {
+    const keys = [
+      'APP_PASSWORD', 'API_TOKEN', 'FAKTURA_PORT', 'FAKTURA_MCP_PORT', 'FAKTURA_BIND', 'ADDRESS_HEADER', 'XFF_DEPTH',
+      'MCP_ALLOWED_HOSTS', 'FAKTURA_IMAGE', 'FAKTURA_TLS', 'FAKTURA_DOMAIN', 'FAKTURA_TLS_PORT', 'FAKTURA_MCP_TLS_PORT',
+      'MCP_TLS_HOSTS', 'FAKTURA_TRUST_LOCAL', 'FAKTURA_TAILSCALE_BIN'
+    ];
+    for (const k of keys) {
+      expect(sh, `install.sh lacks ${k}`).toContain(k);
+      expect(ps, `install.ps1 lacks ${k}`).toContain(k);
+    }
+    for (const f of [sh, ps]) {
+      // The HTTPS proxy is opt-in and pinned; the MCP TLS port stays on loopback; the CA is never installed by Caddy itself.
+      expect(f).toContain('caddy:2-alpine');
+      expect(f).toContain('skip_install_trust');
+      expect(f).toMatch(/127\.0\.0\.1:\$\{FAKTURA_MCP_PORT\}:3333/);
+      // (the bash heredoc escapes compose placeholders as \${…}, the PowerShell here-string as `${…})
+      expect(f).toMatch(/127\.0\.0\.1:[\\`]?\$\{FAKTURA_MCP_TLS_PORT\}:[\\`]?\$\{FAKTURA_MCP_TLS_PORT\}/);
+      expect(f).toMatch(/serve --bg --https=/);
+      expect(f).toContain('NODE_EXTRA_CA_CERTS');
+    }
+    // The hosting guide documents every non-interactive HTTPS variable the installers accept.
+    const hosting = read('HOSTING.md');
+    for (const k of ['FAKTURA_TLS', 'FAKTURA_DOMAIN', 'FAKTURA_TLS_PORT', 'FAKTURA_MCP_TLS_PORT', 'FAKTURA_TRUST_LOCAL', 'FAKTURA_TAILSCALE_BIN']) {
+      expect(hosting, `HOSTING.md lacks ${k}`).toContain(k);
+    }
+    expect(hosting).toContain('NODE_EXTRA_CA_CERTS');
+  });
+});
+
 describe('GUIDE.md', () => {
   const md = read('GUIDE.md');
 

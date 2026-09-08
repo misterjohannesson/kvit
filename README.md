@@ -154,7 +154,10 @@ it. `npm run mcp` starts it over stdio and reads `mcp/.env` (or falls back to `A
 ## Distribution
 
 - `install.sh` / `install.ps1`: Docker-based installers (four questions, hidden secrets, `.env` + compose written into
-  the chosen directory, app + MCP services, health check). Idempotent; smoke-tested by `tests/install/run.sh`.
+  the chosen directory, app + MCP services, health check). An optional fifth answer adds HTTPS: `tailscale` runs
+  `tailscale serve` for a tailnet-only address with a real certificate, `local` adds a Caddy service with its own CA for
+  `kvit.localhost` (HOSTING.md, section 1). Idempotent; smoke-tested by `tests/install/run.sh`, including the local TLS
+  path and the MCP handshake through the proxy.
 - `packaging/`: Bun-compiled standalone binaries for linux-x64, darwin-arm64 and windows-x64. The binary carries the
   built app and its production dependencies, runs the same wizard, downloads Chromium on first start, and supervises the
   app and the MCP server as child processes. Only linux-x64 is executed in CI; Windows was verified by hand, macOS is
