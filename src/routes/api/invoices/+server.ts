@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
 import { api, readJson } from '$lib/server/api';
-import { createDraft, deleteDraft, listInvoices, updateDraft } from '$lib/server/services/invoices';
+import { createDraft, createDraftWithContent, listInvoices, strictId } from '$lib/server/services/invoices';
 import { badRequest } from '$lib/server/errors';
 
 export const GET: RequestHandler = ({ url }) =>
@@ -15,28 +15,13 @@ export const GET: RequestHandler = ({ url }) =>
 /**
  * Create a draft. Body: { customerId } creates an empty draft; adding any of
  * lines / issueDate / dueDate / paymentReference / vatExemptReason fills it in
- * the same request. If filling in fails validation, the empty draft is removed
- * again so the caller never leaves an orphan behind. Drafts have no number.
+ * the same transaction, validated before anything is written. Drafts have no number.
  */
 export const POST: RequestHandler = ({ request }) =>
   api(async () => {
     const body = (await readJson(request)) as Record<string, unknown> | null;
-    const customerId = Number(body?.customerId);
-    if (!Number.isInteger(customerId)) throw badRequest('customerId mangler');
-    const draft = createDraft({ customerId });
-    const fill = ['lines', 'issueDate', 'dueDate', 'paymentReference', 'vatExemptReason'].some((k) => body && body[k] !== undefined);
-    if (!fill) return draft;
-    try {
-      return await updateDraft(draft.id, {
-        customerId,
-        issueDate: body?.issueDate ?? draft.issueDate,
-        dueDate: body?.dueDate ?? draft.dueDate,
-        paymentReference: body?.paymentReference ?? '',
-        vatExemptReason: body?.vatExemptReason ?? null,
-        lines: body?.lines ?? []
-      });
-    } catch (e) {
-      await deleteDraft(draft.id);
-      throw e;
-    }
+    if (!body || typeof body !== 'object') throw badRequest('customerId mangler');
+    const fill = ['lines', 'issueDate', 'dueDate', 'paymentReference', 'vatExemptReason'].some((k) => body[k] !== undefined);
+    if (!fill) return createDraft({ customerId: strictId(body.customerId, 'customerId') });
+    return createDraftWithContent(body as { customerId: unknown } & Record<string, unknown>);
   }, 201);

@@ -1,4 +1,4 @@
-import { inject } from 'vitest';
+import { expect, inject } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createServer } from '../src/server.js';
@@ -48,4 +48,3 @@ export interface AuditRow {
 }
 
 export const money = (ore: number) => expect.objectContaining({ amount_ore: ore });
-import { expect } from 'vitest';

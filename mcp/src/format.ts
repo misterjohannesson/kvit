@@ -49,10 +49,12 @@ export function vatSettlementDate(year: number, quarter: number): string {
 
 /** "2026-Q3" -> { year, quarter }; also accepts "2026-3" and "Q3 2026". */
 export function parseQuarter(input: string): { year: number; quarter: number } {
-  const m = input.trim().match(/^(\d{4})[-\s]?Q?([1-4])$/i) ?? input.trim().match(/^Q([1-4])[-\s]+(\d{4})$/i)?.reverse();
-  if (!m) throw new Error(`Quarter must look like "2026-Q3" (got "${input}")`);
-  const [, y, q] = m;
-  return { year: Number(y), quarter: Number(q) };
+  const s = input.trim();
+  const yq = s.match(/^(\d{4})[-\s]?Q?([1-4])$/i);
+  if (yq) return { year: Number(yq[1]), quarter: Number(yq[2]) };
+  const qy = s.match(/^Q([1-4])[-\s]+(\d{4})$/i);
+  if (qy) return { year: Number(qy[2]), quarter: Number(qy[1]) };
+  throw new Error(`Quarter must look like "2026-Q3" (got "${input}")`);
 }
 
 export function isIsoDate(s: string): boolean {

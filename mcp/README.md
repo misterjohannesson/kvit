@@ -26,6 +26,9 @@ Environment variables for the server:
 | `FAKTURA_URL` | Base URL of the app | `http://127.0.0.1:3000` |
 | `FAKTURA_API_TOKEN` | Must equal the app's `API_TOKEN` | *(unset: every tool fails with an auth error, nothing is sent)* |
 | `MCP_HOST` / `MCP_PORT` | Bind address and port for the HTTP transport only | `127.0.0.1` / `3333` |
+| `MCP_ALLOWED_HOSTS` | Extra `host:port` values clients may address the HTTP transport as (comma-separated); the bound address and localhost are always allowed | – |
+
+`API_TOKEN` must be at least 16 characters (the app refuses to start otherwise); generate one with `openssl rand -hex 24`.
 
 ## Running
 
@@ -75,7 +78,9 @@ Streamable HTTP (a client on another machine on the tailnet; the token still liv
 ```
 
 The HTTP transport is stateless and unauthenticated by itself; bind it only to localhost or the tailnet address,
-never to a public interface. `GET /healthz` reports whether a token is configured.
+never to a public interface. It validates the `Host` header (DNS-rebinding protection): requests must address the
+bound `host:port`, localhost, or a value in `MCP_ALLOWED_HOSTS` (so a tailnet client should use the same address the
+server is bound to). `GET /healthz` reports whether a token is configured.
 
 ## Tools
 
@@ -107,6 +112,11 @@ Write (append-only or reversible, all audit-logged as `actor = api`):
 | `reconcile_balance` | afstemning: compares the bank's figure with likvider and books a `correction` for the delta (nothing if equal) | `actual_bank_balance_ore`, `date?` |
 | `create_draft_invoice` | creates a **draft** only; the response says issuing is done by the owner in the UI | `customer_id`, `lines[]`, `issue_date?`, `due_date?`, `payment_reference?`, `vat_exempt_reason?` |
 | `create_expense` | creates the expense row (next voucher number); the bilag file is attached in the UI | `date`, `supplier`, `description`, `account_id`, `amount_ex_vat_ore`, `vat_ore`, `paid_date?` |
+
+Beyond the spec's parameter lists, a few optional arguments are accepted because the app supports them: `list_accounts(type?)`,
+`create_draft_invoice(issue_date?, payment_reference?, vat_exempt_reason?)` and `create_expense(paid_date?)`. All stay
+append-only. Writes made by the seed script or by code outside a request are logged as `actor = "ui"`; the app's audit
+enum has only `ui` and `api`.
 
 Budget note: the app does not have a budget feature yet. `resultat` and `budget_status` return `budget_exists:
 false` with null budget/variance columns, `cashflow` projects from open invoices, unpaid expenses, credit notes

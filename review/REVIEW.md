@@ -1431,3 +1431,17 @@ Open findings: 0
   numbers are mono everywhere; the invoice PDF prints monochrome with no Kvit branding. Tests: 88 passing.
 
 Open findings: 0
+
+## MCP server (spec: Faktura MCP server, 2026-09-08)
+
+- App addendum: bearer API_TOKEN on /api/* (decisive over the cookie, min 16 chars), audit_log.actor ui|api via request
+  context, GET /api/audit, one-step POST /api/balance/reconcile, GET /api/invoices/number/{n}, atomic draft-with-lines.
+- mcp/: 15 tools (spec items 1-14) over the JSON API only; stdio + stateless streamable HTTP with Host validation;
+  17 integration tests against the seeded app (exact-ore reads, write rows with actor=api, reconcile delta then
+  nothing, wrong/missing token, no-database grep). Budget-dependent fields degrade to budget_exists:false (no budget
+  feature in the app yet).
+- Reviewers (spec, quality): 8 + 17 findings, none high, all fixed in the follow-up commit: DNS-rebinding protection,
+  atomic draft creation with validation before any write, create_expense lookup before write, parseQuarter, strict
+  bearer handling, reconcile computed once, token length, port validation, test hardening, description/README fixes.
+
+Open findings: 0

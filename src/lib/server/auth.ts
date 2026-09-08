@@ -8,11 +8,12 @@ import { apiToken, appPassword } from './env';
  */
 export function checkBearer(header: string | null): 'valid' | 'invalid' | 'absent' {
   if (!header) return 'absent';
-  const m = header.match(/^Bearer\s+(.+)$/i);
-  if (!m) return 'absent';
+  // Any Authorization header is a deliberate attempt at token auth: a malformed one never falls back to the cookie.
+  const m = header.match(/^Bearer\s+(\S+)\s*$/i);
+  if (!m) return 'invalid';
   const expected = apiToken();
   if (!expected) return 'invalid';
-  return safeEqual(m[1].trim(), expected) ? 'valid' : 'invalid';
+  return safeEqual(m[1], expected) ? 'valid' : 'invalid';
 }
 
 export const SESSION_COOKIE = 'faktura_session';

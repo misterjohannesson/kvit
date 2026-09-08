@@ -2,7 +2,7 @@ import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { json, redirect } from '@sveltejs/kit';
 import { assertDesignAssets } from '$lib/server/assets';
 import { checkBearer, isValidSession, SESSION_COOKIE } from '$lib/server/auth';
-import { appPassword } from '$lib/server/env';
+import { appPassword, assertApiTokenStrength } from '$lib/server/env';
 import { runWithActor, type Actor } from '$lib/server/audit';
 import { sqlite } from '$lib/server/db';
 import { closeBrowser } from '$lib/server/pdf';
@@ -11,6 +11,7 @@ import { repairArchivedPdfs } from '$lib/server/services/invoices';
 // Halt at startup if the design authority files or the password are missing.
 assertDesignAssets();
 appPassword();
+assertApiTokenStrength();
 {
   const repaired = repairArchivedPdfs();
   if (repaired > 0) console.warn(`Renamed ${repaired} archived PDF(s) left as .tmp by an interrupted issue`);

@@ -64,9 +64,12 @@ export default async function setup(project: TestProject) {
   project.provide('apiToken', TEST_API_TOKEN);
 
   return async () => {
-    child?.kill();
-    child = null;
-    await new Promise((r) => setTimeout(r, 300));
+    if (child) {
+      const exited = new Promise<void>((r) => child!.once('exit', () => r()));
+      child.kill();
+      await Promise.race([exited, new Promise((r) => setTimeout(r, 5000))]);
+      child = null;
+    }
     fs.rmSync(dataDir, { recursive: true, force: true });
   };
 }

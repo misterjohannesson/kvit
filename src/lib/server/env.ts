@@ -35,6 +35,16 @@ export function apiToken(): string | null {
   return t && t.length > 0 ? t : null;
 }
 
+export const API_TOKEN_MIN_LENGTH = 16;
+
+/** Startup check: a token short enough to guess is refused outright (there is no limiter on the bearer path). */
+export function assertApiTokenStrength(): void {
+  const t = apiToken();
+  if (t && t.length < API_TOKEN_MIN_LENGTH) {
+    throw new Error(`API_TOKEN must be at least ${API_TOKEN_MIN_LENGTH} characters (got ${t.length}); generate one with e.g. openssl rand -hex 24`);
+  }
+}
+
 export function appPassword(): string {
   const pw = process.env.APP_PASSWORD;
   if (!pw || pw.length === 0) {

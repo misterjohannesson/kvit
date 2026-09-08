@@ -25,6 +25,7 @@ function fail(e: unknown): CallToolResult {
   if (e instanceof FakturaError) {
     const label: Record<FakturaError['kind'], string> = {
       auth: 'Authentication failed',
+      forbidden: 'Request refused by the app',
       not_found: 'Not found',
       conflict: 'Conflict (immutability rule)',
       validation: 'Validation error',
@@ -64,7 +65,6 @@ async function run(fn: () => Promise<unknown>): Promise<CallToolResult> {
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'ISO date yyyy-mm-dd').refine(isIsoDate, 'Not a real calendar date');
 const yearSchema = z.number().int().min(2000).max(2100);
 const oreInt = z.number().int();
-const posOreInt = z.number().int().min(0);
 const movementKinds = ['vat_payment', 'owner', 'tax', 'correction', 'other'] as const;
 
 type InvoiceState = 'draft' | 'open' | 'overdue' | 'paid' | 'credited' | 'credit_note';
@@ -459,7 +459,7 @@ export function registerTools(server: McpServer, client: FakturaClient): void {
     {
       title: 'Mark invoice paid',
       description:
-        'Sets the paid date on an issued invoice (on a credit note: the refund date). Changes paid_date only; the document itself stays immutable. Audit-logged with actor "api". Fails with a conflict if the invoice is a draft, already paid, or the number does not exist.',
+        'Sets the paid date on an issued invoice (on a credit note: the refund date). Changes paid_date only; the document itself stays immutable. Audit-logged with actor "api". Not found if no document has that number; conflict (409) if it is already paid, or is a credit note of an unpaid original.',
       inputSchema: {
         number: z.number().int().positive().describe('Invoice number.'),
         paid_date: isoDate.describe('The date the money arrived, ISO yyyy-mm-dd.')
@@ -545,7 +545,7 @@ export function registerTools(server: McpServer, client: FakturaClient): void {
               description: z.string().trim().min(1).max(500),
               quantity: z.number().refine((n) => n !== 0 && Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, 'Max two decimals, not 0'),
               unit: z.string().trim().min(1).max(30).describe('e.g. "time", "stk."'),
-              unit_price_ore: posOreInt.describe('Unit price ex VAT in integer øre.'),
+              unit_price_ore: oreInt.describe('Unit price ex VAT in integer øre; negative for a discount line.'),
               account_id: z.number().int().positive().optional().describe('Revenue account id (list_accounts type revenue); default 1000 Konsulentydelser.')
             })
           )
@@ -605,8 +605,9 @@ export function registerTools(server: McpServer, client: FakturaClient): void {
     },
     async ({ date, supplier, description, account_id, amount_ex_vat_ore, vat_ore, paid_date }) =>
       run(async () => {
-        const e = await client.createExpense({ date, supplier, description, accountId: account_id, amountExVatOre: amount_ex_vat_ore, vatOre: vat_ore, paidDate: paid_date ?? null });
+        // Look the account up first: once the expense is written, nothing that can fail runs after it.
         const accounts = new Map((await client.listAccounts()).map((a) => [a.id, a]));
+        const e = await client.createExpense({ date, supplier, description, accountId: account_id, amountExVatOre: amount_ex_vat_ore, vatOre: vat_ore, paidDate: paid_date ?? null });
         return {
           created: 'expense',
           ...expenseSummary(e, accounts),

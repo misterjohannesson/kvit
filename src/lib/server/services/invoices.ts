@@ -190,59 +190,108 @@ export function createDraft(input: { customerId: number }): InvoiceDetail {
  * Runs under the issue lock so an edit can never interleave with an issue in
  * progress (PDF rendered from one state, number assigned to another).
  */
+type DraftData = z.infer<typeof draftSchema>;
+
+/** Validate draft input before anything is written: 400 with every message at once. */
+function parseDraftInput(input: unknown): DraftData {
+  const parsed = draftSchema.safeParse(input);
+  if (!parsed.success) throw badRequest(parsed.error.issues.map((i) => i.message).join('; '));
+  if (parsed.data.dueDate < parsed.data.issueDate) throw badRequest('Forfaldsdato kan ikke ligge før fakturadatoen');
+  return parsed.data;
+}
+
+/** Replace header fields and lines of draft `id`. Must run inside a transaction under the issue lock. */
+function applyDraft(id: number, data: DraftData): void {
+  const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
+  if (!inv) throw notFound('Faktura findes ikke');
+  assertDraft(inv);
+  const cust = db.select().from(customer).where(eq(customer.id, data.customerId)).get();
+  if (!cust) throw badRequest('Kunden findes ikke');
+
+  const fallbackAccount = data.lines.some((l) => l.accountId === undefined) ? defaultRevenueAccountId() : 0;
+  const lines = data.lines.map((l) => {
+    const accountId = l.accountId ?? fallbackAccount;
+    requireAccountOfType(accountId, 'revenue');
+    return {
+      invoiceId: id,
+      description: l.description,
+      quantity: l.quantity,
+      unit: l.unit,
+      unitPriceOre: l.unitPriceOre,
+      lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre),
+      accountId
+    };
+  });
+  const totals = computeTotals(lines, data.vatExemptReason !== null);
+
+  db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
+  if (lines.length) db.insert(invoiceLine).values(lines).run();
+  db.update(invoice)
+    .set({
+      customerId: data.customerId,
+      issueDate: data.issueDate,
+      dueDate: data.dueDate,
+      vatExemptReason: data.vatExemptReason,
+      paymentReference: data.paymentReference,
+      ...totals
+    })
+    .where(eq(invoice.id, id))
+    .run();
+  audit('invoice', id, 'update', { ...data, ...totals });
+}
+
 export async function updateDraft(id: number, input: unknown): Promise<InvoiceDetail> {
   // Immutability is checked before anything else: an issued invoice answers 409
   // to every mutation attempt, whatever the body looks like.
   const existing = db.select().from(invoice).where(eq(invoice.id, id)).get();
   if (!existing) throw notFound('Faktura findes ikke');
   assertDraft(existing);
-
-  const parsed = draftSchema.safeParse(input);
-  if (!parsed.success) throw badRequest(parsed.error.issues.map((i) => i.message).join('; '));
-  const data = parsed.data;
-  if (data.dueDate < data.issueDate) throw badRequest('Forfaldsdato kan ikke ligge før fakturadatoen');
-
+  const data = parseDraftInput(input);
   return withIssueLock(async () =>
     db.transaction(() => {
-    const inv = db.select().from(invoice).where(eq(invoice.id, id)).get();
-    if (!inv) throw notFound('Faktura findes ikke');
-    assertDraft(inv);
-    const cust = db.select().from(customer).where(eq(customer.id, data.customerId)).get();
-    if (!cust) throw badRequest('Kunden findes ikke');
-
-    const fallbackAccount = data.lines.some((l) => l.accountId === undefined) ? defaultRevenueAccountId() : 0;
-    const lines = data.lines.map((l) => {
-      const accountId = l.accountId ?? fallbackAccount;
-      requireAccountOfType(accountId, 'revenue');
-      return {
-        invoiceId: id,
-        description: l.description,
-        quantity: l.quantity,
-        unit: l.unit,
-        unitPriceOre: l.unitPriceOre,
-        lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre),
-        accountId
-      };
-    });
-    const totals = computeTotals(lines, data.vatExemptReason !== null);
-
-    db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
-    if (lines.length) db.insert(invoiceLine).values(lines).run();
-    db.update(invoice)
-      .set({
-        customerId: data.customerId,
-        issueDate: data.issueDate,
-        dueDate: data.dueDate,
-        vatExemptReason: data.vatExemptReason,
-        paymentReference: data.paymentReference,
-        ...totals
-      })
-      .where(eq(invoice.id, id))
-      .run();
-    audit('invoice', id, 'update', { ...data, ...totals });
-    return getInvoice(id);
+      applyDraft(id, data);
+      return getInvoice(id);
     })
   );
+}
+
+/**
+ * Create a draft and fill it in one transaction (the API/MCP path). Input is
+ * validated before any write, so a bad request leaves no row and no audit trace.
+ */
+export function createDraftWithContent(input: { customerId: unknown } & Record<string, unknown>): Promise<InvoiceDetail> {
+  const customerId = strictId(input.customerId, 'customerId');
+  const cust = db.select().from(customer).where(eq(customer.id, customerId)).get();
+  if (!cust) throw badRequest('Kunden findes ikke');
+  const today = todayIso();
+  const terms = cust.paymentTermsDays ?? (Number(getSettings().payment_terms_days) || 0);
+  const data = parseDraftInput({
+    customerId,
+    issueDate: input.issueDate ?? today,
+    dueDate: input.dueDate ?? addDays(String(input.issueDate ?? today), terms),
+    paymentReference: input.paymentReference ?? '',
+    vatExemptReason: input.vatExemptReason ?? null,
+    lines: input.lines ?? []
+  });
+  return withIssueLock(async () =>
+    db.transaction(() => {
+      const row = db
+        .insert(invoice)
+        .values({ status: 'draft', customerId, issueDate: data.issueDate, dueDate: data.dueDate, paymentReference: '', createdAt: new Date().toISOString() })
+        .returning()
+        .get();
+      audit('invoice', row.id, 'create', { customerId });
+      applyDraft(row.id, data);
+      return getInvoice(row.id);
+    })
+  );
+}
+
+/** A positive integer id from JSON: numbers or digit strings only (no `true` -> 1, no `[5]` -> 5). */
+export function strictId(raw: unknown, name: string): number {
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN;
+  if (!Number.isInteger(n) || n <= 0) throw badRequest(`${name} skal være et positivt heltal`);
+  return n;
 }
 
 /** Drafts may be deleted. Issued invoices cannot: there is no code path for it. */

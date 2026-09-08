@@ -19,7 +19,7 @@
     "test:api": "vitest run tests/api",
     "mcp": "npm --prefix mcp run dev",
     "mcp:http": "npm --prefix mcp run dev:http",
-    "mcp:test": "npm --prefix mcp test"
+    "mcp:test": "npm run build && npm --prefix mcp test"
   },
   "dependencies": {
     "@fontsource/archivo": "^5.3.0",

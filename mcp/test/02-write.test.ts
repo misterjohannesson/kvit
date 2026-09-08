@@ -93,10 +93,18 @@ describe('write tools', () => {
     expect(inv.invoiceNumber).toBeNull();
     expect(inv.lines[0].accountId).toBe(acc1100);
     const trail = await appGet<AuditRow[]>(`/api/audit?entity=invoice&entityId=${r.data.draft_id}`);
+    expect(trail.map((a) => a.action).sort()).toEqual(['create', 'update']);
     expect(trail.every((a) => a.actor === 'api')).toBe(true);
+    // Invalid input: 400, and nothing written at all (no draft, no audit rows).
+    const lastAudit = (await appGet<AuditRow[]>('/api/audit?limit=1'))[0].id;
+    const invoicesBefore = (await appGet<unknown[]>('/api/invoices')).length;
     const bad = await mcp.call<{ error: string; http_status: number }>('create_draft_invoice', { customer_id: 999999, lines: [{ description: 'x', quantity: 1, unit: 'stk.', unit_price_ore: 100 }] });
     expect(bad.isError).toBe(true);
     expect(bad.data.http_status).toBe(400);
+    const badLines = await mcp.call<{ http_status: number }>('create_draft_invoice', { customer_id: customers.data.customers[0].id, lines: [{ description: 'x', quantity: 1, unit: 'stk.', unit_price_ore: 100, account_id: 999999 }] });
+    expect(badLines.data.http_status).toBe(400);
+    expect((await appGet<AuditRow[]>('/api/audit?limit=1'))[0].id).toBe(lastAudit);
+    expect((await appGet<unknown[]>('/api/invoices')).length).toBe(invoicesBefore);
   });
 
   it('create_expense creates voucher 9 and reminds about the bilag file', async () => {

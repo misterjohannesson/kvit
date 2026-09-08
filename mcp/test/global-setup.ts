@@ -30,8 +30,15 @@ async function waitFor(url: string, ms: number): Promise<void> {
 }
 
 export default async function setup(project: TestProject) {
-  if (!fs.existsSync(path.join(APP_ROOT, 'build', 'index.js'))) {
-    throw new Error(`App build missing at ${APP_ROOT}/build. Run "npm run build" in the app root first.`);
+  const buildEntry = path.join(APP_ROOT, 'build', 'index.js');
+  if (!fs.existsSync(buildEntry)) {
+    throw new Error(`App build missing at ${APP_ROOT}/build. Run "npm run build" in the app root first (or use "npm run mcp:test" from the root).`);
+  }
+  // A stale build would test yesterday's app: refuse if any server source is newer than the build.
+  const newest = (dir: string): number =>
+    Math.max(...fs.readdirSync(dir, { withFileTypes: true }).map((d) => (d.isDirectory() ? newest(path.join(dir, d.name)) : fs.statSync(path.join(dir, d.name)).mtimeMs)), 0);
+  if (newest(path.join(APP_ROOT, 'src')) > fs.statSync(buildEntry).mtimeMs) {
+    throw new Error('The app build is older than its sources. Run "npm run build" in the app root first.');
   }
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kvit-mcp-test-'));
   const port = 3700 + Math.floor(Math.random() * 300);
@@ -60,9 +67,12 @@ export default async function setup(project: TestProject) {
   project.provide('dataDir', dataDir);
 
   return async () => {
-    child?.kill();
-    child = null;
-    await new Promise((r) => setTimeout(r, 300));
+    if (child) {
+      const exited = new Promise<void>((r) => child!.once('exit', () => r()));
+      child.kill();
+      await Promise.race([exited, new Promise((r) => setTimeout(r, 5000))]);
+      child = null;
+    }
     fs.rmSync(dataDir, { recursive: true, force: true });
   };
 }

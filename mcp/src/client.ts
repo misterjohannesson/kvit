@@ -15,8 +15,9 @@ export class FakturaError extends Error {
     super(message);
     this.name = 'FakturaError';
   }
-  get kind(): 'auth' | 'not_found' | 'conflict' | 'validation' | 'unavailable' | 'error' {
-    if (this.status === 401 || this.status === 403) return 'auth';
+  get kind(): 'auth' | 'forbidden' | 'not_found' | 'conflict' | 'validation' | 'unavailable' | 'error' {
+    if (this.status === 401) return 'auth';
+    if (this.status === 403) return 'forbidden';
     if (this.status === 404) return 'not_found';
     if (this.status === 409) return 'conflict';
     if (this.status === 400 || this.status === 413 || this.status === 422) return 'validation';
@@ -188,7 +189,8 @@ export class FakturaClient {
     return this.config.token;
   }
 
-  private async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  // Only GET and POST exist: there is no code path for PUT or DELETE, so nothing here can edit or remove records.
+  private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     const token = this.assertToken();
     const headers: Record<string, string> = { authorization: `Bearer ${token}`, accept: 'application/json' };
     const init: RequestInit = { method, headers, redirect: 'manual' };

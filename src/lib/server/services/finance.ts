@@ -500,17 +500,22 @@ export function reconcileBook(actualOre: number, expectedLikviderOre: number, da
     throw conflict(`Likvider er ændret siden sammenligningen (${formatOre(preview.likviderOre)}). Sammenlign igen.`);
   }
   if (preview.differenceOre === 0) throw badRequest('Saldoen stemmer allerede; der er intet at bogføre');
+  return bookCorrection(preview, date);
+}
+
+/** The correction for a non-zero difference plus the 'reconcile' audit row, in one transaction. */
+function bookCorrection(preview: ReturnType<typeof reconcilePreview>, date: string) {
   return db.transaction(() => {
     const movement = createMovement(
       {
         date,
-        description: `Afstemning mod bank: saldo ${formatOre(actualOre)}`,
+        description: `Afstemning mod bank: saldo ${formatOre(preview.actualOre)}`,
         amountOre: preview.differenceOre,
         kind: 'correction'
       },
-      { reconciliation: { enteredBalanceOre: actualOre, likviderOre: preview.likviderOre } }
+      { reconciliation: { enteredBalanceOre: preview.actualOre, likviderOre: preview.likviderOre } }
     );
-    audit('balance', 0, 'reconcile', { date, actualOre, likviderOre: preview.likviderOre, differenceOre: preview.differenceOre, bookedMovementId: movement.id });
+    audit('balance', 0, 'reconcile', { date, actualOre: preview.actualOre, likviderOre: preview.likviderOre, differenceOre: preview.differenceOre, bookedMovementId: movement.id });
     return movement;
   });
 }
@@ -532,12 +537,12 @@ export interface ReconcileResult {
 export function reconcile(actualOre: number, date = todayIso()): ReconcileResult {
   if (!isValidIsoDate(date)) throw badRequest('Ugyldig dato');
   return db.transaction(() => {
+    // Likvider is computed once; the booking below reuses this preview.
     const preview = reconcilePreview(actualOre);
     if (preview.differenceOre === 0) {
       audit('balance', 0, 'reconcile', { date, actualOre, likviderOre: preview.likviderOre, differenceOre: 0, bookedMovementId: null });
       return { date, ...preview, movement: null };
     }
-    const movement = reconcileBook(actualOre, preview.likviderOre, date);
-    return { date, ...preview, movement };
+    return { date, ...preview, movement: bookCorrection(preview, date) };
   });
 }
