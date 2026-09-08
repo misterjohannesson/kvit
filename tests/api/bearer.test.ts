@@ -54,7 +54,7 @@ describe('bearer token', () => {
     // null means 'default': today's date, so the draft is created.
     const nul = await api.json<{ id: number; issueDate: string }>('POST', '/api/invoices', { customerId: customers[0].id, issueDate: null, lines: [] });
     expect(nul.status).toBe(201);
-    expect(nul.data.issueDate).toMatch(/^d{4}-d{2}-d{2}$/);
+    expect(nul.data.issueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     await ui.json('DELETE', `/api/invoices/${nul.data.id}`);
   });
 
