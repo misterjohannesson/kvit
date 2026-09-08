@@ -146,6 +146,13 @@ export function getInvoice(id: number): InvoiceDetail {
   return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null, originalPaidDate: orig?.paidDate ?? null, attachments: listAttachments(id) };
 }
 
+/** Detail by invoice number (issued documents only; drafts have no number). */
+export function getInvoiceByNumber(invoiceNumber: number): InvoiceDetail {
+  const row = db.select({ id: invoice.id }).from(invoice).where(eq(invoice.invoiceNumber, invoiceNumber)).get();
+  if (!row) throw notFound(`Faktura ${invoiceNumber} findes ikke`);
+  return getInvoice(row.id);
+}
+
 function assertDraft(inv: Invoice): void {
   if (inv.status !== 'draft') {
     throw conflict(`Faktura ${inv.invoiceNumber ?? inv.id} er udstedt og kan ikke ændres. Opret en kreditnota i stedet.`);

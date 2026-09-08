@@ -10,6 +10,7 @@ import path from 'node:path';
 import type { TestProject } from 'vitest/node';
 
 export const TEST_PASSWORD = 'test-kodeord-1234';
+export const TEST_API_TOKEN = 'test-api-token-abc123';
 
 let child: ChildProcess | null = null;
 let dataDir = '';
@@ -35,6 +36,7 @@ export default async function setup(project: TestProject) {
     ...process.env,
     DATA_DIR: dataDir,
     APP_PASSWORD: TEST_PASSWORD,
+    API_TOKEN: TEST_API_TOKEN,
     PORT: String(port),
     HOST: '127.0.0.1',
     BODY_SIZE_LIMIT: '25M',
@@ -59,6 +61,7 @@ export default async function setup(project: TestProject) {
   project.provide('baseUrl', baseUrl);
   project.provide('dataDir', dataDir);
   project.provide('password', TEST_PASSWORD);
+  project.provide('apiToken', TEST_API_TOKEN);
 
   return async () => {
     child?.kill();
@@ -73,5 +76,6 @@ declare module 'vitest' {
     baseUrl: string;
     dataDir: string;
     password: string;
+    apiToken: string;
   }
 }

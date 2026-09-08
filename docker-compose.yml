@@ -8,6 +8,8 @@ services:
     environment:
       # The single shared password. Set it in .env or export it before `docker compose up`.
       APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD}
+      # Optional bearer token for the JSON API (the MCP server in ./mcp uses it). Unset = bearer auth off.
+      API_TOKEN: ${API_TOKEN:-}
       TZ: Europe/Copenhagen
     volumes:
       # The only state: SQLite database (app.db) and all PDFs/receipts (files/).

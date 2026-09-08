@@ -3,6 +3,14 @@ import { inject } from 'vitest';
 export class Client {
   base = inject('baseUrl');
   cookie = '';
+  /** When set, requests carry `Authorization: Bearer <token>` instead of the session cookie. */
+  token: string | null = null;
+
+  static withToken(token: string): Client {
+    const c = new Client();
+    c.token = token;
+    return c;
+  }
 
   async login(password = inject('password')): Promise<Response> {
     const r = await fetch(this.base + '/login', {
@@ -17,7 +25,8 @@ export class Client {
   }
 
   async raw(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<Response> {
-    const init: RequestInit = { method, headers: { cookie: this.cookie, ...headers }, redirect: 'manual' };
+    const auth: Record<string, string> = this.token !== null ? { authorization: `Bearer ${this.token}` } : { cookie: this.cookie };
+    const init: RequestInit = { method, headers: { ...auth, ...headers }, redirect: 'manual' };
     if (body instanceof FormData) {
       init.body = body;
     } else if (body !== undefined) {

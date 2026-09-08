@@ -7,12 +7,13 @@
 import { and, asc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { account, cashMovement, expense, invoice, invoiceLine, type Account } from '../schema';
-import { formatDate, formatOre, monthOf, nextMonth, quarterOf, quarterRange, todayIso, vatSettlementDate } from '../../format';
+import { formatDate, formatOre, isValidIsoDate, monthOf, nextMonth, quarterOf, quarterRange, todayIso, vatSettlementDate } from '../../format';
 import { getSettings } from './settings';
 import { listInvoices } from './invoices';
 import { listMovementsAsc } from './cash';
 import { badRequest, conflict } from '../errors';
 import { createMovement } from './cash';
+import { audit, listAudit } from '../audit';
 
 const ISSUED = ['issued', 'credited'] as const;
 
@@ -432,6 +433,21 @@ export interface Balance {
   openInvoices: number;
   unpaidExpenses: number;
   openCreditNotes: number;
+  /** The most recent afstemning (audit action 'reconcile'), booked or not. */
+  lastReconciliation: { at: string; date: string; actualOre: number; differenceOre: number; bookedMovementId: number | null } | null;
+}
+
+function lastReconciliation(): Balance['lastReconciliation'] {
+  const row = listAudit({ entity: 'balance', action: 'reconcile', limit: 1 })[0];
+  if (!row) return null;
+  const d = (row.detail ?? {}) as Record<string, unknown>;
+  return {
+    at: row.timestamp,
+    date: String(d.date ?? row.timestamp.slice(0, 10)),
+    actualOre: Number(d.actualOre ?? 0),
+    differenceOre: Number(d.differenceOre ?? 0),
+    bookedMovementId: typeof d.bookedMovementId === 'number' ? d.bookedMovementId : null
+  };
 }
 
 /** Position statement computed live: Likvider, Debitorer against Kreditorer and Skyldig moms. */
@@ -460,7 +476,8 @@ export function balance(): Balance {
     openingBalanceOre: cf.openingBalanceOre,
     openInvoices: open.length,
     unpaidExpenses: unpaid.length,
-    openCreditNotes: owed.length
+    openCreditNotes: owed.length,
+    lastReconciliation: lastReconciliation()
   };
 }
 
@@ -476,20 +493,51 @@ export function reconcilePreview(actualOre: number): { likviderOre: number; actu
  * `expectedLikviderOre` is the figure the user saw in step 1; if Likvider moved meanwhile, refuse (409) so the
  * booked correction is always the one that was confirmed.
  */
-export function reconcileBook(actualOre: number, expectedLikviderOre: number) {
+export function reconcileBook(actualOre: number, expectedLikviderOre: number, date = todayIso()) {
   const preview = reconcilePreview(actualOre);
   if (!Number.isInteger(expectedLikviderOre)) throw badRequest('Ugyldig sammenligningssaldo');
   if (expectedLikviderOre !== preview.likviderOre) {
     throw conflict(`Likvider er ændret siden sammenligningen (${formatOre(preview.likviderOre)}). Sammenlign igen.`);
   }
   if (preview.differenceOre === 0) throw badRequest('Saldoen stemmer allerede; der er intet at bogføre');
-  return createMovement(
-    {
-      date: todayIso(),
-      description: `Afstemning mod bank: saldo ${formatOre(actualOre)}`,
-      amountOre: preview.differenceOre,
-      kind: 'correction'
-    },
-    { reconciliation: { enteredBalanceOre: actualOre, likviderOre: preview.likviderOre } }
-  );
+  return db.transaction(() => {
+    const movement = createMovement(
+      {
+        date,
+        description: `Afstemning mod bank: saldo ${formatOre(actualOre)}`,
+        amountOre: preview.differenceOre,
+        kind: 'correction'
+      },
+      { reconciliation: { enteredBalanceOre: actualOre, likviderOre: preview.likviderOre } }
+    );
+    audit('balance', 0, 'reconcile', { date, actualOre, likviderOre: preview.likviderOre, differenceOre: preview.differenceOre, bookedMovementId: movement.id });
+    return movement;
+  });
+}
+
+export interface ReconcileResult {
+  date: string;
+  likviderOre: number;
+  actualOre: number;
+  differenceOre: number;
+  /** The correction booked for the difference; null when the figures already agreed. */
+  movement: ReturnType<typeof createMovement> | null;
+}
+
+/**
+ * One-step afstemning (API/MCP): compare and, if the bank differs from Likvider,
+ * book the correction in the same transaction. Always audit-logged, so "when did
+ * I last reconcile" has an answer even when nothing needed booking.
+ */
+export function reconcile(actualOre: number, date = todayIso()): ReconcileResult {
+  if (!isValidIsoDate(date)) throw badRequest('Ugyldig dato');
+  return db.transaction(() => {
+    const preview = reconcilePreview(actualOre);
+    if (preview.differenceOre === 0) {
+      audit('balance', 0, 'reconcile', { date, actualOre, likviderOre: preview.likviderOre, differenceOre: 0, bookedMovementId: null });
+      return { date, ...preview, movement: null };
+    }
+    const movement = reconcileBook(actualOre, preview.likviderOre, date);
+    return { date, ...preview, movement };
+  });
 }

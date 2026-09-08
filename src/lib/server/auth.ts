@@ -1,5 +1,19 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { appPassword } from './env';
+import { apiToken, appPassword } from './env';
+
+/**
+ * `Authorization: Bearer <API_TOKEN>` for the JSON API. Returns 'valid' when the
+ * token matches, 'invalid' when a bearer header is present but wrong or bearer
+ * auth is disabled, and 'absent' when there is no bearer header at all.
+ */
+export function checkBearer(header: string | null): 'valid' | 'invalid' | 'absent' {
+  if (!header) return 'absent';
+  const m = header.match(/^Bearer\s+(.+)$/i);
+  if (!m) return 'absent';
+  const expected = apiToken();
+  if (!expected) return 'invalid';
+  return safeEqual(m[1].trim(), expected) ? 'valid' : 'invalid';
+}
 
 export const SESSION_COOKIE = 'faktura_session';
 

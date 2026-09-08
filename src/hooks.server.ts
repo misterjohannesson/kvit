@@ -1,8 +1,9 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { json, redirect } from '@sveltejs/kit';
 import { assertDesignAssets } from '$lib/server/assets';
-import { isValidSession, SESSION_COOKIE } from '$lib/server/auth';
+import { checkBearer, isValidSession, SESSION_COOKIE } from '$lib/server/auth';
 import { appPassword } from '$lib/server/env';
+import { runWithActor, type Actor } from '$lib/server/audit';
 import { sqlite } from '$lib/server/db';
 import { closeBrowser } from '$lib/server/pdf';
 import { repairArchivedPdfs } from '$lib/server/services/invoices';
@@ -48,11 +49,25 @@ export const handle: Handle = async ({ event, resolve }) => {
     return json({ error: 'Cross-site request refused' }, { status: 403 });
   }
 
-  const authed = isValidSession(event.cookies.get(SESSION_COOKIE));
+  // Bearer token (API_TOKEN) on the JSON API: the MCP server's way in. A bearer header is decisive: a
+  // wrong or disabled token is 401 even if a session cookie is also present, so a misconfigured client
+  // never silently falls back to the browser session. Every write made this way is audited as actor 'api'.
+  let actor: Actor = 'ui';
+  let authed = false;
+  const isApi = event.url.pathname.startsWith('/api/');
+  const bearer = isApi ? checkBearer(event.request.headers.get('authorization')) : 'absent';
+  if (bearer === 'valid') {
+    authed = true;
+    actor = 'api';
+  } else if (bearer === 'invalid') {
+    return json({ error: 'Ugyldigt API-token' }, { status: 401 });
+  } else {
+    authed = isValidSession(event.cookies.get(SESSION_COOKIE));
+  }
   event.locals.authenticated = authed;
 
   if (!authed && !PUBLIC_PATHS.has(event.url.pathname)) {
-    if (event.url.pathname.startsWith('/api/')) {
+    if (isApi) {
       return json({ error: 'Ikke logget ind' }, { status: 401 });
     }
     redirect(303, '/login');
@@ -61,7 +76,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     redirect(303, '/');
   }
 
-  const response = await resolve(event);
+  const response = await runWithActor(actor, () => resolve(event));
   response.headers.set('Cache-Control', 'no-store');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('X-Content-Type-Options', 'nosniff');

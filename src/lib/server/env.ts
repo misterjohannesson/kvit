@@ -26,6 +26,15 @@ export const EXPENSE_FILES_DIR = path.join(FILES_DIR, 'expenses');
 /** Project root: where tokens.css / style.md / example.html and drizzle/ live. */
 export const PROJECT_ROOT = process.env.PROJECT_ROOT ?? process.cwd();
 
+/**
+ * Optional bearer token for the JSON API (used by the MCP server). Unset means
+ * bearer authentication is disabled and only the session cookie is accepted.
+ */
+export function apiToken(): string | null {
+  const t = process.env.API_TOKEN;
+  return t && t.length > 0 ? t : null;
+}
+
 export function appPassword(): string {
   const pw = process.env.APP_PASSWORD;
   if (!pw || pw.length === 0) {

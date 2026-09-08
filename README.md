@@ -187,6 +187,11 @@ den er ejerens dokument til kunden.
 - Ét delt kodeord (`APP_PASSWORD`), sammenlignet tidskonstant; sessionen er en HMAC af kodeordet i en `HttpOnly`,
   `SameSite=Lax`-cookie (30 dage). Skift kodeordet, og alle sessioner er ugyldige. Fem forkerte forsøg fra samme
   adresse giver 30 sekunders pause.
+- **API-token** (`API_TOKEN`, valgfri): JSON-endepunkterne under `/api/` accepterer `Authorization: Bearer <token>`
+  i stedet for sessionscookien. Det er vejen ind for MCP-serveren i `mcp/`. En forkert eller manglende token giver
+  401, og en bearer-header vinder altid over en cookie, så en fejlkonfigureret klient aldrig falder tilbage på
+  browsersessionen. Alt, der skrives ad den vej, står i `audit_log` med `actor = api` (UI-skrivninger har `ui`);
+  sporet kan læses på `GET /api/audit`. Er `API_TOKEN` ikke sat, er bearer-adgang slået fra.
 - Cookien er ikke `Secure`, fordi appen taler ren HTTP på det private net. Sæt en TLS-proxy foran, hvis den nogensinde
   skal ud af Tailscale, og slå `Secure` til i `src/routes/login/+page.server.ts`.
 - CSRF: skrivende requests med en `Origin`, der ikke matcher værtsnavnet, afvises (403), uanset hvilket navn appen

@@ -146,7 +146,9 @@ export const auditLog = sqliteTable(
     entity: text('entity').notNull(),
     entityId: integer('entity_id').notNull(),
     action: text('action').notNull(),
-    detailJson: text('detail_json').notNull()
+    detailJson: text('detail_json').notNull(),
+    /** Who caused the write: the browser UI (session cookie) or the JSON API with a bearer token (MCP). */
+    actor: text('actor', { enum: ['ui', 'api'] }).notNull().default('ui')
   },
   (t) => [index('audit_log_entity_idx').on(t.entity, t.entityId)]
 );
