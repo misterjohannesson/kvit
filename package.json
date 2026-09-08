@@ -19,7 +19,12 @@
     "test:api": "vitest run tests/api",
     "mcp": "npm --prefix mcp run dev",
     "mcp:http": "npm --prefix mcp run dev:http",
-    "mcp:test": "npm run build && npm --prefix mcp test"
+    "mcp:test": "npm run build && npm --prefix mcp test",
+    "build:runtime": "node packaging/build-runtime.mjs",
+    "build:binaries": "node packaging/build-binaries.mjs",
+    "release": "node packaging/release.mjs",
+    "test:install": "bash tests/install/run.sh",
+    "test:docs": "vitest run --project unit tests/unit/docs.test.ts"
   },
   "dependencies": {
     "@fontsource/archivo": "^5.3.0",
@@ -45,8 +50,10 @@
     "drizzle-kit": "^0.31.10",
     "pdf-parse": "^2.4.5",
     "svelte-check": "^4.7.6",
+    "tar": "^7.5.22",
     "typescript": "^5.9.0",
     "vite": "^8.2.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "yaml": "^2.9.0"
   }
 }
