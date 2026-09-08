@@ -173,11 +173,8 @@ describe('credit notes', () => {
     expect(o.status).toBe('credited');
     expect(o.creditedByInvoiceId).toBe(cr.data.id);
 
-    // A credit note can be marked refunded (paid_date = refund date), once.
-    const refunded = await c.json<Inv>('POST', `/api/invoices/${cr.data.id}/paid`, { paidDate: '2026-09-08' });
-    expect(refunded.status).toBe(200);
-    expect(refunded.data.paidDate).toBe('2026-09-08');
-    expect((await c.json('POST', `/api/invoices/${cr.data.id}/paid`, { paidDate: '2026-09-09' })).status).toBe(409);
+    // The original was never paid, so there is nothing to refund on the credit note.
+    expect((await c.json('POST', `/api/invoices/${cr.data.id}/paid`, { paidDate: '2026-09-08' })).status).toBe(409);
 
     // credited twice -> 409; credit note itself -> 409; credit note cannot be edited -> 409
     expect((await c.json('POST', `/api/invoices/${orig.id}/credit`)).status).toBe(409);
@@ -189,6 +186,19 @@ describe('credit notes', () => {
     const text = (await new PDFParse({ data: Buffer.from(await pdf.arrayBuffer()) }).getText()).text;
     expect(text).toContain('Kreditnota');
     expect(text).toContain(String(orig.invoiceNumber));
+  });
+});
+
+describe('credit note refund', () => {
+  it('a credit note of a PAID original can be marked refunded once', async () => {
+    const d = await makeDraft();
+    const orig = (await c.json<Inv>('POST', `/api/invoices/${d.id}/issue`)).data;
+    expect((await c.json('POST', `/api/invoices/${orig.id}/paid`, { paidDate: '2026-09-07' })).status).toBe(200);
+    const cr = (await c.json<Inv>('POST', `/api/invoices/${orig.id}/credit`)).data;
+    const refunded = await c.json<Inv>('POST', `/api/invoices/${cr.id}/paid`, { paidDate: '2026-09-08' });
+    expect(refunded.status).toBe(200);
+    expect(refunded.data.paidDate).toBe('2026-09-08');
+    expect((await c.json('POST', `/api/invoices/${cr.id}/paid`, { paidDate: '2026-09-09' })).status).toBe(409);
   });
 });
 

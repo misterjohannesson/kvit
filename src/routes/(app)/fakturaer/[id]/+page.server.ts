@@ -27,6 +27,7 @@ export const load: PageServerLoad = ({ params }) => {
       invoice: inv,
       customers: listCustomers(),
       accounts: listAccounts(),
+      revenueAccounts: listAccounts('revenue'),
       nextNumber: nextInvoiceNumber(),
       problems: inv.status === 'draft' ? validateForIssue(inv, settings) : []
     };

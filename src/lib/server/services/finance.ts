@@ -271,9 +271,10 @@ export function reconcilePreview(actualOre: number): { likviderOre: number; actu
  * `expectedLikviderOre` is the figure the user saw in step 1; if Likvider moved meanwhile, refuse (409) so the
  * booked correction is always the one that was confirmed.
  */
-export function reconcileBook(actualOre: number, expectedLikviderOre?: number) {
+export function reconcileBook(actualOre: number, expectedLikviderOre: number) {
   const preview = reconcilePreview(actualOre);
-  if (expectedLikviderOre !== undefined && expectedLikviderOre !== preview.likviderOre) {
+  if (!Number.isInteger(expectedLikviderOre)) throw badRequest('Ugyldig sammenligningssaldo');
+  if (expectedLikviderOre !== preview.likviderOre) {
     throw conflict(`Likvider er ændret siden sammenligningen (${formatOre(preview.likviderOre)}). Sammenlign igen.`);
   }
   if (preview.differenceOre === 0) throw badRequest('Saldoen stemmer allerede; der er intet at bogføre');

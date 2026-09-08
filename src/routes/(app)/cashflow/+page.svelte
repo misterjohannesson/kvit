@@ -26,7 +26,7 @@
   <div class="kpi">
     <div class="kpi__label">Åbningssaldo</div>
     <div class="kpi__value {f.openingBalanceOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(f.openingBalanceOre, false)}<span class="kpi__unit">kr.</span></div>
-    <div class="kpi__sub">pr. {formatDate(f.openingBalanceDate)} · ændres under Indstillinger</div>
+    <div class="kpi__sub">ved dagens begyndelse {formatDate(f.openingBalanceDate)} · ændres under Indstillinger</div>
   </div>
   <div class="kpi">
     <div class="kpi__label">Bankposition nu</div>
@@ -43,7 +43,7 @@
 <section>
   <div class="section__head">
     <h2>Pr. måned</h2>
-    <p>Kassebasis: fakturaer efter betalingsdato, udgifter efter betalingsdato, plus øvrige bankbevægelser. Positionen løber fra åbningssaldoen.{#if f.excludedBeforeOpening.count > 0} {f.excludedBeforeOpening.count} bevægelser dateret før åbningssaldoen ({formatOre(f.excludedBeforeOpening.netOre)} netto) er allerede indeholdt i den og tælles ikke med.{/if}</p>
+    <p>Kassebasis: Ind = fakturaer efter betalingsdato ({formatOre(f.months.reduce((s, m) => s + m.invoicesInOre, 0), false)}) plus positive bankbevægelser ({formatOre(f.months.reduce((s, m) => s + m.movementsInOre, 0), false)}); Ud = udgifter efter betalingsdato ({formatOre(f.months.reduce((s, m) => s + m.expensesOutOre, 0), false)}), refunderede kreditnotaer ({formatOre(f.months.reduce((s, m) => s + m.creditNotesOutOre, 0), false)}) og negative bankbevægelser ({formatOre(f.months.reduce((s, m) => s + m.movementsOutOre, 0), false)}). Positionen løber fra åbningssaldoen.{#if f.excludedBeforeOpening.count > 0} {f.excludedBeforeOpening.count} bevægelser dateret før åbningssaldoen ({formatOre(f.excludedBeforeOpening.netOre)} netto) er allerede indeholdt i den og tælles ikke med.{/if}</p>
   </div>
   <div class="panel">
     <div class="table-wrap">
@@ -61,8 +61,8 @@
           {#each f.months as m (m.month)}
             <tr>
               <td class="mono">{monthLabel(m.month)}</td>
-              <td class="num">{formatOre(m.inOre, false)}<span class="cell-sub">fakturaer {formatOre(m.invoicesInOre, false)} · bevægelser {formatOre(m.movementsInOre, false)}</span></td>
-              <td class="num">{formatOre(m.outOre, false)}<span class="cell-sub">udgifter {formatOre(m.expensesOutOre, false)} · kreditnotaer {formatOre(m.creditNotesOutOre, false)} · bevægelser {formatOre(m.movementsOutOre, false)}</span></td>
+              <td class="num">{formatOre(m.inOre, false)}</td>
+              <td class="num">{formatOre(m.outOre, false)}</td>
               <td class={neg(m.netOre)}>{formatOre(m.netOre, false)}</td>
               <td class={neg(m.positionOre)}>{formatOre(m.positionOre, false)}</td>
             </tr>

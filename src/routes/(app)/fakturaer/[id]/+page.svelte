@@ -14,7 +14,7 @@
 <svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Faktura</title></svelte:head>
 
 {#if inv.status === 'draft'}
-  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.accounts.filter((a) => a.type === 'revenue')} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
+  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
 {:else}
   <div class="pagehead">
     <div>
@@ -75,7 +75,7 @@
             {#each inv.lines as l (l.id)}
               {@const acc = data.accounts.find((a) => a.id === l.accountId)}
               <tr>
-                <td>{l.description}</td>
+                <td class="wrap">{l.description}</td>
                 <td class={neg(l.quantity)}>{formatQuantity(l.quantity)}</td>
                 <td>{l.unit}</td>
                 <td class="num">{formatOre(l.unitPriceOre, false)}</td>
@@ -102,6 +102,8 @@
           <span class="hint spacer">Kreditnotaen er udstedt og kan ikke ændres.</span>
           {#if inv.paidDate}
             <span class="hint">Refunderet <span class="mono">{formatDate(inv.paidDate)}</span></span>
+          {:else if !inv.originalPaidDate}
+            <span class="hint">Modregner en ubetalt faktura – intet at refundere.</span>
           {:else}
             <form method="POST" action="?/paid" class="paidform">
               <label class="label" for="paidDate" hidden>Refusionsdato</label>

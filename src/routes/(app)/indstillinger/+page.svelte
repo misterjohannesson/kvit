@@ -74,7 +74,7 @@
           <div class="field field--span-3 {err('opening_balance') ? 'field--error' : ''}">
             <label class="label" for="opening_balance">Banksaldo</label>
             <input class="input input--num input--short" id="opening_balance" name="opening_balance" value={formatOre(Number(s.opening_balance_ore) || 0, false)} inputmode="decimal" required />
-            {#if err('opening_balance')}<span class="error">{err('opening_balance')}</span>{:else}<span class="hint">Saldoen, som cashflow og balance tæller fra.</span>{/if}
+            {#if err('opening_balance')}<span class="error">{err('opening_balance')}</span>{:else}<span class="hint">Saldoen ved dagens begyndelse; bevægelser på selve datoen tælles med. Cashflow og balance tæller herfra.</span>{/if}
           </div>
           <div class="field field--span-3 {err('opening_balance_date') ? 'field--error' : ''}">
             <label class="label" for="opening_balance_date">Pr. dato</label>

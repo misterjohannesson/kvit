@@ -8,12 +8,11 @@ import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 import { DATA_DIR, INVOICE_FILES_DIR } from '../env';
 import { addDays, isValidIsoDate, lineTotalOre, roundOre, todayIso } from '../../format';
+import { isoDate, oreAmount } from '../zod-shared';
 import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
 import { renderInvoicePdf } from '../pdf';
 import { defaultRevenueAccountId, requireAccountOfType } from './accounts';
-
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dato skal være åååå-mm-dd').refine(isValidIsoDate, 'Ugyldig dato');
 
 const lineSchema = z.object({
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
@@ -22,7 +21,7 @@ const lineSchema = z.object({
     .refine((n) => Number.isFinite(n) && n !== 0 && Math.abs(n) <= 1e9, 'Antal skal være forskelligt fra 0')
     .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, 'Antal kan højst have to decimaler'),
   unit: z.string().trim().min(1, 'Enhed er påkrævet').max(30),
-  unitPriceOre: z.coerce.number({ error: 'Pris skal være et tal' }).int('Pris skal være hele øre').max(1e13).min(-1e13),
+  unitPriceOre: oreAmount('Pris'),
   /** Revenue account; omitted -> 1000 Konsulentydelser (resolved by number, see defaultRevenueAccountId). */
   accountId: z.coerce.number({ error: 'Konto skal være et tal' }).int('Ugyldig konto').positive('Ugyldig konto').optional()
 });
@@ -56,6 +55,8 @@ export interface InvoiceDetail extends InvoiceListRow {
   customer: Customer;
   lines: InvoiceLine[];
   creditsInvoiceId: number | null;
+  /** For a credit note: the paid date of the original it credits (money to be refunded when set). */
+  originalPaidDate: string | null;
 }
 
 export const computeLineTotalOre = lineTotalOre;
@@ -135,11 +136,11 @@ export function getInvoice(id: number): InvoiceDetail {
   if (!cust) throw notFound('Kunde findes ikke');
   const lines = db.select().from(invoiceLine).where(eq(invoiceLine.invoiceId, id)).orderBy(asc(invoiceLine.id)).all();
   const orig = db
-    .select({ id: invoice.id })
+    .select({ id: invoice.id, paidDate: invoice.paidDate })
     .from(invoice)
     .where(eq(invoice.creditedByInvoiceId, id))
     .get();
-  return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null };
+  return { ...row, customer: cust, lines, creditsInvoiceId: orig?.id ?? null, originalPaidDate: orig?.paidDate ?? null };
 }
 
 function assertDraft(inv: Invoice): void {
@@ -374,6 +375,9 @@ export function setPaidDate(id: number, paidDate: string): InvoiceDetail {
     const inv = getInvoice(id);
     if (inv.status !== 'issued') throw conflict('Kun udstedte dokumenter kan markeres som betalt');
     if (inv.paidDate) throw conflict(inv.isCreditNote ? 'Kreditnotaen er allerede refunderet' : 'Fakturaen er allerede markeret som betalt');
+    if (inv.isCreditNote && !inv.originalPaidDate) {
+      throw conflict('Kreditnotaen modregner en ubetalt faktura; der er intet at refundere');
+    }
     db.update(invoice).set({ paidDate }).where(eq(invoice.id, id)).run();
     audit('invoice', id, inv.isCreditNote ? 'mark_refunded' : 'mark_paid', { paidDate });
     return getInvoice(id);
@@ -433,6 +437,7 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
       isCreditNote: true,
       creditsInvoiceNumber: orig.invoiceNumber,
       creditsInvoiceId: orig.id,
+      originalPaidDate: orig.paidDate,
       creditedByNumber: null
     };
 

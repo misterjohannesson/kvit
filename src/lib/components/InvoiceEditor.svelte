@@ -148,7 +148,7 @@
             <table class="data data--dense lines">
               <thead>
                 <tr>
-                  <th scope="col">Beskrivelse</th>
+                  <th scope="col">Beskrivelse og konto</th>
                   <th scope="col" class="num">Antal</th>
                   <th scope="col">Enhed</th>
                   <th scope="col" class="num">Pris ekskl. moms</th>

@@ -31,8 +31,12 @@ export const actions: Actions = {
   book: async ({ request }) => {
     const form = await request.formData();
     try {
-      const expectedRaw = String(form.get('expectedLikvider') ?? '').trim();
-      const expected = expectedRaw === '' ? undefined : parseKrToOre(expectedRaw);
+      let expected: number;
+      try {
+        expected = parseKrToOre(String(form.get('expectedLikvider') ?? ''));
+      } catch {
+        throw badRequest('Sammenlign først, og bekræft derefter korrektionen');
+      }
       const movement = reconcileBook(actualFrom(form), expected);
       return { booked: movement };
     } catch (e) {

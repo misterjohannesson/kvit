@@ -116,6 +116,8 @@ describe('reconciliation and forms', () => {
     const preview = await action('/balance?/reconcile', { actual: '105.000,00' });
     expect(preview.status).toBe(200);
     expect(await preview.text()).toContain('305,00');
+    // Booking without the previewed figure is refused.
+    expect((await action('/balance?/book', { actual: '105.000,00' })).status).toBe(400);
     // Stale previewed Likvider -> 409, nothing booked.
     const stale = await action('/balance?/book', { actual: '105.000,00', expectedLikvider: '1,00' });
     expect(stale.status).toBe(409);
@@ -145,14 +147,17 @@ describe('reconciliation and forms', () => {
 
   it('flows dated before the opening balance date are not counted again', async () => {
     const settings = (await c.json<Record<string, string>>('GET', '/api/settings')).data;
-    const moved = await c.json<Record<string, string>>('PUT', '/api/settings', { opening_balance_date: '2026-05-01' });
-    expect(moved.status).toBe(200);
-    const cf = await c.json<Cashflow & { excludedBeforeOpening: { count: number; netOre: number } }>('GET', '/api/finance?view=cashflow');
-    // April: invoice 1001 (+58.500) and voucher 1 (-373,75) are now inside the opening balance.
-    expect(cf.data.excludedBeforeOpening).toEqual({ count: 2, netOre: 5_850_000 - 37_375 });
-    expect(cf.data.months[0].month).toBe('2026-05');
-    expect(cf.data.closingPositionOre).toBe(10_700_000 - (5_850_000 - 37_375));
-    await c.json('PUT', '/api/settings', { opening_balance_date: settings.opening_balance_date });
+    try {
+      const moved = await c.json<Record<string, string>>('PUT', '/api/settings', { opening_balance_date: '2026-05-01' });
+      expect(moved.status).toBe(200);
+      const cf = await c.json<Cashflow & { excludedBeforeOpening: { count: number; netOre: number } }>('GET', '/api/finance?view=cashflow');
+      // April: invoice 1001 (+58.500) and voucher 1 (-373,75) are now inside the opening balance.
+      expect(cf.data.excludedBeforeOpening).toEqual({ count: 2, netOre: 5_850_000 - 37_375 });
+      expect(cf.data.months[0].month).toBe('2026-05');
+      expect(cf.data.closingPositionOre).toBe(10_700_000 - (5_850_000 - 37_375));
+    } finally {
+      await c.json('PUT', '/api/settings', { opening_balance_date: settings.opening_balance_date });
+    }
   });
 
   it('manages the kontoplan through the settings forms', async () => {
