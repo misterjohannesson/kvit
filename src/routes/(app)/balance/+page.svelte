@@ -6,7 +6,7 @@
   const fieldError = $derived(form?.fields?.actual as string | undefined);
 </script>
 
-<svelte:head><title>Balance · Faktura</title></svelte:head>
+<svelte:head><title>Balance · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>
@@ -49,7 +49,7 @@
 </section>
 
 <section class="kpis kpis--1" aria-label="Nettoposition">
-  <div class="kpi">
+  <div class="kpi kpi--accent">
     <div class="kpi__label">Nettoposition</div>
     <div class="kpi__value {b.nettoOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(b.nettoOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">likvider + debitorer − kreditorer − skyldige kreditnotaer − skyldig moms</div>

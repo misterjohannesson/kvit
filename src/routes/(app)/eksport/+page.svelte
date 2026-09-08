@@ -2,7 +2,7 @@
   let { data } = $props();
 </script>
 
-<svelte:head><title>Eksport · Faktura</title></svelte:head>
+<svelte:head><title>Eksport · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>

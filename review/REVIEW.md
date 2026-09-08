@@ -1419,3 +1419,15 @@ Open findings: 0
   marker + "Usendte" filter in the list, warning on Overblik. Tests: 88 passing.
 
 Open findings: 0
+
+## Design v2 "Kvit / Kontor" (owner-supplied, 2026-09-08)
+
+- Root tokens.css / style.md / example.html replaced by spec/design/* (slate rail, brass primary, Archivo + IBM Plex Mono);
+  the app additions (field widths, spans, forecast rows, callout, loading, attachments) re-applied on top and documented
+  in style.md sections 2-8. app.css = new example style block + additions. Screenshots in review/shots/ regenerated.
+- Brand: static/logo.svg + favicon.svg, "Kvit" wordmark with company name beneath in the rail, VAT deadline pinned in the
+  rail footer and topbar, one .kpi--accent per screen. Fonts self-hosted (@fontsource) and embedded in the PDF.
+- Self-review against style.md: rail carries navigation only; brass appears on the mark and the primary action only;
+  numbers are mono everywhere; the invoice PDF prints monochrome with no Kvit branding. Tests: 88 passing.
+
+Open findings: 0

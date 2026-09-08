@@ -16,6 +16,32 @@ export function assertDesignAssets(): void {
 }
 
 let tokensCache: string | null = null;
+let fontFaceCache: string | null = null;
+
+const FONT_FILES: { family: string; weight: number; pkg: string; file: string }[] = [
+  { family: 'Archivo', weight: 400, pkg: '@fontsource/archivo', file: 'archivo-latin-400-normal.woff2' },
+  { family: 'Archivo', weight: 500, pkg: '@fontsource/archivo', file: 'archivo-latin-500-normal.woff2' },
+  { family: 'Archivo', weight: 600, pkg: '@fontsource/archivo', file: 'archivo-latin-600-normal.woff2' },
+  { family: 'IBM Plex Mono', weight: 400, pkg: '@fontsource/ibm-plex-mono', file: 'ibm-plex-mono-latin-400-normal.woff2' },
+  { family: 'IBM Plex Mono', weight: 500, pkg: '@fontsource/ibm-plex-mono', file: 'ibm-plex-mono-latin-500-normal.woff2' }
+];
+
+/**
+ * @font-face rules with the self-hosted woff2 files inlined as data URIs, so
+ * the PDF renderer (a blank Chromium page fed HTML) uses the same Archivo and
+ * IBM Plex Mono as the screen. Read once; ~120 kB in total.
+ */
+export function fontFaceCss(): string {
+  if (fontFaceCache === null) {
+    fontFaceCache = FONT_FILES.map((f) => {
+      const abs = path.join(PROJECT_ROOT, 'node_modules', f.pkg, 'files', f.file);
+      if (!fs.existsSync(abs)) throw new Error(`Font file missing: ${abs} (run npm install)`);
+      const b64 = fs.readFileSync(abs).toString('base64');
+      return `@font-face { font-family: "${f.family}"; font-style: normal; font-weight: ${f.weight}; font-display: block; src: url(data:font/woff2;base64,${b64}) format("woff2"); }`;
+    }).join('\n');
+  }
+  return fontFaceCache;
+}
 
 export function readTokensCss(): string {
   if (tokensCache === null) {

@@ -14,7 +14,7 @@
   const forecastRows = $derived(f.months.filter((m) => m.kind !== 'closed').length);
 </script>
 
-<svelte:head><title>Cashflow · Faktura</title></svelte:head>
+<svelte:head><title>Cashflow · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>
@@ -29,7 +29,7 @@
     <div class="kpi__value {f.openingBalanceOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(f.openingBalanceOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">ved dagens begyndelse {formatDate(f.openingBalanceDate)} · ændres under Indstillinger</div>
   </div>
-  <div class="kpi">
+  <div class="kpi kpi--accent">
     <div class="kpi__label">Bankposition nu</div>
     <div class="kpi__value {f.closingPositionOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(f.closingPositionOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">åbningssaldo + alle betalte bevægelser</div>

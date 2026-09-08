@@ -17,7 +17,7 @@
   const filtered = $derived(data.filter !== 'alle' || data.year !== undefined);
 </script>
 
-<svelte:head><title>Fakturaer · Faktura</title></svelte:head>
+<svelte:head><title>Fakturaer · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>

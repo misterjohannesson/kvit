@@ -17,7 +17,7 @@
   const previewSrc = $derived(`/api/invoices/${inv.id}/preview?v=${data.previewKey}#toolbar=0`);
 </script>
 
-<svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Faktura</title></svelte:head>
+<svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Kvit</title></svelte:head>
 
 {#if inv.status === 'draft'}
   <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} defaultTermsDays={data.defaultTermsDays} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />

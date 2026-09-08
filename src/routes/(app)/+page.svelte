@@ -12,7 +12,7 @@
   );
 </script>
 
-<svelte:head><title>Overblik · Faktura</title></svelte:head>
+<svelte:head><title>Overblik · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>
@@ -37,7 +37,7 @@
 {/if}
 
 <section class="kpis" aria-label="Nøgletal">
-  <div class="kpi">
+  <div class="kpi kpi--accent">
     <div class="kpi__label">Udestående</div>
     <div class="kpi__value">{formatOre(outstanding, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">{data.unpaid.length} ubetalte fakturaer</div>

@@ -1,4 +1,4 @@
-# Faktura
+# Kvit
 
 Fakturering og bogholderi for én person: fakturaer, kreditnotaer, udgifter med bilag, kvartalsvis moms, en flad
 mini-kontoplan med resultat-, cashflow- og balancevisninger, og en komplet eksport til revisor. Ét brugernavn-løst kodeord, én container, én mappe med alle data.
@@ -172,9 +172,15 @@ periodiseringsdatoer (fakturadato / bilagsdato), kassevisningerne bruger betalin
 
 ## Design
 
-`tokens.css`, `style.md` og `example.html` i rodmappen er designautoriteten. Appen nægter at starte, hvis de mangler.
-`tokens.css` er det eneste sted, farver, typografi, afstande og radier defineres; alle stylesheets refererer til dem.
-Faktura-PDF'en bruger de samme tokens under printreglerne i `style.md`.
+`tokens.css`, `style.md` og `example.html` i rodmappen er designautoriteten (retningen »Kontor«: skiferblå
+navigationsskinne, varm-lys arbejdsflade, messing til den ene primære handling; kilden ligger i `spec/design/`). Appen
+nægter at starte, hvis de mangler. `tokens.css` er det eneste sted, farver, typografi, afstande og radier defineres;
+alle stylesheets refererer til dem. Faktura-PDF'en bruger de samme tokens under printreglerne i `style.md`.
+
+Navnet er **Kvit** (af *kvit og frit*). Mærke og favicon ligger i `static/logo.svg` og `static/favicon.svg`.
+Skrifterne Archivo og IBM Plex Mono er selvhostede via `@fontsource`-pakkerne (ingen CDN); PDF'en indlejrer de samme
+woff2-filer, så dokumentet sættes med præcis de skrifter, skærmen viser. Selve fakturaen bærer ingen Kvit-branding –
+den er ejerens dokument til kunden.
 
 ## Sikkerhed og drift
 

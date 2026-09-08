@@ -6,7 +6,7 @@
   const href = (year: number, quarter: number | null) => `/resultat?year=${year}${quarter ? `&quarter=${quarter}` : ''}`;
 </script>
 
-<svelte:head><title>Resultat · Faktura</title></svelte:head>
+<svelte:head><title>Resultat · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>
@@ -39,7 +39,7 @@
     <div class="kpi__value">{formatOre(r.costsOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">ekskl. moms</div>
   </div>
-  <div class="kpi">
+  <div class="kpi kpi--accent">
     <div class="kpi__label">Resultat før skat</div>
     <div class="kpi__value {r.resultOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(r.resultOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">omsætning − omkostninger</div>

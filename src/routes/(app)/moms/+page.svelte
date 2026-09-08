@@ -9,7 +9,7 @@
   };
 </script>
 
-<svelte:head><title>Momsindberetning · Faktura</title></svelte:head>
+<svelte:head><title>Momsindberetning · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>
@@ -41,7 +41,7 @@
     <div class="kpi__value">{formatOre(r.purchaseVatOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">{r.purchaseRows.length} bilag · køb {formatOre(r.purchasesExVatOre, false)} ekskl. moms</div>
   </div>
-  <div class="kpi">
+  <div class="kpi kpi--accent">
     <div class="kpi__label">Momstilsvar</div>
     <div class="kpi__value {r.netVatOre < 0 ? 'kpi__value--neg' : ''}">{formatOre(r.netVatOre, false)}<span class="kpi__unit">kr.</span></div>
     <div class="kpi__sub">{r.netVatOre < 0 ? 'negativt tilsvar – til udbetaling' : 'salgsmoms − købsmoms – til indbetaling'}</div>

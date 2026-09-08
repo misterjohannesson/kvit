@@ -6,7 +6,7 @@
   const c = $derived(data.customer);
 </script>
 
-<svelte:head><title>{c.name} · Faktura</title></svelte:head>
+<svelte:head><title>{c.name} · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>

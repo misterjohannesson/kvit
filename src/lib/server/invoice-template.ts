@@ -1,6 +1,6 @@
 import { formatDate, formatOre, formatQuantity, formatVatRate } from '../format';
 import type { InvoiceDetail } from './services/invoices';
-import { printTokenValue, tokenValue } from './assets';
+import { fontFaceCss, printTokenValue, tokenValue } from './assets';
 
 function esc(s: unknown): string {
   return String(s ?? '')
@@ -73,6 +73,9 @@ export function renderInvoiceHtml(
 <head>
 <meta charset="utf-8">
 <title>${esc(title)} ${esc(number)}</title>
+<style>
+${fontFaceCss()}
+</style>
 <style>
 ${tokensCss}
 </style>

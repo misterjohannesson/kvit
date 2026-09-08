@@ -8,7 +8,7 @@
   const sum = (k: 'amountExVatOre' | 'vatOre' | 'amountInclOre') => data.rows.reduce((s, r) => s + r[k], 0);
 </script>
 
-<svelte:head><title>Udgifter · Faktura</title></svelte:head>
+<svelte:head><title>Udgifter · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>

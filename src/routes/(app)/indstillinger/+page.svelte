@@ -5,7 +5,7 @@
   const err = (k: string): string | undefined => form?.fields?.[k];
 </script>
 
-<svelte:head><title>Indstillinger · Faktura</title></svelte:head>
+<svelte:head><title>Indstillinger · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>

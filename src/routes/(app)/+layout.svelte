@@ -28,8 +28,8 @@
 <div class="app">
   <aside class="sidebar">
     <a class="brand" href="/">
-      <span class="brand__mark"></span>
-      <span class="brand__name">{data.companyName || 'Faktura'}</span>
+      <img class="brand__mark" src="/logo.svg" width="26" height="26" alt="" />
+      <span class="brand__name">Kvit<span class="brand__sub">{data.companyName || 'Bogholderi'}</span></span>
     </a>
 
     <nav class="nav" aria-label="Hovedmenu">
@@ -45,14 +45,20 @@
         {/if}
       {/each}
     </nav>
+
+    <!-- The rail's footer pins the current VAT deadline: this app exists because of that date. -->
+    <div class="sidebar__foot"><p>Moms {data.vatDeadline.quarter}. kvt. · frist {data.vatDeadline.date}</p></div>
   </aside>
 
   <div class="main">
     <header class="topbar">
-      <span class="topbar__ctx">{data.context}</span>
-      <form method="POST" action="/logout">
-        <button type="submit" class="btn btn--sm">Log ud</button>
-      </form>
+      <span class="topbar__ctx topbar__ctx--now">{data.context}</span>
+      <span class="topbar__right">
+        <span class="topbar__ctx">Frist for moms: {data.vatDeadline.date}</span>
+        <form method="POST" action="/logout">
+          <button type="submit" class="btn btn--sm">Log ud</button>
+        </form>
+      </span>
     </header>
 
     <div class="content">
@@ -61,3 +67,7 @@
     </div>
   </div>
 </div>
+
+<style>
+  .topbar__right { display: flex; align-items: center; gap: var(--space-4); }
+</style>

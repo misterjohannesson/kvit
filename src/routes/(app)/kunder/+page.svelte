@@ -4,7 +4,7 @@
   let { data, form } = $props();
 </script>
 
-<svelte:head><title>Kunder · Faktura</title></svelte:head>
+<svelte:head><title>Kunder · Kvit</title></svelte:head>
 
 <div class="pagehead">
   <div>

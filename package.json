@@ -1,5 +1,5 @@
 {
-  "name": "faktura",
+  "name": "kvit",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -19,6 +19,8 @@
     "test:api": "vitest run tests/api"
   },
   "dependencies": {
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "@sveltejs/adapter-node": "^5.5.7",
     "@sveltejs/kit": "^2.70.3",
     "archiver": "^8.0.0",

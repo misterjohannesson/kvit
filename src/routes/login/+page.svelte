@@ -3,14 +3,14 @@
   let { form }: { form: ActionData } = $props();
 </script>
 
-<svelte:head><title>Log ind · Faktura</title></svelte:head>
+<svelte:head><title>Log ind · Kvit</title></svelte:head>
 
 <div class="login">
   <form class="panel login__panel" method="POST">
     <div class="panel__head">
-      <div class="brand">
-        <span class="brand__mark"></span>
-        <span class="brand__name">Faktura</span>
+      <div class="brand brand--onlight">
+        <img class="brand__mark" src="/logo.svg" width="26" height="26" alt="" />
+        <span class="brand__name">Kvit<span class="brand__sub">Bogholderi</span></span>
       </div>
     </div>
     <div class="panel__body">
@@ -42,4 +42,8 @@
     width: 100%;
     max-width: var(--field-max-width);
   }
+  /* the lockup sits on the light panel head here, not on the navy rail */
+  .brand--onlight { padding: 0; }
+  .brand--onlight .brand__name { color: var(--text-primary); }
+  .brand--onlight .brand__sub { color: var(--text-secondary); }
 </style>
