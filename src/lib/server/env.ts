@@ -1,4 +1,20 @@
+import fs from 'node:fs';
 import path from 'node:path';
+
+/**
+ * Local runs (`npm run dev`, `npm start`, `npm run seed`) read a `.env` file in
+ * the working directory. Variables already present in the environment win, so a
+ * developer's `.env` never overrides Docker, the test harness or the shell.
+ * The file is git- and docker-ignored; `.env.example` lists the keys.
+ */
+const envFile = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envFile)) {
+  try {
+    process.loadEnvFile(envFile);
+  } catch (e) {
+    console.warn(`Could not read ${envFile}: ${(e as Error).message}`);
+  }
+}
 
 /** Root data directory. Everything persistent lives here (DB + files). */
 export const DATA_DIR = process.env.DATA_DIR ?? '/data';
@@ -13,7 +29,7 @@ export const PROJECT_ROOT = process.env.PROJECT_ROOT ?? process.cwd();
 export function appPassword(): string {
   const pw = process.env.APP_PASSWORD;
   if (!pw || pw.length === 0) {
-    throw new Error('APP_PASSWORD environment variable must be set');
+    throw new Error('APP_PASSWORD environment variable must be set (or put it in .env when running from code)');
   }
   return pw;
 }

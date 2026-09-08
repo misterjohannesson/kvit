@@ -36,9 +36,16 @@ den samme SQLite-fil (WAL gør det sikkert); brug den kun på en tom database, a
 ```bash
 npm install
 npx playwright install chromium
-DATA_DIR=./data APP_PASSWORD=dev npm run dev      # http://localhost:3000
-npm test                                          # bygger, seeder en temp-database og kører alle tests
+cp .env.example .env            # sæt APP_PASSWORD og DATA_DIR (fx ./data)
+npm run dev                     # http://localhost:3000
+npm run seed                    # testdata i DATA_DIR
+npm test                        # bygger, seeder en temp-database og kører alle tests
 ```
+
+Når appen kører fra koden, læses `.env` i projektmappen ved opstart (`src/lib/server/env.ts`, Node's indbyggede
+`process.loadEnvFile`). Variabler sat i skallen vinder altid over filen, så `.env` kan aldrig overstyre Docker eller
+testkørslen. Filen er ignoreret af både git og Docker; `docker compose` læser dog også `.env` i mappen til
+`${APP_PASSWORD}`, så samme fil kan bruges begge steder.
 
 Miljøvariabler: `APP_PASSWORD` (påkrævet), `DATA_DIR` (standard `/data`), `PROJECT_ROOT` (mappen med
 `tokens.css`/`drizzle/`, standard: arbejdsmappen), `PORT` (3000), `HOST` (0.0.0.0), `BODY_SIZE_LIMIT`
