@@ -807,3 +807,595 @@ empty database, `npm run seed` inside the container, container destroyed and rec
 volume and all data intact; `git remote -v` empty.
 
 Open findings: 0
+
+---
+
+# Spec v2 — Pass 1
+
+| | |
+|---|---|
+| Date | 2026-09-08 |
+| App commit | `49ff15b` (= `1678b10` + a test-sequencer move); the v2 design surface is commits `59134bf` (kontoplan, cash movements, Konto on lines/expenses, opening balance) and `1678b10` (Resultat, Cashflow, Balance). Note: the builder was editing `InvoiceEditor.svelte`, `balance/+page.svelte`, `cashflow/+page.svelte` and `fakturaer/[id]/+page.svelte` in the working tree while this pass ran (uncommitted; e.g. a tenth `Kreditnotaer ud` column in the cashflow table). Every finding below is against the **running build on 3108 = HEAD `49ff15b`**; the uncommitted edits were not reviewed and, where noted, make a finding worse rather than better. |
+| Authority | `tokens.css`, `style.md`, `example.html` — **unchanged since pass 7** (`git diff 0a7ec6b HEAD -- tokens.css style.md example.html src/app.css` is empty) |
+| Instance | http://127.0.0.1:3108 (freshly seeded; another reviewer's probes mutated it mid-run — "Probe ind", "Probe hævning", a booked correction — so amounts differ between 15/16/17 and 50–68; data, not design) |
+| Viewport | 1440 × 900, DPR 1, headless Chromium; geometry probes at 1440 / 1420 / 1419 / 1280 / 1152 px |
+
+Method: read `git show --stat 59134bf 1678b10` and every design-relevant hunk (`+layout.svelte` nav, `eksport`, `udgifter`, `udgifter/[id]`, `fakturaer/[id]`, `moms`, `indstillinger`, `InvoiceEditor.svelte`, the three new routes and their `+page.server.ts`). Ran `review/shots.ts` (00–17, now incl. 15–17) and the extended `review/shots-extra.ts` (20–36, plus new 50–68 and a `review/measure-v2p1.json` probe dump; it books nothing — the Balance reconcile stops at the preview, the Cashflow form is submitted with invalid values only, its draft is deleted). Added `review/measure-v2p1.ts` (read-only) after the first probe showed an alignment anomaly. Inspected every new and changed PNG. Audited the five new/changed `<style>` blocks, `src/app.css` vs `example.html`, and `src/` for literals.
+
+## New and changed screenshots
+
+| File | Screen |
+|---|---|
+| `shots/15-resultat.png` | **New.** Resultat 2026, whole year: year + period segments, 3 KPIs, prose hint, 6/6 per-account tables with totals |
+| `shots/16-cashflow.png` | **New.** Cashflow: 3 KPIs, 9-column "Pr. måned" table, 6/6 Forventet + Bankbevægelser (inline "Bogfør bevægelse" form above the movements table) |
+| `shots/17-balance.png` | **New.** Balance (forenklet): Aktiver / Forpligtelser totals lists, single Nettoposition KPI, Afstemning step 1 |
+| `shots/50-balance-afstemning-bekraeft.png`, `50b-…-zoom.png` | **New.** Afstemning after `Sammenlign` with `100.000,00`: preview totals (Likvider / Saldo / Forskel) and the `Bogfør korrektion?` confirm box — not booked |
+| `shots/51-balance-afstemning-fejl.png` | **New.** Afstemning after `abc`: panel-level error beside the field |
+| `shots/52-cashflow-bevaegelse-fejl.png`, `52b-…-zoom.png` | **New.** Cashflow movement form after `31.02.2026` / `abc`: two field errors; the movements table beneath it clipped on the right |
+| `shots/53-indstillinger-kontoplan.png` | **New.** Kontoplan panel: per-row rename form, `I brug`, `Slet` on unused accounts, add-account footer |
+| `shots/54-faktura-kladde-konto.png`, `54b-…-zoom.png`, `54c-…-1280-zoom.png` | **New.** Draft editor with two lines and the Konto select at 1440 (clipped) and 1280 (fits) |
+| `shots/55-udgift-form-konto.png` | **New.** "Ny udgift" form with the Konto select in place of Kategori |
+| `shots/56/57/58-*-1152.png`, `66/67/68-*-1280.png` | **New.** Resultat / Cashflow / Balance at 1152 and 1280 |
+| `shots/62-faktura-udstedt-konto-1152.png` | **New.** Issued invoice 1001 at 1152 with the new Konto line column (clipped) |
+| `shots/03-faktura-kladde.png`, `06-udgifter.png`, `07-udgift-bilag.png`, `08-moms.png`, `11-indstillinger.png`, `12-eksport.png`, `04-faktura-udstedt.png` | Changed screens: Konto select on lines / expenses, account instead of category in list and VAT drill-down, Åbningssaldo fieldset + Kontoplan, two more export rows, Konto column on issued lines |
+
+## What is fine
+
+- **Tokens.** No raw colour anywhere in `src/` (grep empty). The five new/changed `<style>` blocks (`resultat`, `cashflow`, `balance`, `indstillinger`, `InvoiceEditor`) contain no `px`/`rem`/`em` literal — every value is `var(--space-*)`, `var(--control-height-sm)`, `var(--field-width-*)`, `var(--layout-prose-max)` or a unitless grid track (`repeat(3, minmax(0, 1fr))`).
+- **`src/app.css` vs `example.html`**: unified diff is still exactly the header comments, the `@import`, and the three known app additions (`.btn { white-space: nowrap }`, `.pdfframe`, `.fileframe`). Nothing was added to `app.css` for v2 (see finding 12 for the flip side).
+- **Navigation**: Resultat / Cashflow / Balance sit under `Rapporter` after Momsindberetning; same nav item pattern, active state on each new route (15/16/17).
+- **Page headers**: eyebrow `Rapporter` → title → right-aligned segments (Resultat) or nothing; Balance puts a mono `Pr. 08.09.2026` where the action would be — acceptable use of `.panel__meta`.
+- **KPIs**: `kpi__label` uppercase, `kpi__value` mono 3xl with `kpi__unit` "kr.", `kpi__sub` mono 2xs, negatives via `kpi__value--neg` (cashflow/resultat/balance all test the sign). 3 per row on Resultat/Cashflow (368 px each at 1440, 272 at 1152 — no wrap).
+- **Segments** (Resultat): year and period as `aria-current` links, exactly the Momsindberetning construction.
+- **Panels / tables**: hairlines only, no zebra, `thead` strong rule, totals rows (`Omsætning i alt`, `9 måneder`, `Omkostninger i alt`) semibold with the strong top rule and no fill; account numbers in mono; negatives U+2212 + `--text-negative` (Netto/Position columns, movements). The Resultat 6/6 uses `layout-6-6--tables` and stacks at 1152 with both tables = wrap width (probe: 862/862, `hiddenPx: 0`); at 1280 side by side 482/482.
+- **Empty states**: `Forventet` follows the `Ingen kunder` construction — single line + one `btn--sm` (`cashflow:113`).
+- **Forms**: label above every field in the movement form, the Åbningssaldo fieldset and the Konto selects; `input--date` 130 px, `input--short` 130 px for the amount, `Positivt = ind, negativt = ud.` hint; field errors on the movement form use `field--error` + `<span class="error">` replacing the hint, border to `--status-overdue-ink` (52b — two fields, Danish messages, no internal names). Konto selects: expense form `field--span-4` (357 px, 55), expense detail stacked `.field`, editor lines 260 px `--field-width-md` (finding 2 is about the table, not the select itself). Åbningssaldo: `Banksaldo` span-3 130 px right-aligned mono, `Pr. dato` span-3 130 px mono, hint below, per-field errors wired (`indstillinger:71–80`).
+- **One primary per screen**: Resultat 0, Cashflow 1 (`Bogfør bevægelse`), Balance 0 / 1 in the confirm state (`Bogfør korrektion`; `Sammenlign` and `Annullér` are secondary), Indstillinger 1 (`Gem indstillinger`; `Omdøb`/`Slet`/`Tilføj konto` secondary/ghost). Probe: `primaries` = 1 / 0 / 1 as expected on every capture.
+- **Confirm box** (50b): `.confirmbox` with title, hint naming the amount and resulting Likvider in mono, `Annullér` then primary rightmost, `role="alertdialog"` — same construction as `Udsted` / `Opret kreditnota`.
+- **Eksport** (12): two more mono file rows, prose wraps in `Indhold`; the `Rækker` column is affected by finding 1 like every other numeric column.
+- **Moms drill-down** (08): the `Køb` cell-sub now reads `2100 Kontorhold` — text only, wraps as before.
+
+## Findings
+
+Severity: **blocker**, **major** (visible defect against a mandatory rule), **minor** (rule drift, low impact).
+
+### 1. major — Every numeric table column is left-aligned: `.num` loses to `table.data th, table.data td`
+
+**Evidence:** `review/measure-v2p1.ts` (computed `text-align` of every `th`/`td` in the first row of every `table.data` on `/indstillinger`, `/cashflow`, `/kunder`): **every `.num` cell — header and body — computes `text-align: left`**, e.g. cashflow `Fakturaer ind … Position` (9 × `num`, all `left`), `Beløb` in the movements table, `I brug` in the kontoplan, `Fakturaer` in Kunder. Visually: 16 — `0,00` and `58.500,00` share a left edge at x 381 under `FAKTURAER IND`; 15 — `830,00` / `2.719,20` / `0,00` share x 1244; 06 — `2.399,20` / `596,00` / `380,00` all start at x 1009; 53 — `9` / `2` / `1` under `I BRUG` at x 957. Cause: `src/app.css:431` / `example.html` `table.data th, table.data td { … text-align: left; … }` has specificity (0,1,2); `.num { text-align: right }` at `app.css:460` / `example.html:469` has (0,1,0) and loses regardless of source order. `.input--num` (on inputs, outside `th/td`) and the `dd` in `.totals` (flex `space-between`) are unaffected, which is why the editor inputs and the summary panels do right-align.
+
+**Rule:** style.md §1.1 "Amounts are right-aligned", §3 "Numeric columns right-aligned, text left-aligned … Never centre numbers." Pre-existing since `896cec1` in both `app.css` and the reference itself — passes 1–7 stated "numeric columns right-aligned" from the class names and from tables whose amounts happened to be equal-width; the v2 tables (9 columns of mixed-length amounts, `0,00` beside `58.500,00`) make it unmistakable. Counted here because it is now visible on every screen the spec added.
+
+**Fix:** raise the specificity in **both** files: `table.data th.num, table.data td.num { text-align: right; }` (keep `.num` for font/tabular-nums), or scope the left-align to `table.data th:not(.num), table.data td:not(.num)`. Acceptance: the probe reports `right` for every `.num` th/td; column heads sit over the units digit.
+
+### 2. major — Editor line table overflows its panel again with the 260 px Konto select (1440, 1420, 1152)
+
+**Evidence:** `measure-v2p1.json.editor` — `.table-wrap` client width vs `scrollWidth`: **1440: 718 / 880 → 162 px hidden; 1420: 705 / 880 → 175 hidden; 1152: 830 / 880 → 50 hidden**; 1419: 1097 / 1097 and 1280: 958 / 958 (fits only in the stacked 1279–1419 band). `fjernVisibleInWrap: false` at 1440 / 1420 / 1152 (the `Fjern` row action is scrolled out of view — 03, 54, 54b show no `Fjern`; 54c at 1280 shows it). `descInputWidth: 88` at those widths (the Beskrivelse input collapses to its min — "Konceptudv", "Transport, K" truncated in 54b) vs 305 at 1419. `kontoSelectWidth: 260` everywhere. Source: `InvoiceEditor.svelte` `.input--account { width/min-width/max-width: var(--field-width-md) }` + `table.lines td:first-child { width: 100% }`.
+
+**Rule:** style.md §2 "1440px design target, usable from 1152px"; §4 "Width follows content"; this is the exact geometry pass 4 (E1) closed with `tableExceedsBody: 0` at 1440/1420/1419/1280/1152. The fixed 260 px column adds ~276 px to a table whose 8/12 panel only has 718 px at the design width.
+
+**Fix (pick one, then re-measure):** (a) make Konto flexible — `.input--account { width: 100%; min-width: var(--field-width-sm); max-width: var(--field-width-md); }` and share the free width between Beskrivelse and Konto (`td:first-child { width: 60% } td.konto { width: 40% }`), accepting that at 1440 the select shows "1000 Konsulentyd…" (native selects truncate their own text); (b) show only the account **number** in the cell (`--field-width-xs`/`sm`) with the name as the option label's suffix — the number is what the bookkeeper knows; (c) since the editor now has seven columns, stack `layout-8-4--lines` at every width (`grid-template-columns: minmax(0, 1fr)` unconditionally, summary below) and update style.md §2 accordingly. Acceptance: `hiddenPx: 0` and `fjernVisibleInWrap: true` at 1440 / 1420 / 1419 / 1280 / 1152 with `descInputWidth ≥ ~160`.
+
+### 3. major — Cashflow tables clip numbers: the 9-column table at 1152, the movements table at 1440 and 1280
+
+**Evidence:** `measure-v2p1.json.reports` — `/cashflow` "Pr. måned" (9 cols): **1152: wrap 862 / table 914 → 52 px hidden** (57: `POSIT…`, `50.0…`, `104.2…` — the running Position, the point of the table, is cut); 1280 and 1440 fit (1150 / 1150). Movements table (4 cols): **1440: wrap 562 / table 619 → 57 hidden; 1280: 482 / 619 → 137 hidden**; 1152 fits (stacked, 862). 52b shows the effect at 1440: `BELØ`, `100,`, `−1.2`, `−14.`. The overflow is caused by the nowrap description of the correction the app itself writes on reconciliation — `finance.ts:245` "Afstemning mod bank: saldo 104293,89 kr." — plus `Ejer (indskud/hævning)` in `Type`; i.e. every user who reconciles once gets a clipped `Beløb` column. Source: `cashflow/+page.svelte:167–181` (no `wrap` class on the description cell), `:51–63` (nine `nowrap` uppercase heads). The uncommitted working-tree version adds a tenth column (`Kreditnotaer ud`), which will widen the 1152 gap further.
+
+**Rule:** style.md §2 usable from 1152; §3 amounts must be legible — a clipped amount column is worse than a missing one; §1.1 thousands separator (the generated description also prints `104293,89`, see finding 7).
+
+**Fix:** movements table — `class="wrap"` on the `Beskrivelse` td (the existing `table.data td.wrap` rule) and optionally a shorter kind label (`Ejer`) — the description then wraps to two lines and the four columns fit at 562 and 482. "Pr. måned" — recover ≥ 52 px (≥ ~100 with the tenth column): shorten heads (`Fakturaer` / `Bevægelser` under `Ind`, `Udgifter` / `Bevægelser` under `Ud`, or `Fakt. ind`), and/or use `data--dense` padding on this one report; zebra (`--bg-row-alt`) is *permitted* for > 8 columns (§3) and would help the eye but does not fix the width. Acceptance: `hiddenPx: 0` for all three cashflow tables at 1440 / 1280 / 1152 with a reconciliation movement present.
+
+### 4. minor — Cashflow movement form: primary sits in the grid with no footer rule, flush against the table
+
+**Evidence:** 16 / 52b — `Bogfør bevægelse` is right-aligned inside the `form-grid` (`cashflow:158–160` `.actions`), the form's bottom edge **equals** the table's top edge (`formBottom: 614.67 = tableTop: 614.67`), `ruleAboveActions: 0px`; nothing separates the button row from the `DATO · BESKRIVELSE …` head below it. Two unrelated things — a data-entry form and a ledger — share one panel with no boundary.
+
+**Rule:** style.md §4 "Form footer actions are right-aligned … above them a `--border-hairline-style` rule with `--space-6` breathing room"; §2 panels structure content with rules. example.html's form panels end in `.panel__foot`.
+
+**Fix:** either two panels (a `Ny bevægelse` panel with `.panel__body` + `.panel__foot`, then the movements panel — the Kunder / Udgifter pattern), or keep one panel but end the form with a `.panel__foot` (hairline above, primary right) so the table starts under a rule. Drop the local `.actions` rule.
+
+### 5. minor — Balance reconcile error is panel-level, not the §4 field error
+
+**Evidence:** 51 — after `abc` the message "Indtast bankens saldo, fx 105.305,00" renders as a flex sibling **to the left of** the field (it is the first child of `form.reconcile { display: flex }`), the input keeps the default border (`inputBorder` = probe `.input` = `oklch(0.89 0.006 250)`), `fieldErrorWrappers: 0`. `balance/+page.server.ts:13` already builds `{ actual: 'Ugyldigt beløb' }` but the `reconcile` action returns only `{ error }` (`:24`), and the page renders `form.error` as `.formerror` (`balance:91`).
+
+**Rule:** style.md §4 error text replaces the hint under the field in `--text-negative`, border to `--status-overdue-ink`; the login, expense and movement forms all do this.
+
+**Fix:** return `fields` from the action, put `field--error` on the `.field`, render `<span class="error">` under the input, and keep the panel-level `formerror` only for non-field errors ("Saldoen stemmer allerede …"). Move the `formerror` `<p>` out of the flex row (or make `.reconcile` wrap) so it can never sit beside the field.
+
+### 6. minor — Amounts inside the Balance row hints are in the UI font
+
+**Evidence:** 17 / 58 — `(åbningssaldo 50.000,00 + alle betalte bevægelser)`, `(2 åbne fakturaer inkl. moms)`, `(2 ubetalte udgifter inkl. moms)`, `(momstilsvar til dato 15.795,20 − momsbetalinger 14.550,25)`: probe `hintAmountFonts` — all four compute `font-family: "Helvetica Neue", …`, `monoSpans: 0`. `balance/+page.svelte:29, 30, 41, 42`. The Resultat hint does it right (`<span class="mono">{formatDate(r.from)}</span>`, 15).
+
+**Rule:** style.md §1 `--font-numeric` **mandatory** for all amounts.
+
+**Fix:** wrap each `formatOre(…)` (and the counts, optionally) in `<span class="mono">`; keep the hint on its own line as now.
+
+### 7. minor — Generated correction text formats the amount by hand (`104293,89`)
+
+**Evidence:** 52b / 57 — movement description "Afstemning mod bank: saldo 104293,89 kr." — `src/lib/server/services/finance.ts:245` `(actualOre / 100).toFixed(2).replace('.', ',')`. The same file's callers have `formatOre`.
+
+**Rule:** style.md §1.1 thousands separated with `.`: `104.293,89 kr.`. This string is shown in the movements table and exported in `cash_movements.csv`.
+
+**Fix:** `formatOre(actualOre)` (with unit) — one-line change. Consider dropping "kr." from the description since the table already has a `Beløb` column.
+
+### 8. minor — Kontoplan rows are 43 px: inline inputs in a normal-density table
+
+**Evidence:** 53 / probe `kontoplan.rowHeights`: **12 × 43 px** vs `--table-row-height` 36 px (and 30 dense). The `Navn` cell holds a 26 px `.input--cell` plus `--table-cell-pad-y` × 2 (16) + border; the editor solved the same problem with `data--dense` + `table.lines th, td { padding: var(--space-1) var(--space-2) }` (`InvoiceEditor.svelte`), which the kontoplan table does not carry (`indstillinger:110`, only `data--dense` when the user toggles Kompakt).
+
+**Rule:** style.md §3 row height `--table-row-height` (36) / dense (30); "Line-item editors are tables" — this is one, so it should use the editor's cell metrics.
+
+**Fix:** apply the same cell padding rule as the editor (and see finding 12: promote it once as `table.data--inputs` in `app.css` + `example.html` instead of a second local copy). Acceptance: rows 34–36 px.
+
+### 9. minor — `Omdøb` is a bordered secondary in every row; row actions are tertiary everywhere else
+
+**Evidence:** 53 — 12 × `btn btn--sm` `Omdøb` (`indstillinger:129`), while `Slet` in the same table is `btn--ghost btn--sm btn--danger` and every other row action in the app is ghost (`Vis`, `Vis bilag`, `Redigér`, `Fjern`: `InvoiceTable.svelte:92`, `udgifter:72`, `kunder:42`, `InvoiceEditor`). Twelve boxed buttons in a column read as a second table of controls.
+
+**Rule:** style.md §6 "Tertiary / link — text only in `--text-link`, no border. Row actions and inline navigation."
+
+**Fix:** `btn btn--ghost btn--sm` for `Omdøb`, or move it into the `.row-actions` cell beside `Slet` so the two actions share one column.
+
+### 10. minor — Add-account footer: two of three fields have no visible label
+
+**Evidence:** 53 / probe `kontoplan.footInputs`: `number` has the visible label `Ny konto`; `name` (`visibleLabel: false`, `aria-label: "Navn på ny konto"`, placeholder `Navn`) and `type` (`visibleLabel: false`, `aria-label: "Type"`) rely on placeholder/aria only. `indstillinger:148–158`.
+
+**Rule:** style.md §4 "Label above field, **always**"; placeholders are not labels (they vanish on input).
+
+**Fix:** three labelled `.field`s (`Nr.` span-2, `Navn` span-6, `Type` span-3) in a `form-grid` inside the footer (or a small panel body above the footer), `Tilføj konto` right; drop the local `.addaccount*` rules.
+
+### 11. minor — The two new `Bogfør` commits are 32 px while `Bogfør udgift` is 38 px
+
+**Evidence:** probe — `Bogfør bevægelse` h 32 (`cashflow:159` `btn--primary btn--std`), `Bogfør korrektion` h 32 (`balance:84` `btn--std`), `Bogfør udgift` h 38 (`udgifter:160`, no modifier). Both new actions write an irreversible ledger row (movements have no edit or delete UI) and both are literally "Bogfør".
+
+**Rule:** style.md §6 `--control-height-lg` "when it is the page's main commit action (`Udsted`, **`Bogfør`**, `Indberet moms`)"; `btn--std` is for "merely the page's single save (`Gem`, `Opret kunde`, `Log ind`)".
+
+**Fix:** remove `btn--std` from both. (The confirm-box primary in the editor, `Udsted nr. …`, is already lg — 50b would then match 03b.)
+
+### 12. minor — New shared patterns copy-pasted into component `<style>` blocks instead of mirrored in `app.css` / `example.html`
+
+**Evidence:** identical rules in two components each: `.kpis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }` (`resultat`, `cashflow`), `.prose { max-width: var(--layout-prose-max); margin: 0; }` (`resultat`, `balance`), `.input--cell { height: var(--control-height-sm); padding: 0 var(--space-2); }` (`indstillinger`, `InvoiceEditor` — the second copy is the reason finding 8 exists); plus `.kpis--1` (`balance`) as a third KPI-strip variant. `example.html` still documents only the 4-up `.kpis` and no `prose`/`input--cell`.
+
+**Rule:** review brief / pass-1 method: `app.css` = `example.html` `<style>` verbatim; a new shared pattern is added to **both** or not at all. Token discipline is intact (all values are tokens or unitless tracks), so this is parity drift, not a token violation.
+
+**Fix:** add once to `example.html` and `app.css` (with a demo in the reference): `.kpis--3`, `.kpis--1` (or a generic `.kpis--auto { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) }`), `.prose`, `.input--cell`, and a `table.data--inputs th, td { padding: var(--space-1) var(--space-2) }` used by both the editor and the kontoplan; delete the local copies.
+
+### 13. minor — Issued-invoice line table clips the new Konto column at 1152
+
+**Evidence:** 62 / probe `issuedLines`: wrap 558 / **87 px hidden** at 1152 — `1000 Kons…` cut on both lines (`fakturaer/[id]/+page.svelte:69, 81`; the plain 8/4 stays side by side to 1152 by design). Amounts are intact (the new column is last), so minor.
+
+**Rule:** style.md §2 usable from 1152.
+
+**Fix:** `class="wrap"` on the `Beskrivelse` cell (prose column, as the export table does) or render the account as number-only with the name as `cell-sub`. Acceptance: `hiddenPx: 0` at 1152.
+
+## Observations (not counted)
+
+1. Balance/Afstemning `dd` amounts carry "kr." at `--weight-medium` (`formatOre()` default) — the same as the dashboard's VAT/YTD totals lists accepted in passes 1–7; consistent, so not counted, but §1.1 ("Currency suffix is `--text-secondary`") would be better served by a `kpi__unit`-style suffix span in `.totals` too.
+2. `.kpis--1` — a single full-width KPI card (1152 px wide, 28 px figure) for Nettoposition is a stretch of the strip pattern; a `totals__row--sum` line under the two panels, or a 3-up strip (Aktiver · Forpligtelser · Netto), would read more naturally.
+3. Resultat's year segment is in mono (`class="mono"` wins over `.segment > *` by source order) beside a UI-font period segment; Momsindberetning does the same, so consistent.
+4. `Ingen bankbevægelser endnu.` has no button (§3 asks for one) — the form is directly above, so acceptable.
+5. Pluralisation: "1 ubetalte udgifter", "1 åbne fakturaer" (Balance hints), "1 poster" — copy.
+6. `Slet konto` uses the native `confirm()` like `Slet kladde`; consistent with the existing convention, not the `.confirmbox` pattern.
+7. The Balance page header uses `.panel__meta` outside a panel for the as-of date; fine, but a `pagehead__meta` alias would be more honest if it recurs.
+8. `review/shots-extra.ts` gained the v2 block and `review/measure-v2p1.ts` is a read-only alignment probe; the former writes `review/measure-v2p1.json`. Hard checks worth keeping: every `.num` th/td computes `right`; editor `hiddenPx: 0` + `fjernVisibleInWrap: true` at 1440/1420/1419/1280/1152; cashflow `hiddenPx: 0` at 1440/1280/1152 with a reconciliation movement present; kontoplan `rowHeights ≤ 36`.
+9. All earlier observations (red `Forfaldent` KPI without minus, chevron-less `.select`, no delivery-date field, mouse-only row click, `--text-xl` error h1, `Udsted` enabled after a failed save, density control only on Fakturaer/Udgifter, `confirmbox` placing the destructive commit rightmost, `Åbn PDF` wrapping at 1280, `.kpis` query never firing) are unchanged and still not counted.
+
+## Open findings: 13
+
+- blocker: 0
+- major: 3 (1 — `.num` columns left-aligned in every table, pre-existing in the reference and app CSS and now conspicuous on the v2 tables; 2 — editor line table overflows at 1440/1420/1152 with the Konto column; 3 — cashflow tables clip amounts at 1152 (9-col) and at 1440/1280 (movements, after a reconciliation))
+- minor: 10 (4 form footer rule, 5 reconcile field error, 6 mono in Balance hints, 7 hand-formatted amount, 8 kontoplan row height, 9 `Omdøb` button weight, 10 unlabelled add-account fields, 11 `Bogfør` heights, 12 shared-pattern parity, 13 issued Konto column at 1152)
+- Token discipline holds (no literals, no raw colour); `app.css` is still `example.html` verbatim + three known additions; `tokens.css` / `style.md` / `example.html` unchanged since pass 7. Findings 1 and 12 require edits to `example.html` **and** `app.css` together; everything else is markup or one-rule component CSS.
+
+Open findings: 13
+
+
+---
+
+# Spec v2 — Pass 2
+
+| | |
+|---|---|
+| Date | 2026-09-08 |
+| App commit | `008853b` ("Address spec-2 review findings …"). Working tree clean under `src/`, `tokens.css`, `style.md`, `example.html` — the running build on 3108 is HEAD. |
+| Authority | `tokens.css` and `style.md` unchanged since pass 7; `example.html` changed for the first time since pass 7 (two blocks, see the CSS audit — mirrored 1:1 into `src/app.css`) |
+| Instance | http://127.0.0.1:3108, freshly seeded; another reviewer's probes mutated it mid-run again (invoices 1007–1010 with credit notes 1008/1010 already "refunderet", a booked `Korrektion` of 0,01 with the description "Afstemning mod bank: saldo 105.055,01 kr.", and credit note 1010 — not the seeded 1006 — is what `05`/`63` picked up). Data, not design; the booked correction is in fact useful evidence for finding 7. |
+| Viewport | 1440 × 900, DPR 1, headless Chromium; geometry probes at 1440 / 1420 / 1419 / 1280 / 1152 |
+
+Method: read `git show --stat HEAD` and every design-relevant hunk (`example.html`, `src/app.css`, `InvoiceEditor.svelte`, `InvoiceTable.svelte`, `format.ts`, `finance.ts:218–225`, `balance/+page.server.ts`, the `balance`, `cashflow`, `fakturaer/[id]`, `indstillinger`, `moms`, `resultat` pages). Regenerated every screenshot with `review/shots.ts` (00–17) and `review/shots-extra.ts` (20–36, 50–70; its v2 block was updated for the moved markup: the movement form is now `form.panel[action="?/create"]` with the movements table in the next `section`, the add-account form is `form[action="?/addAccount"]`, the editor probe reads the `.cell-stack`, and a pass-2 block adds 63–65b/69/70 plus a DOM-only simulated reconciliation row; it now writes `review/measure-v2p2.json` so the pass-1 dump is kept). Rewrote `review/measure-v2p1.ts` to sweep every `table.data` on twelve pages (output in `review/measure-v2p1-pass2.txt`). Two one-off read-only probes (Balance `dd` line boxes / confirm-box button heights; add-account column fit) produced `58b` and `69b`. Nothing was booked: the reconcile stops at the preview, the movement form is submitted with invalid values only, the temp drafts are deleted. Inspected every changed PNG.
+
+## New and changed screenshots
+
+| File | Screen |
+|---|---|
+| `shots/54b-faktura-kladde-konto-zoom.png`, `54c-…-1280-zoom.png`, `70-faktura-kladde-konto-1152-zoom.png`, `03-faktura-kladde.png`, `30-…-1152.png` | **Changed.** Editor line table with the Konto select stacked under Beskrivelse (`.cell-stack`); `Fjern` visible at every width |
+| `shots/16-cashflow.png`, `57-…-1152.png`, `67-…-1280.png` | **Changed.** Cashflow: 5-column "Pr. måned" with `.cell-sub` breakdowns, Forventet + "Ny bankbevægelse" panels in the 6-6, full-width "Bankbevægelser" panel |
+| `shots/64-cashflow-ny-bevaegelse-zoom.png`, `65-cashflow-pr-maaned-zoom.png`, `65b-cashflow-bevaegelser-zoom.png` | **New.** The three cashflow panels at 1440 in the clean state |
+| `shots/52-cashflow-bevaegelse-fejl.png`, `52b-…-zoom.png` | **Changed.** Movement form error state, now inside its own panel with a `.panel__foot` |
+| `shots/17-balance.png`, `58-balance-1152.png`, `68-…-1280.png`, `58b-balance-aktiver-1152-zoom.png` | **Changed / new.** Balance with mono hint amounts, the new `Skyldige kreditnotaer` row, and the 1152 `dd` wrap (finding 15) |
+| `shots/51-balance-afstemning-fejl.png` | **Changed.** Reconcile field error (`field--error`, message under the field) |
+| `shots/50-…`, `50b-balance-afstemning-bekraeft-zoom.png` | **Changed.** Confirm box with the lg `Bogfør korrektion` |
+| `shots/53-indstillinger-kontoplan.png`, `69-indstillinger-ny-konto-zoom.png`, `69b-…-1152-zoom.png`, `11-indstillinger.png` | **Changed / new.** Dense kontoplan, ghost `Omdøb`, labelled "Ny konto" fieldset + `.panel__foot` |
+| `shots/63b-kreditnota-refunder-form.png`, `63c-…-zoom.png` | **New.** Credit note 1006 (on paid invoice 1002) with the `Refunderet —` fact and the `Markér som refunderet` form |
+| `shots/05-kreditnota.png`, `63-kreditnota-refunder-zoom.png` | **Changed / new.** Credit note 1010 after refund: `Refunderet 08.09.2026` fact and foot hint |
+| `shots/02-fakturaer.png`, `23-fakturaer-krediterede.png` | **Changed.** `refunderet dd.mm.åååå` badge note on refunded credit notes |
+| `shots/04-faktura-udstedt.png`, `62-faktura-udstedt-konto-1152.png` | **Changed.** Issued invoice: Konto cell wraps (still clipped at 1152, finding 13) |
+| `shots/01, 06, 08, 09, 12, 15, 21–23, 31–32` | **Changed.** Every numeric column now right-aligned |
+
+## Status of the 13 pass-1 findings
+
+| # | Sev. | Status | Evidence |
+|---|---|---|---|
+| 1 | major | **Fixed** | `table.data th.num, table.data td.num { text-align: right }` in both files. `measure-v2p1.ts` sweep over `/`, `/fakturaer`, `/udgifter`, `/kunder`, `/moms`, `/indstillinger`, `/eksport`, `/resultat`, `/cashflow`, `/fakturaer/1`: **218 `.num` th/td, 0 not `right`**; head-text right edge minus body-text right edge = **0 px** for every numeric column (heads sit over the units digit). Visually 02/06/12/15/16: `0,00` and `58.500,00` share a right edge. |
+| 2 | major | **Fixed** | `measure-v2p2.json.editor`: `hiddenPx: 0` and `fjernVisibleInWrap: true` at **1440 / 1420 / 1419 / 1280 / 1152**; `descInputWidth` 202 / 189 / 360 / 360 / 314 (was 88 at 1440/1420/1152); the select equals the input's width and left/right edges (`selectLeftMatchesDesc`/`Right…: true`, gap 4 px = `--space-1`); 6 columns. 54b / 54c / 70. Cost: rows are 65 px (two 26 px controls) — see observation 1 — and the Konto select lost its visible label — see finding 14. |
+| 3 | major | **Partly fixed → open, narrowed** | Movements table: `class="wrap"` on the description, full-width panel — `hiddenPx: 0` at 1440 / 1280 / 1152 (wrap 1150 / 990 / 862) with the real "Afstemning mod bank: saldo 105.055,01 kr." row present, and with a DOM-simulated `Ejer (indskud/hævning)` + 40-char description (`cashflowSimulatedReconciliation.after.hiddenPx: 0`, description on 2 lines). The 9-column table is gone (5 columns). **But** "Pr. måned" at **1152 still hides 53 px** (`reports.1152./cashflow.tables[0]`: wrap 862 / table 914.67) — 57 shows `POS…`, `50.0…`, `108.1…`: the `Position` column is cut exactly as in pass 1. New cause: the `.cell-sub` breakdowns inherit the cell's `nowrap`, and `udgifter 0,00 · kreditnotaer 0,00 · bevægelser 0,00` is ~337 px of 11 px mono, so the `Ud` column alone needs ~360 px. 1440 / 1280 fit (1150 / 990). See "Findings" below for the residual. |
+| 4 | minor | **Fixed** | `cashflowForm`: `formIsPanel: true`, title "Ny bankbevægelse", parent `layout-6-6 layout-6-6--tables`, `footRule: 1px`, `footPaddingTop: 16px`, `primaryInFoot: true`; the movements panel starts **40 px** (`--space-10`) below the form panel (`formPanelBottom` 624.19 → `movementsPanelTop` 664.19). 16 / 64 / 52b. |
+| 5 | minor | **Fixed** | `balanceError`: `fieldErrorWrappers: 1`, input border `oklch(0.48 0.15 25)` (≠ the `.input` probe `oklch(0.89 0.006 250)`), message "Ugyldigt beløb" rendered as `<span class="error">` under the field replacing the hint; `+page.server.ts` returns `fields`. 51. The panel-level `formerror` is kept only when there is no field message (`!fieldError`). |
+| 6 | minor | **Fixed** | `hintAmountFonts`: every hint has `monoSpans ≥ 1` (2 for Skyldig moms) and the spans compute `ui-monospace, "SF Mono", …`; also the new `Skyldige kreditnotaer` hint. 17 / 58. |
+| 7 | minor | **Fixed** | `finance.ts:222` → `formatOre(actualOre)`. Live evidence: the correction another reviewer booked reads **"Afstemning mod bank: saldo 105.055,01 kr."** (16 / 57 / 65b) — thousands separator present. |
+| 8 | minor | **Fixed** | `kontoplan.rowHeights`: **11 × 35 px** (token 36; dense 30 + the 26 px input + 2 × `--space-1` + rule = 35), `tableClass: data data--dense` unconditionally. 53. |
+| 9 | minor | **Fixed** | `renameButtons: 0`, `renameGhosts: 13` (11 `Omdøb` + 2 `Slet`); `Omdøb` is `btn btn--ghost btn--sm` in `--text-link`. 53. |
+| 10 | minor | **Fixed** | `kontoplan.addAccount`: legend "Ny konto", `inFieldsetInBody: true`, fields `span-2` / `span-6` / `span-3`, every input `visibleLabel: true` (Kontonr. / Navn / Type), no `aria-label` fallbacks, `Tilføj konto` (secondary) alone in a `.panel__foot` with a 1 px rule. 53 / 69 / 69b. |
+| 11 | minor | **Fixed** | `Bogfør bevægelse` **38 px** at 1440 / 1280 / 1152 (`btn--std` removed), `Bogfør korrektion` **38 px** in the confirm box (`Annullér` 32), `Bogfør udgift` 38 — all three "Bogfør" commits are lg. 50b / 64. |
+| 12 | minor | **Fixed** | `.kpis--3`, `.kpis--1`, `.prose`, `.input--cell`, `.input--cell.input--xs/--short`, `.cell-stack` live once in `example.html` and `src/app.css` (identical blocks); the local copies in `resultat`, `cashflow`, `balance`, `moms`, `indstillinger`, `InvoiceEditor` are gone (grep: none left). `moms` and `resultat` now carry an empty `<style>` (moms) / none (resultat). `example.html` has the CSS but no demo markup for any of the six classes — observation 4. |
+| 13 | minor | **Not fixed → open** | `issuedLines` at 1152: wrap 558 / **54 px hidden** (was 87). The Konto cell now wraps ("1000" / "Konsulent…" in 62) but the table's minimum width is still ~612 px: `Beskrivelse` ("Konceptudvikling, uge 12–14") stays `nowrap`, and the Konto cell's min-content is the word "Konsulentydelser". 62. Amounts intact; still minor. |
+
+## CSS source audit (pass 2)
+
+- **Token discipline holds.** No `px`/`rem`/`em` literal and no raw colour in any component `<style>` block (`InvoiceEditor`, `balance`, `indstillinger`, `fakturaer/[id]`, `InvoiceTable`, …); `src/` has no hex/`oklch()`/`rgb()` outside `app.css`. The new rules — `table.lines td { vertical-align: top }`, `.reconcile { flex-wrap: wrap; align-items: flex-start }`, `.reconcile .btn { margin-top: var(--space-5) }` — are tokens or keywords.
+- **`src/app.css` vs `example.html` `<style>`**: unified diff is still exactly the header comment, the `@import '../tokens.css'`, and the three known app additions (`.btn { white-space: nowrap }`, `.pdfframe`, `.fileframe`). The two new blocks (`table.data th.num, td.num` right-align; "KPI strip variants and prose paragraphs" + "inputs living inside table cells") are byte-identical in both.
+- `tokens.css` / `style.md` unchanged since pass 7.
+
+## Findings
+
+Severity: **blocker**, **major** (visible defect against a mandatory rule), **minor** (rule drift, low impact).
+
+### 3 (residual). major — "Pr. måned" still clips `Position` at 1152: the `.cell-sub` breakdowns are nowrap
+
+**Evidence:** `measure-v2p2.json.reports.1152./cashflow.tables[0]`: 5 columns, wrap 862 / table 914.67 → **53 px hidden** (pass 1: 52 px with 9 columns). 57: `POS…`, `50.0…`, `108.1…`, `105.0…` — the running position is cut off at the minimum width, the same visible defect as pass 1. `cashflowMonthly.subs`: `"udgifter 0,00 · kreditnotaer 0,00 · bevægelser 0,00"` at 11 px mono, `display: block`, right-aligned, `white-space` inherited `nowrap` from `table.data td`; the `Ind` sub is `"fakturaer 58.500,00 · bevægelser 0,00"`. Rows are 49 px (two lines). 1440 and 1280 fit (`hiddenPx: 0`).
+
+**Rule:** style.md §2 usable from 1152; §3 amounts legible.
+
+**Fix (pick one, re-measure):** (a) give each breakdown its own `.cell-sub` line in the `Ud` cell only when non-zero (most months have one non-zero component; the sep row has three → 3 lines, row ~60 px), or (b) shorten the labels and drop zero components (`udg. 373,75`, `bev. 5.000,00`), or (c) move the breakdown out of the numeric columns into a single left-aligned `.cell-sub` under `Måned` ("fakturaer 58.500 · udgifter 373,75 · …", the widest free column, and allowed to wrap with `td.wrap`), or (d) let the sub wrap: `table.data td.num .cell-sub { white-space: normal }` (right-aligned wrapped text — acceptable at 11 px but least tidy). Acceptance: `hiddenPx: 0` for the "Pr. måned" table at 1152 with the sep-2026 row (three non-zero components) present.
+
+### 13 (residual). minor — Issued-invoice line table still 54 px too wide at 1152
+
+**Evidence:** `issuedLines`: wrap 558, `hiddenPx: 54`; 62 — `1000` / `Konsulent…` truncated on both lines. The `wrap` class landed on Konto, but `Beskrivelse` is still `nowrap` and the Konto cell cannot shrink below "Konsulentydelser".
+
+**Fix:** `class="wrap"` on the `Beskrivelse` `td` as well (it is the prose column), **or** render Konto as the mono number with the name as `.cell-sub` (`<td><span class="mono">1000</span><span class="cell-sub">Konsulentydelser</span></td>`, left-aligned, no `num`). Acceptance: `hiddenPx: 0` at 1152 for `/fakturaer/1`.
+
+### 14. minor — The stacked Konto select has no visible label; the column head says only `Beskrivelse`
+
+**Evidence:** 03 / 54b / 70 — the line table's head row is `BESKRIVELSE · ANTAL · ENHED · PRIS EKSKL. MOMS · BELØB · (Fjern)`; the second control in the first cell is a `<select aria-label="Konto, linje n">` showing "1000 Konsulentydelser". In pass 1 the column head `Konto` labelled it; the fix for finding 2 removed the column and the head with it (`InvoiceEditor.svelte:153–156`). Nothing on screen says what the dropdown is — a first-time user sees a second field under the description with an account-looking value.
+
+**Rule:** style.md §4 "Label above field, always" — in the line editor the column heads are the labels (accepted since pass 1 for Antal/Enhed/Pris); this control now has none.
+
+**Fix:** head `<th scope="col">Beskrivelse <span class="hint">· Konto</span></th>` (or two `.cell-sub`-style lines `Beskrivelse` / `Konto` in the head so the head mirrors the stack), or a `.label`-sized `Konto` prefix inside the stack (`<span class="hint">Konto</span>` before the select — costs ~14 px of row height). Keep the `aria-label`.
+
+### 15. minor — Balance totals: `dd` amounts wrap at 1152 ("kr." on its own line)
+
+**Evidence:** one-off probe (Range line boxes) — at **1152**: `Likvider: "105.055,01 kr." in 2 lines (dd 98 px, dt 272 px, hint 2 lines)`, `Skyldig moms: "1.245,20 kr." in 2 lines (dd 75 px, dt 295 px)`; 58 / 58b show `105.055,01` with `kr.` on the next line, and `1.245,20` / `kr.` in Forpligtelser. 1440 and 1280: every `dd` on one line (rows 530 / 450 px wide). Cause: `.totals__row` is `display:flex; justify-content: space-between` with the `dt` (label + `display:block` hint, now longer and partly mono) and the `dd` both shrinkable (`flex-shrink: 1`, `white-space: normal`); at a 386 px row the hint's longest word run wins and the `dd` collapses under the amount's width. The `--sum` rows do not wrap (short `dt`).
+
+**Rule:** style.md §1 `--font-numeric` amounts are single tokens — an amount must not break from its unit; §2 usable from 1152.
+
+**Fix:** in `app.css` + `example.html` (the `.totals` block is shared): `.totals__row dd { flex-shrink: 0; white-space: nowrap; }` and `.totals__row dt { min-width: 0; }` so the hint wraps and the amount never does. Acceptance: every `.totals__row dd` on `/balance` is one line box at 1152.
+
+## Observations (not counted)
+
+1. **Editor rows are 65 px** (`stack.rowHeight`) with two stacked 26 px controls, `vertical-align: top` puts the computed `Beløb` and `Fjern` on the description line (54b) — the right choice for a stack, but the table is now noticeably taller than the dense 30 px it declares; a `Konto` column at ≥ 1419 and the stack only at < 1419 would keep the design-width editor compact. Not counted: the stack is the fix the pass-1 finding offered as option (c)-adjacent and it meets the acceptance numbers.
+2. `.reconcile .btn { margin-top: var(--space-5) }` aligns `Sammenlign` with the input by a fixed offset equal to the label height (17 / 51: tops within 2 px). Works with the error state (which broke `align-items: flex-end`); the shared `.field` + button-in-grid construction (`field--span-*` with an empty-label spacer) would be the pattern-conformant way.
+3. Add-account fieldset: the `Navn` input is 360 px (`.input` default) inside a `span-6` of 547 px, leaving a 211 px hole before `Type` at 1440 (69); `input--wide` would fill the span like the expense form's description. At 1152 the `Kontonr.` `input--short` shrinks to 118 px (its `span-2` column) without overflowing (`overflow: 0`) — fine.
+4. `example.html` gained the six new rules but no demo markup uses `.kpis--3`, `.kpis--1`, `.prose`, `.input--cell`, `.cell-stack` (grep: 0 matches in the body). The parity rule (CSS verbatim) is met; a demo (a 3-up KPI strip, a two-row line-editor fragment with a stacked select) would let the reference document the pattern it now ships.
+5. `Markér som refunderet` (63c): the `Markér som betalt` construction verbatim — hidden `<label>` (aria only) + `input--date` 130 px mono prefilled with today + secondary 32 px button, right of the `hint spacer`; 0 primaries on the page; `Refunderet` fact (`—` until refunded) and the list's `refunderet dd.mm.åååå` badge note (02). Consistent with passes 1–7; the hidden label is the same accepted exception as `Betalingsdato`.
+6. The correction description now reads "Afstemning mod bank: saldo 105.055,01 kr." — `formatOre` with unit; the table's `Beløb` column already shows the amount, so the "kr." in prose is redundant but correct.
+7. The kontoplan table is `data--dense` regardless of the Kompakt toggle (an editor, like the line table) — fine, and consistent with finding 8's intent.
+8. Movement-form error copy "Ugyldigt beløb – fortegn angiver retning (−1.000,00 = ud)" wraps to three lines in the `span-4` field at 1440 (52b) — long but legible; the balance field message is the terse "Ugyldigt beløb" (51). Copy, not design.
+9. Pass-1 observations 1–7 and 9 (Balance `dd` "kr." weight, `.kpis--1` full-width card, mono year segment, empty-state button, pluralisation, native `confirm()`, `.panel__meta` in the page header, earlier accepted items) are unchanged and still not counted.
+10. Scripts: `review/shots-extra.ts` prefers an unrefunded credit note for 63 (`!i.paidDate`) and writes `review/measure-v2p2.json`; `review/measure-v2p1.ts` sweeps all table pages and prints a `SUMMARY` line — hard checks worth keeping: `not right-aligned: 0`; editor `hiddenPx: 0` + `fjernVisibleInWrap: true` at the five widths; cashflow `hiddenPx: 0` for all three tables at 1440/1280/1152; `issuedLines.hiddenPx: 0` at 1152; kontoplan rows ≤ 36; every `.totals__row dd` one line box at 1152.
+
+## Open findings: 4
+
+- blocker: 0
+- major: 1 (3 residual — "Pr. måned" clips `Position` at 1152 because the nowrap `.cell-sub` breakdowns make the `Ud` column ~360 px; the movements table and the 9-column layout are fixed)
+- minor: 3 (13 residual — issued line table 54 px too wide at 1152; 14 — stacked Konto select has no visible label; 15 — Balance `dd` amounts wrap at 1152)
+- Fixed this pass: 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12 (11 of 13). Token discipline holds; `app.css` = `example.html` `<style>` verbatim + the three known additions; `tokens.css` / `style.md` unchanged. Findings 15 (and optionally 3d) touch the shared CSS and must land in `example.html` **and** `app.css`; 3, 13, 14 are markup-only.
+
+Open findings: 4
+
+
+---
+
+# Spec v2 — Pass 3 (final)
+
+| | |
+|---|---|
+| Date | 2026-09-08 |
+| App commit | `49fcc2d` ("Refunds only for credit notes of paid originals … five-column cashflow table and wrapping cells"). Working tree clean under `src/`, `tokens.css`, `style.md`, `example.html` — the running build on 3109 is HEAD. |
+| Authority | `tokens.css` and `style.md` unchanged since pass 7; `example.html` changed by one declaration (`.totals__row dd { … white-space: nowrap }`), mirrored 1:1 into `src/app.css` |
+| Instance | http://127.0.0.1:3109, freshly seeded; another reviewer's probes mutated it mid-run once more (invoices 1007–1010, credit note 1008 "Pass3 ydelse" on the **unpaid** 1007, credit note 1010 refunded 08.09.2026, a `Momsafregning 2. kvartal 2026` movement of −14.550,25) — so the 1152 cashflow shot (57) reads `91.500,00 / 0,00` where the later 1440 probe reads `92.750,00 / 1.250,00`. Data, not design; credit note 1008 is in fact the case the new hide-the-refund-form branch needs. |
+| Viewport | 1440 × 900, DPR 1, headless Chromium; geometry probes at 1440 / 1420 / 1419 / 1280 / 1152 |
+
+Method: read `git show HEAD` for every design-relevant hunk (`example.html`, `src/app.css`, `InvoiceEditor.svelte:151`, `cashflow/+page.svelte`, `fakturaer/[id]/+page.svelte`, `indstillinger/+page.svelte`, `balance/+page.server.ts`, `finance.ts`). Regenerated **all 85 screenshots** against 3109 (`review/shots.ts` 00–17, `review/shots-extra.ts` 20–36 / 50–70 → refreshed `review/measure-v2p2.json`; the pass-2 dump is kept as `review/measure-v2p2-pass2.json`). Reran the `.num` alignment sweep (`review/measure-v2p1.ts` → `review/measure-v2p1-pass3.txt`) and the pass-4/5/6/7 regression probes (`measure-p4/p5/p6/p7.ts`, shots 37–49 refreshed). Added `review/measure-v2p3.ts` (→ `review/measure-v2p3.json`, shots 58b, 62b, 71, 71b, 71c, 72, 73): Balance `dd` line boxes at three widths, issued line-table cells at three widths, editor head texts, cashflow head/`.cell-sub`/intro/KPI-sub, the Indstillinger hint, and a scan of every credit note's `originalPaidDate`. Nothing was booked; the two temp drafts were deleted. Inspected the changed PNGs.
+
+## New and changed screenshots
+
+| File | Screen |
+|---|---|
+| `shots/16-cashflow.png`, `57-cashflow-1152.png`, `67-cashflow-1280.png`, `65-cashflow-pr-maaned-zoom.png` | **Changed.** "Pr. måned" with exactly the five spec columns, 36 px rows, no breakdowns; `Position` fully visible at 1152 |
+| `shots/71-cashflow-intro-zoom.png`, `71b-…-1152-zoom.png` | **New.** The section intro that now carries the five component totals (finding 16) |
+| `shots/71c-cashflow-kpis-1152-zoom.png` | **New.** KPI strip with the "ved dagens begyndelse dd.mm.åååå" sub |
+| `shots/04-faktura-udstedt.png`, `39-…-1280.png`, `40-…-1152.png`, `62-faktura-udstedt-konto-1152.png`, `62b-faktura-udstedt-linjer-1152-zoom.png` | **Changed / new.** Issued-invoice line table: `Beskrivelse` wraps, table = wrap width at every width |
+| `shots/03-faktura-kladde.png`, `30-…-1152.png`, `37-…-1280.png`, `54b`, `54c`, `70-faktura-kladde-konto-1152-zoom.png` | **Changed.** Editor head row `BESKRIVELSE OG KONTO · ANTAL · ENHED · PRIS EKSKL. MOMS · BELØB` |
+| `shots/17-balance.png`, `58-balance-1152.png`, `68-…-1280.png`, `58b-balance-aktiver-1152-zoom.png` | **Changed.** Balance: every amount on one line at 1152, the hints wrap instead |
+| `shots/73-kreditnota-ubetalt-original-zoom.png` | **New.** Credit note 1008 on the unpaid 1007: no refund form, hint "Modregner en ubetalt faktura – intet at refundere." |
+| `shots/72-indstillinger-aabningssaldo-1152-zoom.png`, `11-indstillinger.png` | **Changed / new.** Opening-balance hint with the start-of-day wording |
+| `shots/00–02, 05–15, 20–36, 38, 41–53, 55–56, 63–66, 69` | Refreshed; no visible change against pass 2 apart from data (the other reviewer's invoices/movements) |
+
+## Status of the 4 pass-2 findings
+
+| # | Sev. | Status | Evidence |
+|---|---|---|---|
+| 3 | major | **Fixed** | `measure-v2p3.json.cashflow`: heads `Måned · Ind · Ud · Netto · Position` (5), `cellSubs: 0`, `hiddenPx: 0` at **1440 / 1280 / 1152** (wrap 1150 / 990 / 862 = table), rows **9 × 36 px** (were 49), column widths 168 / 167 / 167 / 180 / 180 at 1152. `measure-v2p2.json.reports` agrees for all three cashflow tables (5 / 3 / 4 columns, 0 hidden px each), and the DOM-simulated 40-char reconciliation description still wraps to 2 lines with 0 hidden px in the movements table. 57 / 65: `Position` reads `50.000,00 … 105.305,00` in full at 1152; the sep-2026 row (three non-zero components in the data) is present. `cashflow/+page.svelte:63–67` has no `.cell-sub` (grep: 0). The component totals moved into the `.section__head p` — see finding 16. |
+| 13 | minor | **Fixed** | `measure-v2p3.json.issuedLines`: `/fakturaer/1` **1152: wrap 558 / table 558 / `hiddenPx: 0`** (was 54); 1280: 643 / 643 / 0; 1440: 750 / 750 / 0. `Beskrivelse` `td` is `class="wrap"`, computed `white-space: normal`, "Konceptudvikling, uge 12–14" on **2 lines** at 1152 (133 px) and 1280 (190 px), 1 line at 1440 (222 px); Konto "1000 / Konsulentydelser" on 2 lines at 1152 / 1280 (127 / 156 px); rows 44 px at ≤ 1280, 30 px at 1440. 62b: nothing truncated, amounts intact. `+page.svelte:78`. |
+| 14 | minor | **Fixed** | `measure-v2p3.json.editorHead`: heads `["Beskrivelse og konto", "Antal", "Enhed", "Pris ekskl. moms", "Beløb", "Fjern"]` at 1440 and 1152; the first head is **1 line** (218 px at 1440, 330 px at 1152, head row 32 px — unchanged). The stack beneath keeps `aria-label="Beskrivelse, linje 1"` / `"Konto, linje 1"`, and the select now lists revenue accounts only (`1000 Konsulentydelser · 1100 Andet salg · 1200 Momsfrit salg`). 70 / 54b: `BESKRIVELSE OG KONTO` sits over both controls. `InvoiceEditor.svelte:151`. |
+| 15 | minor | **Fixed** | `measure-v2p3.json.balanceDd`: every `.totals__row dd` computes `white-space: nowrap` and is **1 line box** at **1152 / 1280 / 1440** — `Likvider "105.305,00 kr."` (dd 100 px, dt 270 px, hint 2 lines, row 386 px), `Skyldig moms "1.245,20 kr."` (dd 86, dt 284, hint 2 lines), `Skyldige kreditnotaer "15.000,00 kr."` (dd 93, dt 269), the two `--sum` rows likewise. 58 / 58b: `105.305,00 kr.` on one line, the hint "(åbningssaldo 50.000,00 + alle betalte bevægelser)" takes the wrap instead. Rule lives once in `example.html:511` and `src/app.css:502`, byte-identical. |
+
+## The two pass-2 "new since" items
+
+- **Credit note on an unpaid original.** Credit note 1008 (credits 1007, `originalPaidDate: null`) — `measure-v2p3.json.creditNoteUnpaidOriginal`: `.panel__foot` children = `hint spacer | Kreditnotaen er udstedt og kan ikke ændres.` + `hint | Modregner en ubetalt faktura – intet at refundere.`, **0 forms, 0 primaries**; facts `Kunde · Dato · Refunderet — · Betalingsreference · Moms · Vedrører Faktura 1007`. 73. Credit note 1006 (credits the paid 1002) still shows the `Markér som refunderet` form (63 / 63b, `measure-v2p2.json.creditNote`: `input--date` 130 px mono, secondary 32 px button, hidden label, 0 primaries), 1010 shows `Refunderet 08.09.2026` (05). All three states are hint-or-form in the same `.panel__foot` slot; the two hints are `--text-xs --text-secondary` like every other foot hint. Fine — see observation 3 for the `Refunderet —` fact.
+- **Start-of-day boundary.** Cashflow KPI sub: `"ved dagens begyndelse 01.01.2026 · ændres under Indstillinger"` (mono, `--text-2xs`), **2 lines** in the 368 / 315 / 272 px card at 1440 / 1280 / 1152 (the neighbouring subs are 1 line) — 71c. Indstillinger hint: `"Saldoen ved dagens begyndelse; bevægelser på selve datoen tælles med. Cashflow og balance tæller herfra."` — **3 lines** at 1440 (262 px `span-3`), **4 lines** at 1152 (190 px), under the 130 px `input--short`; 72. Both are legible and inside their boxes; see observation 4.
+
+## Side-effect check
+
+- `.num` sweep (`measure-v2p1-pass3.txt`): **195 `.num` th/td, 0 not right-aligned**, head-vs-body right edge 0 px for every numeric column on all twelve pages (the count fell from 218 because the two cashflow breakdown lines are gone and the data differs).
+- Editor (`measure-v2p2.json.editor`, `measure-p4`, `measure-p5`): `hiddenPx: 0`, `fjernVisibleInWrap: true`, stack gap 4 px, select = input width, rows 65 px, `pageHScroll: 0` at 1440 / 1420 / 1419 / 1280 / 1152; grid 752/376 → 1131 at 1419 unchanged; `exceedsBody: 0`.
+- Export `Indhold` table 0 hidden px at 1440 / 1280 / 1152 (`measure-p5`, `measure-p6` E1); Kunde-cell CVR 1 line box (E2, F2); Moms `layout-6-6--tables` 0 hidden px at 1440 / 1280 / 1279 / 1152 (F1); the line-error markup still `oklch(0.48 0.15 25)` text at 12 px with the error border on the offending input only (`measure-p7`).
+- Kontoplan rows 11 × 35 px, `Bogfør bevægelse` 38 px, `Bogfør korrektion` 38 px / `Annullér` 32, balance field error `field--error` + `Ugyldigt beløb`, hint amounts mono (`hintAmountFonts`: every hint ≥ 1 `.mono` span) — all as in pass 2.
+- No page-level horizontal scroll on `/cashflow`, `/resultat`, `/balance` at the three widths (`pageHScroll: 0`).
+
+## CSS source audit (pass 3)
+
+- **Token discipline holds.** `src/` has no hex / `oklch()` / `rgb()` / `hsl()` outside `app.css`; no `px` / `rem` / `em` literal in any of the ten component `<style>` blocks. The commit's only CSS change is `white-space: nowrap` (a keyword).
+- **`src/app.css` vs `example.html` `<style>`**: unified diff is still exactly the header comment, `@import '../tokens.css'`, and the three known app additions (`.btn { white-space: nowrap }`, `.pdfframe`, `.fileframe`). Nothing else differs.
+- `tokens.css` / `style.md` unchanged since pass 7 (`git diff 0a7ec6b HEAD -- tokens.css style.md` empty).
+
+## Findings
+
+Severity: **blocker**, **major** (visible defect against a mandatory rule), **minor** (rule drift, low impact).
+
+### 16. minor — The cashflow intro sentence sets five amounts in proportional type
+
+**Evidence:** 71 / 71b — `Kassebasis: Ind = fakturaer efter betalingsdato (92.750,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (1.250,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.` — `.section__head p`, 13 px / 19.5 px, `--text-secondary`, 4 lines at the 492 px `--layout-prose-max`. `cashflow/+page.svelte:46`: the five `formatOre(…)` calls are bare text; grep `class="mono"` in the head paragraph: 0. The amounts inherit the paragraph's `--font-sans`. This is where the fix for finding 3 moved the component totals, so it is new in this commit.
+
+**Rule:** style.md §1 line 16 — `--font-numeric` is **mandatory** for all amounts. Same rule finding 6 was raised under (Balance hint amounts), which the builder fixed with `<span class="mono">…</span>` around each figure (`balance/+page.svelte:30–42`).
+
+**Fix:** wrap each of the five figures: `(<span class="mono">{formatOre(…, false)}</span>)`, exactly as the Balance hints do. Optional tidy-up: compute the five sums once in the script block (or in `finance.ts` next to `months`) instead of five inline `reduce`s in the template. Acceptance: every amount in the "Pr. måned" intro computes `ui-monospace, …` (the `hintAmountFonts`-style probe over `.section__head p .mono`, 5 spans).
+
+## Observations (not counted)
+
+1. **Cashflow intro is now a 4-line paragraph of numbers** (71). It is legible and inside `--layout-prose-max`, but a `.section__head p` is meant for one sentence of context (§2). The five totals could instead live where totals already live — the table's `tfoot` (`9 måneder · 91.500,00 · 36.195,00 …` already has the `Ind`/`Ud` sums) plus a shorter sentence naming the components without figures. Not counted: the acceptance for finding 3 was `hiddenPx: 0`, which this meets.
+2. **Issued line table at 1280** (`measure-v2p3.json.issuedLines.1280`): `Beskrivelse` and `Konto` both wrap to 2 lines (190 / 156 px columns, rows 44 px) although the 643 px wrap has room for one of them on a single line — auto table layout splits the slack evenly between the two `wrap` columns. Rendering Konto as `1000` + `.cell-sub` name (the pass-2 alternative) would keep the description on one line at 1280. Cosmetic.
+3. **`Refunderet —` on a credit note that has nothing to refund** (73): the fact reads as "not yet" when the page's own hint says "intet at refundere". Either omit the fact in that state or show `Ikke relevant` in `--text-secondary`. Copy/semantics; the layout is right.
+4. **Long hints.** The opening-balance hint is 4 lines under a 130 px input at 1152 (72) and the `Åbningssaldo` KPI sub is the only 2-line sub in its strip (71c). Both are the accepted `.hint` / `.kpi__sub` constructions and stay inside their boxes; shorter copy ("Saldo ved dagens begyndelse; dagens bevægelser tælles med.") would restore the one-line KPI sub at 1440. Not counted.
+5. `Fjern` head cell and the Konto column head: `BESKRIVELSE`/`ENHED`/`KONTO` heads are sans while `ANTAL`/`PRIS`/`BELØB` heads are mono (62b / 70) — the `.num` heads take `--font-numeric` so they sit over the digits; accepted since pass 1, unchanged.
+6. Pass-2 observations 1–9 (65 px editor rows, `.reconcile .btn` margin, the 360 px `Navn` input in a 547 px span, no demo markup for the six shared classes in `example.html`, the hidden `Refusionsdato` label, `kr.` in the correction description, dense kontoplan, the three-line movement error copy) are unchanged and still not counted.
+7. Scripts: `review/measure-v2p3.ts` is the pass-3 hard-check set — `balanceDd[*][*].ddLines === 1` at 1440 / 1280 / 1152; `issuedLines[1152].hiddenPx === 0`; `editorHead[*].heads[0] === 'Beskrivelse og konto'`; `cashflow[*].cellSubs === 0 && hiddenPx === 0`; `creditNoteUnpaidOriginal.forms === 0`. Together with the pass-2 checks in observation 10 of that pass they are the regression net for this surface.
+
+## Open findings: 1
+
+- blocker: 0
+- major: 0 (3 fixed — five-column "Pr. måned", 0 hidden px at 1440 / 1280 / 1152, 36 px rows)
+- minor: 1 (16 — the five component totals moved into the cashflow intro are not in `--font-numeric`; one-line markup fix, same pattern as finding 6)
+- Fixed this pass: 3, 13, 14, 15 (4 of 4). Token discipline holds; `app.css` = `example.html` `<style>` verbatim + the three known additions; `tokens.css` / `style.md` unchanged since pass 7. No regressions in the `.num` sweep, the editor, the export / moms / issued-detail tables or the line-error markup. Finding 16 is markup-only (`cashflow/+page.svelte`), no shared CSS.
+
+Open findings: 1
+
+# Spec v2 — Pass 4 (final)
+
+| | |
+|---|---|
+| Date | 2026-09-08 |
+| App commit | `9d7e7ba` ("Set the cashflow component totals in the numeric font") — one file, one line: `src/routes/(app)/cashflow/+page.svelte:46`. Working tree clean under `src/`, `tokens.css`, `style.md`, `example.html`. |
+| Authority | `tokens.css` / `style.md` unchanged since pass 7 (`git diff 0a7ec6b HEAD -- tokens.css style.md` empty); `example.html` untouched by this commit |
+| Instance | http://127.0.0.1:3110, freshly seeded (no other reviewer traffic during the run: intro reads `91.500,00 / 0,00 / 6.599,75 / 0,00 / 29.595,25`, foot `9 måneder · 91.500,00 · 36.195,00 · 55.305,00 · 105.305,00`). Nothing was booked; no drafts created. |
+| Viewport | 1440 × 900, DPR 1, headless Chromium; probes at 1440 / 1280 / 1152 |
+
+Method: read the diff of `9d7e7ba`. Added `review/measure-v2p4.ts` (→ `review/measure-v2p4.json`): on `/cashflow` at the three widths it records every `.section__head p .mono` span in the "Pr. måned" intro with its computed `font-family`, the paragraph's own `font-family`, the full intro text (to check for digits outside the spans), and exactly the geometry fields `measure-v2p3.ts` D recorded (heads, `.cell-sub` count, wrap / table / hidden px, row heights, column widths, intro lines / width / max-width, KPI sub), plus the two other `.table-wrap`s on the page, `.num` alignment / font, and page-level horizontal scroll. Regenerated the seven cashflow screenshots (16, 57, 65, 67, 71, 71b, 71c); the pass-3 versions were kept aside and compared. Re-diffed `example.html` `<style>` against `src/app.css`.
+
+## Screenshots refreshed
+
+| File | Screen |
+|---|---|
+| `shots/71-cashflow-intro-zoom.png`, `71b-cashflow-intro-1152-zoom.png` | **Changed.** The five component totals now render in the mono face; still 4 lines at the 492 px `--layout-prose-max`, 78 px tall. Line breaks shifted by one word ("…Positionen løber fra / åbningssaldoen." instead of "…Positionen løber / fra åbningssaldoen."), which is the widths of the mono digits. |
+| `shots/16-cashflow.png`, `67-cashflow-1280.png`, `57-cashflow-1152.png` | Refreshed; only the intro figures differ, otherwise identical layout to pass 3 (data now the clean seed). |
+| `shots/65-cashflow-pr-maaned-zoom.png`, `71c-cashflow-kpis-1152-zoom.png` | Refreshed; no visible change. |
+
+## Status of the pass-3 finding
+
+| # | Sev. | Status | Evidence |
+|---|---|---|---|
+| 16 | minor | **Fixed** | `measure-v2p4.json[1440/1280/1152].monos`: **5 spans** — `91.500,00`, `0,00`, `6.599,75`, `0,00`, `29.595,25` — every one computes `font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace` (= `--font-numeric`, `numericVar`), 13 px / 400 / `oklch(0.56 0.009 255)` (`--text-secondary`), `display: inline`. The paragraph itself computes `"Helvetica Neue", Helvetica, "Segoe UI", system-ui, sans-serif` (the UI face) at 13 px / 19.5 px, so the prose around the figures is unchanged. Stripping the five span texts from `p.textContent` leaves **no digit** — nothing numeric in the rendered intro sits outside a `.mono`. 71 / 71b show the figures in the mono face; the pass-3 copy of 71 shows them proportional. Same pattern as the Balance hints (`balance/+page.svelte:30–42`). |
+
+## Side-effect check (pass 3 → pass 4, same probe fields)
+
+- **Table geometry identical** at all three widths for `heads`, `cellSubs`, `wrap`, `hiddenPx`, `rowHeights`, `colWidths`, `introLines`, `introW`, `introMaxW`, `kpiSub`, `kpiSubLines`, `kpiW`: heads `Måned · Ind · Ud · Netto · Position`, `cellSubs: 0`, wrap = table = **1150 / 990 / 862**, **`hiddenPx: 0` at 1440 / 1280 / 1152**, rows **9 × 36 px**, columns 224/222/222/240/240 · 193/191/191/207/207 · 168/167/167/180/180, intro 4 lines at 492 px, KPI sub 2 lines at 368 / 315 / 272 px.
+- The other two `.table-wrap`s on the page (3 and 4 columns) also `hiddenPx: 0`; **44 `.num` cells, 0 not right-aligned, 0 `td.num` not mono**; `pageHScroll: 0` at every width.
+- Intro font/leading 13 px / 19.5 px unchanged; the paragraph is 78 px tall at every width (4 × 19.5).
+
+## CSS source audit (pass 4)
+
+- The commit touches no CSS. `src/` still has no hex / `oklch()` / `rgb()` / `hsl()` literal outside `app.css`.
+- **`src/app.css` vs `example.html` `<style>`**: unified diff is exactly the header comment, `@import '../tokens.css'`, and the three known app additions (`.btn { white-space: nowrap }`, `.pdfframe`, `.fileframe`). Unchanged from pass 3.
+- `tokens.css` / `style.md` unchanged since pass 7.
+
+## Findings
+
+Severity: **blocker**, **major** (visible defect against a mandatory rule), **minor** (rule drift, low impact).
+
+### 17. minor — The sixth amount on the same line is still proportional (latent)
+
+**Evidence:** `cashflow/+page.svelte:46`, tail of the same `<p>`: `{#if f.excludedBeforeOpening.count > 0} {f.excludedBeforeOpening.count} bevægelser dateret før åbningssaldoen ({formatOre(f.excludedBeforeOpening.netOre)} netto) er allerede indeholdt i den og tælles ikke med.{/if}` — the `formatOre(…)` (with the `kr.` suffix) and the count are bare text nodes of the sans paragraph; the fix wrapped the five totals before it and stopped there. The branch renders whenever a paid document or bank movement is dated before `opening_balance_date` (`finance.ts:107–113`, `sinceOpening`). The seed has none (`excluded.count = 0`, `measure-v2p4.json[*].intro` ends at "åbningssaldoen."), so it is **not visible on this instance** and was not triggered — booking a pre-2026 movement would have mutated the shared seed. Verified in source only.
+
+**Rule:** style.md §1 line 16 — `--font-numeric` **mandatory** for all amounts; the Balance hints wrap both amounts and counts (`balance/+page.svelte:30–31`).
+
+**Fix:** `<span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser … (<span class="mono">{formatOre(f.excludedBeforeOpening.netOre)}</span> netto)`. Acceptance: with one movement dated before the opening balance, `.section__head p .mono` count = 7 and stripping their texts from the intro leaves no digit (the `measure-v2p4.ts` check).
+
+## Observations (not counted)
+
+1. Finding 16's acceptance ("5 spans compute `ui-monospace`") is met exactly; finding 17 is the remainder of the same line, not a regression.
+2. Pass-3 observations 1–7 (4-line intro paragraph, Konto/Beskrivelse both wrapping at 1280, `Refunderet —` on a nothing-to-refund credit note, long hints, sans vs mono heads in the editor, the pass-2 leftovers, the regression-net scripts) are unchanged and still not counted. `review/measure-v2p4.ts` joins the regression net: `monoCount === 5` (7 once finding 17 lands and the branch is active), `hiddenPx === 0` and `rowHeights.every(h => h === 36)` at 1440 / 1280 / 1152.
+
+## Open findings: 1
+
+- blocker: 0
+- major: 0
+- minor: 1 (17 — the conditional "bevægelser dateret før åbningssaldoen" amount and count on `cashflow/+page.svelte:46` are not in `--font-numeric`; latent on the seed, source-verified, same one-line markup fix)
+- Fixed this pass: 16 (1 of 1) — the five component totals compute `--font-numeric` at 1440 / 1280 / 1152, the surrounding prose stays in the UI face, table geometry byte-identical to pass 3, `app.css` = `example.html` `<style>` verbatim + the three known additions, `tokens.css` / `style.md` unchanged.
+
+Open findings: 1
+
+# Spec v2 — Pass 5 (final)
+
+| | |
+|---|---|
+| Date | 2026-09-08 |
+| App commit | `48f1eed` ("Set the excluded-flows count and amount in the numeric font") — one file, one line: `src/routes/(app)/cashflow/+page.svelte:46`; the diff against `9d7e7ba` is exactly the two `<span class="mono">` wraps (count, `formatOre(f.excludedBeforeOpening.netOre)`). Working tree clean under `src/`, `tokens.css`, `style.md`, `example.html`. |
+| Authority | `tokens.css` / `style.md` unchanged since pass 7 (`git diff 0a7ec6b HEAD -- tokens.css style.md` empty); `example.html` untouched by this commit |
+| Instance | http://127.0.0.1:3111, freshly seeded (`opening_balance_date = 2026-01-01`, `opening_balance_ore = 5000000`; intro `91.500,00 / 0,00 / 6.599,75 / 0,00 / 29.595,25`, foot `9 måneder · 91.500,00 · 36.195,00 · 55.305,00 · 105.305,00` — the pass-4 seed). Nothing was booked; no drafts created. |
+| Viewport | 1440 × 900, DPR 1, headless Chromium; probes at 1440 / 1280 / 1152 |
+
+Method: read the diff of `48f1eed`. Finding 17 is latent on the seed (`excludedBeforeOpening.count = 0`), so this pass made the branch render **without booking anything**: `review/measure-v2p5.ts` (→ `review/measure-v2p5.json`) logs in, reads `/api/settings`, refuses to run unless the date is `2026-01-01`, probes `/cashflow` at 1440 (phase A, parity), then `PUT /api/settings { "opening_balance_date": "2026-05-01" }` (200; no Origin header, which `hooks.server.ts:33–41` lets through), probes `/cashflow` at 1440 / 1280 / 1152 (phase B) with the pass-4 field set — every `.section__head p .mono` span with computed `font-family`, the paragraph's own `font-family`, bare text nodes still carrying a digit, heads / `.cell-sub` / wrap / table / hidden px / row heights / column widths / intro lines / KPI sub / `.num` alignment and font / other `.table-wrap`s / page-level horizontal scroll — takes shots 74 and 74b, and in a `finally` restores `PUT { "opening_balance_date": "2026-01-01" }` (200; `settingsAfter` re-read as `2026-01-01` / `5000000`). Phase C then re-probes the three widths on the restored state and diffs them field-by-field against `measure-v2p4.json`. The pass-4 versions of shots 16 / 57 / 65 / 67 / 71 / 71b / 71c were **not** regenerated (only `74*` are new; the shots directory otherwise carries pass-4 timestamps). Compiled the pre-fix (`9d7e7ba`) and current versions of the page with `svelte/compiler` into the scratchpad to read the `{#if}` fragment's template.
+
+## Screenshots added
+
+| File | Screen |
+|---|---|
+| `shots/74-cashflow-udeladte-zoom.png` | **New.** "Pr. måned" `.section__head` at 1440 with the opening balance moved to 01.05.2026: the excluded-flows sentence is active — `2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med.` The count `2` and the amount `58.126,25 kr.` render in the mono face like the five totals before them. 5 lines at the 492 px `--layout-prose-max`, 98 px tall. |
+| `shots/74b-cashflow-udeladte-1152-zoom.png` | **New.** Same at 1152; identical wrapping (the paragraph is capped at 492 px at every width). |
+
+The two excluded rows are the seed's April invoice (58.500,00 in) and April expense (373,75 out) — `apr 2026 | 58.500,00 | 373,75 | 58.126,25` in the pass-4 table — so count 2 / net 58.126,25 is the correct figure for that date.
+
+## Status of the pass-4 finding
+
+| # | Sev. | Status | Evidence |
+|---|---|---|---|
+| 17 | minor | **Fixed** | `measure-v2p5.json.B[1440/1280/1152].monos`: **7 spans** — `33.000,00`, `0,00`, `6.226,00`, `0,00`, `29.595,25`, `2`, `58.126,25 kr.` — every one computes `font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace` (= `--font-numeric`, `numericVar`), 13 px / 400 / `oklch(0.56 0.009 255)` (`--text-secondary`), `display: inline`. `bareWithDigits: []` at all three widths — with the branch active, **no digit** in the rendered intro sits outside a `.mono` (8 bare text nodes, none numeric). The paragraph itself still computes `"Helvetica Neue", Helvetica, "Segoe UI", system-ui, sans-serif` at 13 px / 19.5 px. Shots 74 / 74b show it. Pass-4 acceptance ("`.mono` count = 7 and stripping their texts leaves no digit") met exactly. |
+
+## Side-effect check (pass 4 → pass 5)
+
+- **Restored state (phase C) vs `measure-v2p4.json`: no differing field at 1440, 1280 or 1152** across `heads`, `cellSubs`, `wrap`, `table`, `hiddenPx`, `rowHeights`, `colWidths`, `introLines`, `introW`, `introH`, `introMaxW`, `kpiSub`, `kpiSubLines`, `kpiW`, `numCells`, `numNotRight`, `numFontsNotMono`, `otherTables`, `pageHScroll`, `rows`, `foot`, `intro`, `monoCount`, `pFont`, `pSize`, `pLineHeight` (`diffVsP4[*]` lists only phase-B differences, all of which are the shifted date's data: 5 rows instead of 9, `5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75`, KPI sub `01.05.2026`, intro 5 lines / 98 px, `numCells 28`, `monoCount 7`).
+- With the branch active (phase B): wrap = table = 1150 / 990 / 862, **`hiddenPx: 0`** at all widths, rows **5 × 36 px**, columns 228/226/226/244/226 · 196/195/195/210/195 · 171/169/169/183/169 (different data, same 5-column layout, no wrapping cells, `cellSubs: 0`), the other two `.table-wrap`s `hiddenPx: 0`, **28 `.num` cells, 0 not right-aligned, 0 `td.num` not mono**, `pageHScroll: 0`.
+- Phase A (before the shift) reproduced pass 4: `monoCount 5`, `bareWithDigits: []`.
+- Settings after the run: `opening_balance_date 2026-01-01`, `opening_balance_ore 5000000` — the instance is back in its seeded state.
+
+## CSS source audit (pass 5)
+
+- The commit touches no CSS. `src/` still has no hex / `oklch()` / `rgb()` / `hsl()` literal outside `app.css`; `app.css` vs `example.html` `<style>` not re-diffed (neither file changed since pass 4).
+- `tokens.css` / `style.md` unchanged since pass 7.
+
+## Findings
+
+Severity: **blocker**, **major** (visible defect against a mandatory rule), **minor** (rule drift, low impact).
+
+### 18. minor — No space between "åbningssaldoen." and the excluded-flows count (pre-existing, first rendered this pass)
+
+**Evidence:** shots 74 / 74b, line 4: `…Positionen løber fra åbningssaldoen.2 bevægelser dateret før…` — the two sentences run together. `measure-v2p5.json.B[*].intro` carries the same `åbningssaldoen.2 bevægelser`. Cause: `cashflow/+page.svelte:46` puts the separating space *inside* the `{#if}` block as its first character (`…åbningssaldoen.{#if …} <span class="mono">{count}</span> bevægelser…`), and Svelte trims whitespace at the start of a block fragment; the compiled client template for the branch begins `<span class="mono"> </span> bevægelser dateret før åbningssaldoen (…` (`.svelte-kit/output/client/_app/immutable/nodes/5.*.js`). **Not introduced by `48f1eed`**: compiling the `9d7e7ba` version of the file gives `set_text(text_10, \`${count} bevægelser dateret…\`)` — the leading space was already gone; the branch had simply never been rendered in passes 1–4 (source-verified only). Counted now because it is visible whenever the branch is active — i.e. for any user whose opening-balance date follows a paid document or bank movement.
+
+**Rule:** no token rule; style.md line 18 (body copy "large enough to read all day") and general copy hygiene — two sentences joined without a space is a visible typographic defect on the page's only explanatory paragraph.
+
+**Fix (either, both verified with `svelte/compiler`):** move the space outside the block — `…åbningssaldoen. {#if …}<span class="mono">…` compiles to `<p>…åbningssaldoen. <!></p>` and keeps the space (a trailing space when the branch is inactive collapses to nothing); or keep it inside as an expression — `{#if …}{' '}<span class="mono">…` compiles to a fragment starting `" <span…"`. Acceptance: with the branch active, `measure-v2p5.ts` phase-B `intro` contains `åbningssaldoen. 2 bevægelser` (and `bareTextNodes` includes a `" "` before the first excluded span); with it inactive, phase A/C `intro` still ends `åbningssaldoen.`.
+
+## Observations (not counted)
+
+1. Within the one sentence, the five component totals are formatted without the currency suffix (`formatOre(…, false)`) while the excluded net keeps it (`58.126,25 kr. netto`). The suffix sits inside the `--text-secondary` paragraph so §1 line 32 ("currency suffix `--text-secondary`, never bold") holds; the inconsistency is stylistic. Dropping the suffix (`formatOre(…, false)`) would also shorten the line.
+2. With the branch active the intro grows to 5 lines / 98 px at the 492 px prose cap (4 lines / 78 px without it); still within `--layout-prose-max`, no side effect on the table.
+3. Pass-3 observations 1–7 and pass-4 observations are unchanged and still not counted. `review/measure-v2p5.ts` joins the regression net: it is the only probe that mutates the instance (settings date, restored in `finally`, refuses to run if the date is not `2026-01-01`); asserts `monoCount === 7` and `bareWithDigits.length === 0` with the branch active, `monoCount === 5` without, `hiddenPx === 0` and `rowHeights.every(h => h === 36)` at 1440 / 1280 / 1152, and an empty p4-vs-restored field diff.
+
+## Open findings: 1
+
+- blocker: 0
+- major: 0
+- minor: 1 (18 — the space between "åbningssaldoen." and the excluded-flows count is trimmed by Svelte at the `{#if}` boundary on `cashflow/+page.svelte:46`; pre-existing, first visible this pass, one-character markup fix)
+- Fixed this pass: 17 (1 of 1) — with the branch rendered (opening balance moved to 2026-05-01 and restored), all 7 intro figures compute `--font-numeric` at 1440 / 1280 / 1152, no digit outside `.mono`, the surrounding prose stays in the UI face; restored state field-identical to pass 4; `tokens.css` / `style.md` unchanged.
+
+Open findings: 1
+
+# Spec v2 — Pass 6 (final)
+
+| | |
+|---|---|
+| Date | 2026-09-08 |
+| App commit | `affe23c` ("Keep the sentence break before the excluded-flows note and drop its unit suffix") — one file, one line: `src/routes/(app)/cashflow/+page.svelte:46`; the diff against `48f1eed` is exactly (a) the separating space moved from the first character inside the `{#if}` block to just before it (`…åbningssaldoen. {#if …}<span class="mono">…`) and (b) the excluded net formatted with `formatOre(f.excludedBeforeOpening.netOre, false)` instead of `formatOre(…)`. `git status` shows nothing under `src/`, `tokens.css`, `style.md`, `example.html`. |
+| Authority | `tokens.css` / `style.md` unchanged since pass 7 (`git diff --stat 0a7ec6b HEAD -- tokens.css style.md` empty); `example.html` untouched by this commit |
+| Instance | http://127.0.0.1:3112, freshly seeded (`opening_balance_date = 2026-01-01`, `opening_balance_ore = 5000000`; the pass-4/5 seed — intro `91.500,00 / 0,00 / 6.599,75 / 0,00 / 29.595,25`, foot `9 måneder · 91.500,00 · 36.195,00 · 55.305,00 · 105.305,00`). Nothing was booked; no drafts created. |
+| Viewport | 1440 × 900, DPR 1, headless Chromium (Playwright 1.63); probes at 1440 / 1280 / 1152 |
+
+Method: read the diff of `affe23c`. `review/measure-v2p6.ts` (→ `review/measure-v2p6.json`) is `measure-v2p5.ts` pointed at 3112 with three extra phase fields — `spaceBeforeExcluded` (`/åbningssaldoen\. \d/` on the paragraph text), `boundaryCharCode` (the character after `åbningssaldoen.`), `krInMono` (any `.mono` text containing `kr.`) — plus `bareTexts` (every bare text node of the intro) and a phase-B field diff against `measure-v2p5.json` (same shifted date, so only the finding-18 text may differ). Same protocol: log in, read `/api/settings`, refuse unless the date is `2026-01-01`, phase A at 1440, `PUT /api/settings { "opening_balance_date": "2026-05-01" }` (200), phase B at 1440 / 1280 / 1152 with shots 74 / 74b, `finally` `PUT { "opening_balance_date": "2026-01-01" }` (200, `settingsAfter` re-read `2026-01-01` / `5000000`), phase C on the restored state diffed field-by-field against `measure-v2p4.json`. Compiled the current page with `svelte/compiler` 5.57.0 (client + server) to stdout to read the template around the `{#if}` boundary, and grepped the built client chunk on disk (`.svelte-kit/output/client/_app/immutable/nodes/5.*.js`). The probe was run four times while its own regex escaping was being corrected (a `\.`/`\d` inside the probe's JS template literal collapsed to `.`/`d`, reporting `space false` against text that visibly had the space — the `bareTexts` / `boundaryCharCode` fields were the ground truth throughout); each run shifted and restored the date with two 200s, and the final run's dump is the one cited. Shots 74 / 74b were regenerated (02:45 timestamps); no other shot was touched.
+
+## Screenshots refreshed
+
+| File | Screen |
+|---|---|
+| `shots/74-cashflow-udeladte-zoom.png` | **Refreshed.** "Pr. måned" `.section__head` at 1440 with the opening balance moved to 01.05.2026: `…Positionen løber fra åbningssaldoen. 2 bevægelser dateret før åbningssaldoen (58.126,25 netto) er allerede indeholdt i den og tælles ikke med.` — the two sentences are separated, the amount carries no `kr.`, count and amount sit in the mono face like the five totals. Still 5 lines at the 492 px `--layout-prose-max`, 98 px tall. |
+| `shots/74b-cashflow-udeladte-1152-zoom.png` | **Refreshed.** Same at 1152; identical wrapping. |
+
+## Status of the pass-5 finding
+
+| # | Sev. | Status | Evidence |
+|---|---|---|---|
+| 18 | minor | **Fixed** | `measure-v2p6.json.B[1440/1280/1152].intro` = `…Positionen løber fra åbningssaldoen. 2 bevægelser dateret før åbningssaldoen (58.126,25 netto) er allerede indeholdt i den og tælles ikke med.`; `spaceBeforeExcluded: true`, `boundaryCharCode: 32` (a plain U+0020, not an NBSP) at all three widths. `bareTexts[5]` = `"). Positionen løber fra åbningssaldoen. "` — the bare text node now ends with the space, before the first excluded `.mono` span — and `bareTexts[6]` = `" bevægelser dateret før åbningssaldoen ("`, i.e. the pass-5 acceptance ("`intro` contains `åbningssaldoen. 2 bevægelser`; a space before the first excluded span") met. Compiled template: client `…åbningssaldoen. <!></p>` (the space now lives in the static template ahead of the block anchor; the block fragment begins directly with `<span class="mono">`), server `…åbningssaldoen. ` followed by the block. The built chunk on disk carries the same `åbningssaldoen. <!></p>`. With the branch inactive (phases A and C, both dates) `intro` still ends `åbningssaldoen.` (the trailing space is trimmed by `textContent.trim()` and collapses in rendering; `bareTexts` last node `"). Positionen løber fra åbningssaldoen. "`, 6 bare nodes as in passes 4–5). |
+
+Pass-5 observation 1 (the `kr.` suffix on the excluded net, unlike the five totals) is also resolved by this commit: `monos[6].text` = `58.126,25` (was `58.126,25 kr.`), `krInMono: []` at all three widths.
+
+## Side-effect check (pass 5 → pass 6)
+
+- **Phase B vs `measure-v2p5.json` phase B (same shifted date), 29 fields at 1440 / 1280 / 1152: only `intro` and `monos` differ**, and inside `monos` only index 6's `text` (`58.126,25 kr.` → `58.126,25`); its `font` / `size` / `weight` / `color` / `display` are identical (`ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace` / 13 px / 400 / `oklch(0.56 0.009 255)` / `inline`, = `--font-numeric`). `monoCount 7`, `bareTextNodes 8`, `bareWithDigits []`, `pFont "Helvetica Neue", Helvetica, "Segoe UI", system-ui, sans-serif` / 13 px / 19.5 px, `introLines 5` / `introH 98` / `introW 492` / `introMaxW 491.639px`, `heads`, `rows` (5 × `36`), `foot 5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75`, `colWidths` 228/226/226/244/226 · 196/195/195/210/195 · 171/169/169/183/169, `wrap = table` 1150 / 990 / 862, `hiddenPx 0`, `cellSubs 0`, `numCells 28` / `numNotRight 0` / `numFontsNotMono 0`, `otherTables` all `hiddenPx 0`, `pageHScroll 0`, `kpiSub ved dagens begyndelse 01.05.2026 · ændres under Indstillinger` — all equal to pass 5.
+- **Restored state (phase C) vs `measure-v2p4.json`: 0 differing fields at 1440, 1280 or 1152** (`diffVsP4[*]` lists only phase-B entries, the shifted date's data as in pass 5). Phase A reproduced pass 4/5: `monoCount 5`, `bareWithDigits []`.
+- Settings after the run: `opening_balance_date 2026-01-01`, `opening_balance_ore 5000000` — the instance is back in its seeded state.
+
+## CSS source audit (pass 6)
+
+- The commit touches no CSS and no other file. `src/` still has no colour literal outside `app.css`; `app.css` unchanged since pass 4.
+- `tokens.css` / `style.md` unchanged since pass 7.
+
+## Findings
+
+Severity: **blocker**, **major** (visible defect against a mandatory rule), **minor** (rule drift, low impact).
+
+None new. The pass-6 field set is the pass-5 set plus the three finding-18 fields; every difference against passes 4 and 5 is accounted for by the two intended changes.
+
+## Observations (not counted)
+
+1. Pass-5 observation 2 stands: with the branch active the intro is 5 lines / 98 px at the 492 px prose cap (dropping `kr.` did not change the line count at any of the three widths). Pass-3 observations 1–7 and pass-4 observations are unchanged and still not counted.
+2. `review/measure-v2p6.ts` supersedes `measure-v2p5.ts` in the regression net (same mutation-and-restore protocol, refuses to run unless the date is `2026-01-01`) and additionally asserts, with the branch active, `spaceBeforeExcluded === true`, `boundaryCharCode === 32`, `krInMono.length === 0`, and an empty phase-B diff against pass 5 outside `intro` / `monos[6].text`.
+
+## Open findings: 0
+
+- blocker: 0
+- major: 0
+- minor: 0
+- Fixed this pass: 18 (1 of 1) — the space between "åbningssaldoen." and the excluded-flows count now renders (template `åbningssaldoen. <!></p>`, rendered `åbningssaldoen. 2 bevægelser`, U+0020) at 1440 / 1280 / 1152 with the branch active and restored; the excluded net has no `kr.` suffix; all 7 intro figures compute `--font-numeric`, no digit outside `.mono`; phase-B geometry identical to pass 5, restored state field-identical to pass 4; `tokens.css` / `style.md` unchanged.
+
+Open findings: 0
+
+---
+
+# Final status — spec v2 (all three reviewers)
+
+Recorded by the builder after the last confirmation passes on the spec-v2 additions (kontoplan, account on
+lines and expenses, cash movements, opening balance, Resultat / Cashflow / Balance with reconciliation,
+six-CSV export). Each reviewer worked in a fresh context; this block only collects their closing lines.
+
+| Reviewer | Report section | Passes | Last commit reviewed | Open findings |
+|---|---|---|---|---|
+| Spec reviewer | `review/spec-review.md`, "Spec v2" | 3 | `49fcc2d` (later commits are README/markup only) | **0** |
+| Design reviewer | this file, "Spec v2" | 6 | `affe23c` | **0** |
+| Quality reviewer | `review/quality-review.md`, "Spec v2" | 4 | `9d7e7ba` (later commit is markup only, no CSS) | **0** |
+
+Screenshots: `review/shots/` (87 PNGs; every screen at 1440px incl. Resultat, Cashflow and Balance, plus
+1280/1152px probes, error states, the reconcile flow, and the issued-invoice and credit-note PDFs rendered to PNG),
+regenerated against the final build by the design reviewer. Measurement probes: `review/measure*.ts`.
+
+Verification on the final commit: `npm test` (12 files, 77 tests: unit + API incl. 10 concurrent issues, 409 on every
+mutation verb, VAT hand-computed values, finance figures on the seed data as exact øre values, export with six CSVs,
+PDF text, database guard triggers, migration of a populated database); `docker compose up --build`, login, all
+screens on an empty database, `npm run seed` inside the container (settings incl. opening balance, 3 customers,
+6 issued documents, 8 expenses with files, 4 cash movements), container destroyed and recreated with the same
+`/data` volume and all data intact; `git remote -v` empty.
+
+Open findings: 0

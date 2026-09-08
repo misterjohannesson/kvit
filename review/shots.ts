@@ -65,7 +65,10 @@ async function main() {
     ['09-kunder', '/kunder'],
     ['10-kunde', `/kunder/${firstCustomer.id}`],
     ['11-indstillinger', '/indstillinger'],
-    ['12-eksport', '/eksport']
+    ['12-eksport', '/eksport'],
+    ['15-resultat', '/resultat?year=2026'],
+    ['16-cashflow', '/cashflow'],
+    ['17-balance', '/balance']
   ];
   for (const [name, url] of shots) {
     await page.goto(`${BASE}${url}`);

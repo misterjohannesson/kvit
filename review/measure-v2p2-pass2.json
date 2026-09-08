@@ -1,0 +1,769 @@
+{
+  "balancePrimaries": 1,
+  "balanceError": {
+    "fieldErrorWrappers": 1,
+    "inputBorder": "oklch(0.48 0.15 25)",
+    "probeBorder": "oklch(0.89 0.006 250)",
+    "errorText": "Ugyldigt beløb"
+  },
+  "cashflowForm": {
+    "fieldErrors": [
+      "Ugyldig dato – brug dd.mm.åååå",
+      "Ugyldigt beløb – fortegn angiver retning (−1.000,00 = ud)"
+    ],
+    "primaryText": "Bogfør bevægelse",
+    "primaryHeight": 38,
+    "inputs": [
+      {
+        "s": "#mv-date",
+        "w": 130
+      },
+      {
+        "s": "#mv-amount",
+        "w": 130
+      },
+      {
+        "s": "#mv-kind",
+        "w": 160.65625
+      },
+      {
+        "s": "#mv-desc",
+        "w": 529.984375
+      }
+    ],
+    "formIsPanel": true,
+    "formParentClass": "layout-6-6 layout-6-6--tables",
+    "panelTitle": "Ny bankbevægelse",
+    "footRule": "1px",
+    "footPaddingTop": "16px",
+    "primaryInFoot": true,
+    "formPanelBottom": 624.1875,
+    "movementsPanelTop": 664.1875,
+    "movementsTable": {
+      "cols": 4,
+      "wrap": 1150,
+      "hiddenPx": 0,
+      "descWrap": "normal"
+    },
+    "primaries": 1
+  },
+  "kontoplan": {
+    "rowHeights": [
+      35,
+      35,
+      35,
+      35,
+      35,
+      35,
+      35,
+      35,
+      35,
+      35,
+      35
+    ],
+    "rowHeightToken": "36px",
+    "numThRight": 1344.3125,
+    "numTdRight": 1344.3125,
+    "numTdAlign": "right",
+    "numThAlign": "right",
+    "numTdWidth": 143.21875,
+    "renameButtons": 0,
+    "renameGhosts": 13,
+    "tableClass": "data data--dense",
+    "addAccount": {
+      "legend": "Ny konto",
+      "inFieldsetInBody": true,
+      "fieldSpans": [
+        "field field--span-2",
+        "field field--span-6",
+        "field field--span-3"
+      ],
+      "footRule": "1px",
+      "footButtons": [
+        "btn | Tilføj konto"
+      ]
+    },
+    "footInputs": [
+      {
+        "name": "number",
+        "visibleLabel": true,
+        "ariaLabel": null,
+        "placeholder": "2700",
+        "w": 130
+      },
+      {
+        "name": "name",
+        "visibleLabel": true,
+        "ariaLabel": null,
+        "placeholder": "",
+        "w": 360
+      },
+      {
+        "name": "type",
+        "visibleLabel": true,
+        "ariaLabel": null,
+        "w": 130
+      }
+    ],
+    "primaries": 1
+  },
+  "editor": {
+    "1152": {
+      "viewport": 1152,
+      "gridColumns": "864px",
+      "panelWidth": 864,
+      "wrapClientWidth": 830,
+      "tableScrollWidth": 830,
+      "hiddenPx": 0,
+      "descInputWidth": 314.328125,
+      "kontoSelectWidth": 314.328125,
+      "fjernVisibleInWrap": true,
+      "pageHScroll": 0,
+      "stack": {
+        "hasStack": true,
+        "gap": "4px",
+        "selectLeftMatchesDesc": true,
+        "selectRightMatchesDesc": true,
+        "selectTopMinusDescBottom": 4,
+        "rowHeight": 65,
+        "cols": 6
+      }
+    },
+    "1280": {
+      "viewport": 1280,
+      "gridColumns": "992px",
+      "panelWidth": 992,
+      "wrapClientWidth": 958,
+      "tableScrollWidth": 958,
+      "hiddenPx": 0,
+      "descInputWidth": 360,
+      "kontoSelectWidth": 360,
+      "fjernVisibleInWrap": true,
+      "pageHScroll": 0,
+      "stack": {
+        "hasStack": true,
+        "gap": "4px",
+        "selectLeftMatchesDesc": true,
+        "selectRightMatchesDesc": true,
+        "selectTopMinusDescBottom": 4,
+        "rowHeight": 65,
+        "cols": 6
+      }
+    },
+    "1419": {
+      "viewport": 1419,
+      "gridColumns": "1131px",
+      "panelWidth": 1131,
+      "wrapClientWidth": 1097,
+      "tableScrollWidth": 1097,
+      "hiddenPx": 0,
+      "descInputWidth": 360,
+      "kontoSelectWidth": 360,
+      "fjernVisibleInWrap": true,
+      "pageHScroll": 0,
+      "stack": {
+        "hasStack": true,
+        "gap": "4px",
+        "selectLeftMatchesDesc": true,
+        "selectRightMatchesDesc": true,
+        "selectTopMinusDescBottom": 4,
+        "rowHeight": 65,
+        "cols": 6
+      }
+    },
+    "1420": {
+      "viewport": 1420,
+      "gridColumns": "738.656px 369.344px",
+      "panelWidth": 738.65625,
+      "wrapClientWidth": 705,
+      "tableScrollWidth": 705,
+      "hiddenPx": 0,
+      "descInputWidth": 188.984375,
+      "kontoSelectWidth": 188.984375,
+      "fjernVisibleInWrap": true,
+      "pageHScroll": 0,
+      "stack": {
+        "hasStack": true,
+        "gap": "4px",
+        "selectLeftMatchesDesc": true,
+        "selectRightMatchesDesc": true,
+        "selectTopMinusDescBottom": 4,
+        "rowHeight": 65,
+        "cols": 6
+      }
+    },
+    "1440": {
+      "viewport": 1440,
+      "gridColumns": "752px 376px",
+      "panelWidth": 752,
+      "wrapClientWidth": 718,
+      "tableScrollWidth": 718,
+      "hiddenPx": 0,
+      "descInputWidth": 202.328125,
+      "kontoSelectWidth": 202.328125,
+      "fjernVisibleInWrap": true,
+      "pageHScroll": 0,
+      "stack": {
+        "hasStack": true,
+        "gap": "4px",
+        "selectLeftMatchesDesc": true,
+        "selectRightMatchesDesc": true,
+        "selectTopMinusDescBottom": 4,
+        "rowHeight": 65,
+        "cols": 6
+      }
+    }
+  },
+  "expenseForm": {
+    "selectWidth": 356.671875,
+    "fieldClass": "field field--span-4 ",
+    "selectFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\",",
+    "optionSample": "2000 Software og hosting"
+  },
+  "reports": {
+    "1152": {
+      "/cashflow": {
+        "tables": [
+          {
+            "cols": 5,
+            "wrap": 862,
+            "table": 914.671875,
+            "hiddenPx": 53
+          },
+          {
+            "cols": 3,
+            "wrap": 862,
+            "table": 862,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 4,
+            "wrap": 862,
+            "table": 862,
+            "hiddenPx": 0
+          }
+        ],
+        "grid66": [
+          "864px"
+        ],
+        "kpis": [
+          "272px 272px 272px"
+        ],
+        "segments": [],
+        "hintAmountFonts": [],
+        "sumDd": [],
+        "primaries": [
+          {
+            "text": "Bogfør bevægelse",
+            "h": 38
+          }
+        ],
+        "pageHScroll": 0
+      },
+      "/resultat?year=2026": {
+        "tables": [
+          {
+            "cols": 3,
+            "wrap": 862,
+            "table": 862,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 3,
+            "wrap": 862,
+            "table": 862,
+            "hiddenPx": 0
+          }
+        ],
+        "grid66": [
+          "864px"
+        ],
+        "kpis": [
+          "272px 272px 272px"
+        ],
+        "segments": [
+          "ui-monospace, \"SF Mono\", SFMon",
+          "\"Helvetica Neue\", Helvetica, \""
+        ],
+        "hintAmountFonts": [],
+        "sumDd": [],
+        "primaries": [],
+        "pageHScroll": 0
+      },
+      "/balance": {
+        "tables": [],
+        "grid66": [
+          "420px 420px"
+        ],
+        "kpis": [
+          "864px"
+        ],
+        "segments": [],
+        "hintAmountFonts": [
+          {
+            "text": "(åbningssaldo 50.000,00 + alle betalte bevægelser)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(2 åbne fakturaer inkl. moms)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(1 ubetalte udgifter inkl. moms)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(1 kreditnotaer til betalte fakturaer, ikke refunderet)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(momstilsvar til dato 15.795,45 − momsbetalinger 14.550,25)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 2,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          }
+        ],
+        "sumDd": [
+          {
+            "text": "132.805,01 kr.",
+            "weight": "500",
+            "children": 0
+          },
+          {
+            "text": "19.244,20 kr.",
+            "weight": "500",
+            "children": 0
+          }
+        ],
+        "primaries": [],
+        "pageHScroll": 0
+      }
+    },
+    "1280": {
+      "/cashflow": {
+        "tables": [
+          {
+            "cols": 5,
+            "wrap": 990,
+            "table": 990,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 3,
+            "wrap": 482,
+            "table": 482,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 4,
+            "wrap": 990,
+            "table": 990,
+            "hiddenPx": 0
+          }
+        ],
+        "grid66": [
+          "484px 484px"
+        ],
+        "kpis": [
+          "314.656px 314.672px 314.656px"
+        ],
+        "segments": [],
+        "hintAmountFonts": [],
+        "sumDd": [],
+        "primaries": [
+          {
+            "text": "Bogfør bevægelse",
+            "h": 38
+          }
+        ],
+        "pageHScroll": 0
+      },
+      "/resultat?year=2026": {
+        "tables": [
+          {
+            "cols": 3,
+            "wrap": 482,
+            "table": 482,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 3,
+            "wrap": 482,
+            "table": 482,
+            "hiddenPx": 0
+          }
+        ],
+        "grid66": [
+          "484px 484px"
+        ],
+        "kpis": [
+          "314.656px 314.672px 314.656px"
+        ],
+        "segments": [
+          "ui-monospace, \"SF Mono\", SFMon",
+          "\"Helvetica Neue\", Helvetica, \""
+        ],
+        "hintAmountFonts": [],
+        "sumDd": [],
+        "primaries": [],
+        "pageHScroll": 0
+      },
+      "/balance": {
+        "tables": [],
+        "grid66": [
+          "484px 484px"
+        ],
+        "kpis": [
+          "992px"
+        ],
+        "segments": [],
+        "hintAmountFonts": [
+          {
+            "text": "(åbningssaldo 50.000,00 + alle betalte bevægelser)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(2 åbne fakturaer inkl. moms)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(1 ubetalte udgifter inkl. moms)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(1 kreditnotaer til betalte fakturaer, ikke refunderet)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(momstilsvar til dato 15.795,45 − momsbetalinger 14.550,25)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 2,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          }
+        ],
+        "sumDd": [
+          {
+            "text": "132.805,01 kr.",
+            "weight": "500",
+            "children": 0
+          },
+          {
+            "text": "19.244,20 kr.",
+            "weight": "500",
+            "children": 0
+          }
+        ],
+        "primaries": [],
+        "pageHScroll": 0
+      }
+    },
+    "1440": {
+      "/cashflow": {
+        "tables": [
+          {
+            "cols": 5,
+            "wrap": 1150,
+            "table": 1150,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 3,
+            "wrap": 562,
+            "table": 562,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 4,
+            "wrap": 1150,
+            "table": 1150,
+            "hiddenPx": 0
+          }
+        ],
+        "grid66": [
+          "564px 564px"
+        ],
+        "kpis": [
+          "368px 368px 368px"
+        ],
+        "segments": [],
+        "hintAmountFonts": [],
+        "sumDd": [],
+        "primaries": [
+          {
+            "text": "Bogfør bevægelse",
+            "h": 38
+          }
+        ],
+        "pageHScroll": 0
+      },
+      "/resultat?year=2026": {
+        "tables": [
+          {
+            "cols": 3,
+            "wrap": 562,
+            "table": 562,
+            "hiddenPx": 0
+          },
+          {
+            "cols": 3,
+            "wrap": 562,
+            "table": 562,
+            "hiddenPx": 0
+          }
+        ],
+        "grid66": [
+          "564px 564px"
+        ],
+        "kpis": [
+          "368px 368px 368px"
+        ],
+        "segments": [
+          "ui-monospace, \"SF Mono\", SFMon",
+          "\"Helvetica Neue\", Helvetica, \""
+        ],
+        "hintAmountFonts": [],
+        "sumDd": [],
+        "primaries": [],
+        "pageHScroll": 0
+      },
+      "/balance": {
+        "tables": [],
+        "grid66": [
+          "564px 564px"
+        ],
+        "kpis": [
+          "1152px"
+        ],
+        "segments": [],
+        "hintAmountFonts": [
+          {
+            "text": "(åbningssaldo 50.000,00 + alle betalte bevægelser)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(2 åbne fakturaer inkl. moms)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(1 ubetalte udgifter inkl. moms)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(1 kreditnotaer til betalte fakturaer, ikke refunderet)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 1,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          },
+          {
+            "text": "(momstilsvar til dato 15.795,45 − momsbetalinger 14.550,25)",
+            "font": "\"Helvetica Neue\", Helvetica, \"",
+            "monoSpans": 2,
+            "monoFont": "ui-monospace, \"SF Mono\", SFMon"
+          }
+        ],
+        "sumDd": [
+          {
+            "text": "132.805,01 kr.",
+            "weight": "500",
+            "children": 0
+          },
+          {
+            "text": "19.244,20 kr.",
+            "weight": "500",
+            "children": 0
+          }
+        ],
+        "primaries": [],
+        "pageHScroll": 0
+      }
+    }
+  },
+  "issuedLines": [
+    {
+      "wrap": 558,
+      "hiddenPx": 54
+    }
+  ],
+  "creditNote": {
+    "hasForm": false,
+    "buttonClass": null,
+    "buttonText": null,
+    "buttonH": null,
+    "inputClass": null,
+    "inputW": null,
+    "inputFont": null,
+    "labelHidden": null,
+    "labelText": null,
+    "facts": [
+      "Kunde",
+      "Dato",
+      "Refunderet",
+      "Betalingsreference",
+      "Moms",
+      "Vedrører"
+    ],
+    "footChildren": [
+      "hint spacer | Kreditnotaen er udstedt og kan ikke ændr",
+      "hint | Refunderet 08.09.2026"
+    ],
+    "primaries": 0
+  },
+  "cashflowMonthly": {
+    "head": [
+      "Måned",
+      "Ind",
+      "Ud",
+      "Netto",
+      "Position"
+    ],
+    "rowHeights": [
+      49,
+      49,
+      49,
+      49,
+      49,
+      49,
+      49,
+      49,
+      49
+    ],
+    "subs": [
+      {
+        "text": "fakturaer 0,00 · bevægelser 0,00",
+        "align": "right",
+        "font": "ui-monospace, \"SF Mono\", SFMon",
+        "size": "11px",
+        "display": "block"
+      },
+      {
+        "text": "udgifter 0,00 · kreditnotaer 0,00 · bevægelser 0,00",
+        "align": "right",
+        "font": "ui-monospace, \"SF Mono\", SFMon",
+        "size": "11px",
+        "display": "block"
+      }
+    ],
+    "tfootCells": [
+      "9 måneder",
+      "92.750,01",
+      "37.695,00",
+      "55.055,01",
+      "105.055,01"
+    ]
+  },
+  "cashflowSimulatedReconciliation": {
+    "1152": {
+      "before": {
+        "wrap": 862,
+        "hiddenPx": 0
+      },
+      "after": {
+        "wrap": 862,
+        "hiddenPx": 0,
+        "descLines": 2,
+        "descWhiteSpace": "normal"
+      },
+      "allTables": [
+        {
+          "cols": 5,
+          "wrap": 862,
+          "hiddenPx": 53
+        },
+        {
+          "cols": 3,
+          "wrap": 862,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "wrap": 862,
+          "hiddenPx": 0
+        }
+      ]
+    },
+    "1280": {
+      "before": {
+        "wrap": 990,
+        "hiddenPx": 0
+      },
+      "after": {
+        "wrap": 990,
+        "hiddenPx": 0,
+        "descLines": 2,
+        "descWhiteSpace": "normal"
+      },
+      "allTables": [
+        {
+          "cols": 5,
+          "wrap": 990,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "wrap": 482,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "wrap": 990,
+          "hiddenPx": 0
+        }
+      ]
+    },
+    "1440": {
+      "before": {
+        "wrap": 1150,
+        "hiddenPx": 0
+      },
+      "after": {
+        "wrap": 1150,
+        "hiddenPx": 0,
+        "descLines": 2,
+        "descWhiteSpace": "normal"
+      },
+      "allTables": [
+        {
+          "cols": 5,
+          "wrap": 1150,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "wrap": 562,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "wrap": 1150,
+          "hiddenPx": 0
+        }
+      ]
+    }
+  },
+  "udgifterPrimary": {
+    "text": "Bogfør udgift",
+    "h": 38
+  }
+}

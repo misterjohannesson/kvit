@@ -1,0 +1,1282 @@
+{
+  "settingsBefore": {
+    "opening_balance_date": "2026-01-01",
+    "opening_balance_ore": "5000000"
+  },
+  "A": {
+    "1440": {
+      "monoCount": 5,
+      "monos": [
+        {
+          "text": "91.500,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.599,75",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 6,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introH": 78,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 1150,
+      "table": 1150,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+      ],
+      "foot": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+      "colWidths": [
+        224,
+        222,
+        222,
+        240,
+        240
+      ],
+      "numCells": 44,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 368
+    }
+  },
+  "putShift": {
+    "status": 200,
+    "body": {
+      "company_name": "Mit Firma ApS",
+      "company_address": "Eksempelvej 1",
+      "company_zip": "2100",
+      "company_city": "København Ø",
+      "company_cvr": "12345678",
+      "bank_reg": "1234",
+      "bank_account": "1234567890",
+      "payment_terms_days": "14",
+      "next_invoice_number": "1007",
+      "vat_registered": "1",
+      "opening_balance_ore": "5000000",
+      "opening_balance_date": "2026-05-01"
+    }
+  },
+  "B": {
+    "1152": {
+      "monoCount": 7,
+      "monos": [
+        {
+          "text": "33.000,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.226,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "2",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "58.126,25 kr.",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 8,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (33.000,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.226,00), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med.",
+      "introLines": 5,
+      "introW": 492,
+      "introH": 98,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 862,
+      "table": 862,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 44.550,00",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 58.275,00",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 65.495,00",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 61.729,00",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 47.178,75"
+      ],
+      "foot": "5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75",
+      "colWidths": [
+        171,
+        169,
+        169,
+        183,
+        169
+      ],
+      "numCells": 28,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.05.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 272
+    },
+    "1280": {
+      "monoCount": 7,
+      "monos": [
+        {
+          "text": "33.000,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.226,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "2",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "58.126,25 kr.",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 8,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (33.000,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.226,00), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med.",
+      "introLines": 5,
+      "introW": 492,
+      "introH": 98,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 990,
+      "table": 990,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 44.550,00",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 58.275,00",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 65.495,00",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 61.729,00",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 47.178,75"
+      ],
+      "foot": "5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75",
+      "colWidths": [
+        196,
+        195,
+        195,
+        210,
+        195
+      ],
+      "numCells": 28,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.05.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 315
+    },
+    "1440": {
+      "monoCount": 7,
+      "monos": [
+        {
+          "text": "33.000,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.226,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "2",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "58.126,25 kr.",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 8,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (33.000,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.226,00), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med.",
+      "introLines": 5,
+      "introW": 492,
+      "introH": 98,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 1150,
+      "table": 1150,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 44.550,00",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 58.275,00",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 65.495,00",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 61.729,00",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 47.178,75"
+      ],
+      "foot": "5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75",
+      "colWidths": [
+        228,
+        226,
+        226,
+        244,
+        226
+      ],
+      "numCells": 28,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.05.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 368
+    }
+  },
+  "putRestore": {
+    "status": 200,
+    "body": {
+      "company_name": "Mit Firma ApS",
+      "company_address": "Eksempelvej 1",
+      "company_zip": "2100",
+      "company_city": "København Ø",
+      "company_cvr": "12345678",
+      "bank_reg": "1234",
+      "bank_account": "1234567890",
+      "payment_terms_days": "14",
+      "next_invoice_number": "1007",
+      "vat_registered": "1",
+      "opening_balance_ore": "5000000",
+      "opening_balance_date": "2026-01-01"
+    }
+  },
+  "settingsAfter": {
+    "opening_balance_date": "2026-01-01",
+    "opening_balance_ore": "5000000"
+  },
+  "C": {
+    "1152": {
+      "monoCount": 5,
+      "monos": [
+        {
+          "text": "91.500,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.599,75",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 6,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introH": 78,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 862,
+      "table": 862,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+      ],
+      "foot": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+      "colWidths": [
+        168,
+        167,
+        167,
+        180,
+        180
+      ],
+      "numCells": 44,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 272
+    },
+    "1280": {
+      "monoCount": 5,
+      "monos": [
+        {
+          "text": "91.500,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.599,75",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 6,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introH": 78,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 990,
+      "table": 990,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+      ],
+      "foot": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+      "colWidths": [
+        193,
+        191,
+        191,
+        207,
+        207
+      ],
+      "numCells": 44,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 315
+    },
+    "1440": {
+      "monoCount": 5,
+      "monos": [
+        {
+          "text": "91.500,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "6.599,75",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "0,00",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        },
+        {
+          "text": "29.595,25",
+          "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+          "size": "13px",
+          "weight": "400",
+          "color": "oklch(0.56 0.009 255)",
+          "display": "inline"
+        }
+      ],
+      "pFont": "\"Helvetica Neue\", Helvetica, \"Segoe UI\", system-ui, sans-serif",
+      "pSize": "13px",
+      "pLineHeight": "19.5px",
+      "pColor": "oklch(0.56 0.009 255)",
+      "numericVar": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace",
+      "sansVar": "",
+      "bareTextNodes": 6,
+      "bareWithDigits": [],
+      "intro": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+      "introLines": 4,
+      "introW": 492,
+      "introH": 78,
+      "introMaxW": "491.639px",
+      "heads": [
+        "Måned",
+        "Ind",
+        "Ud",
+        "Netto",
+        "Position"
+      ],
+      "cellSubs": 0,
+      "wrap": 1150,
+      "table": 1150,
+      "hiddenPx": 0,
+      "rowHeights": [
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36,
+        36
+      ],
+      "rows": [
+        "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+        "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+        "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+        "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+        "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+        "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+        "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+      ],
+      "foot": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+      "colWidths": [
+        224,
+        222,
+        222,
+        240,
+        240
+      ],
+      "numCells": 44,
+      "numNotRight": 0,
+      "numFontsNotMono": 0,
+      "otherTables": [
+        {
+          "cols": 5,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 3,
+          "hiddenPx": 0
+        },
+        {
+          "cols": 4,
+          "hiddenPx": 0
+        }
+      ],
+      "pageHScroll": 0,
+      "kpiSub": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+      "kpiSubLines": 2,
+      "kpiW": 368
+    }
+  },
+  "diffVsP4": {
+    "1152": {
+      "rowHeights": {
+        "p4": [
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36
+        ],
+        "p5C": [
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36
+        ],
+        "p5B": [
+          36,
+          36,
+          36,
+          36,
+          36
+        ]
+      },
+      "colWidths": {
+        "p4": [
+          168,
+          167,
+          167,
+          180,
+          180
+        ],
+        "p5C": [
+          168,
+          167,
+          167,
+          180,
+          180
+        ],
+        "p5B": [
+          171,
+          169,
+          169,
+          183,
+          169
+        ]
+      },
+      "introLines": {
+        "p4": 4,
+        "p5C": 4,
+        "p5B": 5
+      },
+      "introH": {
+        "p4": 78,
+        "p5C": 78,
+        "p5B": 98
+      },
+      "kpiSub": {
+        "p4": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+        "p5C": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+        "p5B": "ved dagens begyndelse 01.05.2026 · ændres under Indstillinger"
+      },
+      "numCells": {
+        "p4": 44,
+        "p5C": 44,
+        "p5B": 28
+      },
+      "rows": {
+        "p4": [
+          "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+        ],
+        "p5C": [
+          "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+        ],
+        "p5B": [
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 44.550,00",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 58.275,00",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 65.495,00",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 61.729,00",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 47.178,75"
+        ]
+      },
+      "foot": {
+        "p4": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+        "p5C": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+        "p5B": "5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75"
+      },
+      "intro": {
+        "p4": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+        "p5C": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+        "p5B": "Kassebasis: Ind = fakturaer efter betalingsdato (33.000,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.226,00), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med."
+      },
+      "monoCount": {
+        "p4": 5,
+        "p5C": 5,
+        "p5B": 7
+      }
+    },
+    "1280": {
+      "rowHeights": {
+        "p4": [
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36
+        ],
+        "p5C": [
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36
+        ],
+        "p5B": [
+          36,
+          36,
+          36,
+          36,
+          36
+        ]
+      },
+      "colWidths": {
+        "p4": [
+          193,
+          191,
+          191,
+          207,
+          207
+        ],
+        "p5C": [
+          193,
+          191,
+          191,
+          207,
+          207
+        ],
+        "p5B": [
+          196,
+          195,
+          195,
+          210,
+          195
+        ]
+      },
+      "introLines": {
+        "p4": 4,
+        "p5C": 4,
+        "p5B": 5
+      },
+      "introH": {
+        "p4": 78,
+        "p5C": 78,
+        "p5B": 98
+      },
+      "kpiSub": {
+        "p4": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+        "p5C": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+        "p5B": "ved dagens begyndelse 01.05.2026 · ændres under Indstillinger"
+      },
+      "numCells": {
+        "p4": 44,
+        "p5C": 44,
+        "p5B": 28
+      },
+      "rows": {
+        "p4": [
+          "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+        ],
+        "p5C": [
+          "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+        ],
+        "p5B": [
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 44.550,00",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 58.275,00",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 65.495,00",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 61.729,00",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 47.178,75"
+        ]
+      },
+      "foot": {
+        "p4": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+        "p5C": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+        "p5B": "5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75"
+      },
+      "intro": {
+        "p4": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+        "p5C": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+        "p5B": "Kassebasis: Ind = fakturaer efter betalingsdato (33.000,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.226,00), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med."
+      },
+      "monoCount": {
+        "p4": 5,
+        "p5C": 5,
+        "p5B": 7
+      }
+    },
+    "1440": {
+      "rowHeights": {
+        "p4": [
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36
+        ],
+        "p5C": [
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36,
+          36
+        ],
+        "p5B": [
+          36,
+          36,
+          36,
+          36,
+          36
+        ]
+      },
+      "colWidths": {
+        "p4": [
+          224,
+          222,
+          222,
+          240,
+          240
+        ],
+        "p5C": [
+          224,
+          222,
+          222,
+          240,
+          240
+        ],
+        "p5B": [
+          228,
+          226,
+          226,
+          244,
+          226
+        ]
+      },
+      "introLines": {
+        "p4": 4,
+        "p5C": 4,
+        "p5B": 5
+      },
+      "introH": {
+        "p4": 78,
+        "p5C": 78,
+        "p5B": 98
+      },
+      "kpiSub": {
+        "p4": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+        "p5C": "ved dagens begyndelse 01.01.2026 · ændres under Indstillinger",
+        "p5B": "ved dagens begyndelse 01.05.2026 · ændres under Indstillinger"
+      },
+      "numCells": {
+        "p4": 44,
+        "p5C": 44,
+        "p5B": 28
+      },
+      "rows": {
+        "p4": [
+          "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+        ],
+        "p5C": [
+          "jan 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "feb 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "mar 2026 | 0,00 | 0,00 | 0,00 | 50.000,00",
+          "apr 2026 | 58.500,00 | 373,75 | 58.126,25 | 108.126,25",
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 102.676,25",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 116.401,25",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 123.621,25",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 119.855,25",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 105.305,00"
+        ],
+        "p5B": [
+          "maj 2026 | 0,00 | 5.450,00 | −5.450,00 | 44.550,00",
+          "jun 2026 | 15.000,00 | 1.275,00 | 13.725,00 | 58.275,00",
+          "jul 2026 | 18.000,00 | 10.780,00 | 7.220,00 | 65.495,00",
+          "aug 2026 | 0,00 | 3.766,00 | −3.766,00 | 61.729,00",
+          "sep 2026 | 0,00 | 14.550,25 | −14.550,25 | 47.178,75"
+        ]
+      },
+      "foot": {
+        "p4": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+        "p5C": "9 måneder | 91.500,00 | 36.195,00 | 55.305,00 | 105.305,00",
+        "p5B": "5 måneder | 33.000,00 | 35.821,25 | −2.821,25 | 47.178,75"
+      },
+      "intro": {
+        "p4": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+        "p5C": "Kassebasis: Ind = fakturaer efter betalingsdato (91.500,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.599,75), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.",
+        "p5B": "Kassebasis: Ind = fakturaer efter betalingsdato (33.000,00) plus positive bankbevægelser (0,00); Ud = udgifter efter betalingsdato (6.226,00), refunderede kreditnotaer (0,00) og negative bankbevægelser (29.595,25). Positionen løber fra åbningssaldoen.2 bevægelser dateret før åbningssaldoen (58.126,25 kr. netto) er allerede indeholdt i den og tælles ikke med."
+      },
+      "monoCount": {
+        "p4": 5,
+        "p5C": 5,
+        "p5B": 7
+      }
+    }
+  }
+}
