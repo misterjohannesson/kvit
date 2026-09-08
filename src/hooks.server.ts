@@ -23,7 +23,7 @@ process.on('sveltekit:shutdown', async () => {
   sqlite.close();
 });
 
-const PUBLIC_PATHS = new Set(['/login']);
+const PUBLIC_PATHS = new Set(['/login', '/healthz']);
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**

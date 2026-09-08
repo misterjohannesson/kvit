@@ -12,7 +12,7 @@ import { addDays, isValidIsoDate, lineTotalOre, roundOre, todayIso } from '../..
 import { isoDate, oreAmount } from '../zod-shared';
 import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
-import { renderInvoicePdf } from '../pdf';
+import { chromiumAvailable, renderInvoicePdf } from '../pdf';
 import { defaultRevenueAccountId, requireAccountOfType } from './accounts';
 
 const lineSchema = z.object({
@@ -374,8 +374,11 @@ export function validateForIssue(inv: InvoiceDetail, settings: Record<string, st
   const missing = companyDetailsComplete(settings);
   if (missing.length) problems.push(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
   if (!settings.bank_reg || !settings.bank_account) problems.push('Udfyld bankoplysninger (reg.nr. og kontonr.) under Indstillinger; de trykkes på fakturaen');
+  if (!chromiumAvailable()) problems.push(PDF_ENGINE_MISSING);
   return problems;
 }
+
+export const PDF_ENGINE_MISSING = 'PDF-motoren (Chromium) er ikke hentet endnu; start programmet igen og lad den hente, før der udstedes';
 
 export function nextInvoiceNumber(): number {
   return Number(getSettings().next_invoice_number);
@@ -501,6 +504,7 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
     const settings = getSettings();
     const missing = companyDetailsComplete(settings);
     if (missing.length) throw badRequest(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
+    if (!chromiumAvailable()) throw badRequest(PDF_ENGINE_MISSING);
 
     const number = Number(settings.next_invoice_number);
     if (expectedNumber !== undefined && expectedNumber !== number) {

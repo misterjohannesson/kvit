@@ -9,5 +9,9 @@ data-*
 review
 tests
 *.log
-mcp
 spec
+mcp/node_modules
+mcp/dist
+mcp/test
+site
+dist

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { chromium, type Browser } from 'playwright';
 import { readTokensCss, tokenValue } from './assets';
 import { renderInvoiceHtml } from './invoice-template';
@@ -18,6 +19,21 @@ async function getBrowser(): Promise<Browser> {
     return getBrowser();
   }
   return b;
+}
+
+/**
+ * Whether the Chromium build Playwright expects is present on disk. The
+ * standalone binary downloads it on first run (PLAYWRIGHT_BROWSERS_PATH under the
+ * data directory); until then issuing is refused up front instead of failing
+ * halfway through. Docker and npm installs always have it.
+ */
+export function chromiumAvailable(): boolean {
+  try {
+    const p = chromium.executablePath();
+    return !!p && fs.existsSync(p);
+  } catch {
+    return false;
+  }
 }
 
 export async function closeBrowser(): Promise<void> {

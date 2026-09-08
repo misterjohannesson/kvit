@@ -66,6 +66,16 @@ describe('migrating a populated database', () => {
       // Guards are live on the migrated data too.
       expect(() => sqlite.prepare('DELETE FROM invoice WHERE id = 1').run()).toThrow(/cannot be deleted/);
       expect(() => sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id = 2').run()).not.toThrow();
+      // Updating never deletes data: a consistent pre-migration copy of the old file was written first,
+      // and it still has the version-N rows (the `category` column that 0006 later removed included).
+      const { PRE_MIGRATION_BACKUP } = await import('../../src/lib/server/db');
+      expect(PRE_MIGRATION_BACKUP).toMatch(/[\\/]backups[\\/]app-.*-pre-migration-1-to-\d+\.db$/);
+      expect(fs.existsSync(PRE_MIGRATION_BACKUP!)).toBe(true);
+      const old = new Database(PRE_MIGRATION_BACKUP!, { readonly: true });
+      expect((old.prepare('SELECT count(*) AS n FROM invoice').get() as { n: number }).n).toBe(2);
+      expect((old.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'category'").get() as { n: number }).n).toBe(1);
+      expect((old.prepare('SELECT count(*) AS n FROM __drizzle_migrations').get() as { n: number }).n).toBe(1);
+      old.close();
     } finally {
       sqlite.close();
     }

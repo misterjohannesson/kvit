@@ -51,9 +51,36 @@ export const REQUIRED_TRIGGERS = [
 // `PRAGMA foreign_keys=OFF` is a no-op, so enforcement is switched off around the
 // whole run and integrity is verified afterwards. legacy_alter_table keeps the
 // rename from rewriting references inside other tables' triggers.
+const MIGRATIONS_FOLDER = path.join(PROJECT_ROOT, 'drizzle');
+
+/**
+ * Before any pending migration runs on a database that already holds data, a
+ * consistent copy of the file is written to DATA_DIR/backups/. Updating never
+ * deletes data; this is the belt to that promise's braces. VACUUM INTO is
+ * synchronous and WAL-safe, so the copy is complete and self-contained.
+ */
+export function preMigrationBackup(): string | null {
+  const journalPath = path.join(MIGRATIONS_FOLDER, 'meta', '_journal.json');
+  if (!fs.existsSync(journalPath)) return null;
+  const journal = JSON.parse(fs.readFileSync(journalPath, 'utf8')) as { entries: unknown[] };
+  const hasMigrationsTable = sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'").get();
+  const applied = hasMigrationsTable ? ((sqlite.prepare('SELECT count(*) AS n FROM __drizzle_migrations').get() as { n: number }).n ?? 0) : 0;
+  const hasInvoiceTable = sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'invoice'").get();
+  if (!hasInvoiceTable || journal.entries.length <= applied) return null;
+  const dir = path.join(DATA_DIR, 'backups');
+  fs.mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const target = path.join(dir, `app-${stamp}-pre-migration-${applied}-to-${journal.entries.length}.db`);
+  sqlite.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
+  console.warn(`Pre-migration copy of the database written to ${target}`);
+  return target;
+}
+
+export const PRE_MIGRATION_BACKUP = preMigrationBackup();
+
 sqlite.pragma('foreign_keys = OFF');
 sqlite.pragma('legacy_alter_table = ON');
-migrate(db, { migrationsFolder: path.join(PROJECT_ROOT, 'drizzle') });
+migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 sqlite.pragma('legacy_alter_table = OFF');
 const violations = sqlite.pragma('foreign_key_check') as unknown[];
 if (violations.length > 0) {
