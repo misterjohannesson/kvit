@@ -1,0 +1,74 @@
+# Runs on every push and pull request. Plain shell steps wherever possible so the same
+# workflow runs on GitHub Actions and on a self-hosted Forgejo runner.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Node 22
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          node --version && npm --version
+
+      - name: Install dependencies (app + MCP)
+        run: |
+          npm ci
+          npm --prefix mcp ci
+          npx playwright install --with-deps chromium
+
+      - name: Lint and typecheck
+        run: |
+          npm run check
+          npm --prefix mcp run check
+
+      - name: Docs checks (disclaimer verbatim, guide sections, screenshots, site, workflows)
+        run: npm run test:docs
+
+      - name: App test suite (unit + API, incl. the migration test)
+        env:
+          CI: 'true'
+        run: npm test
+
+      - name: MCP test suite
+        run: npm run mcp:test
+
+      - name: Docker image build
+        run: docker build -t ghcr.io/kvit-app/faktura:latest .
+
+      - name: Installer smoke test (curl | bash into a clean directory, login, idempotent rerun, secret scan)
+        run: npm run test:install
+
+  binaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Node 22 and Bun
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+      - name: Build the linux-x64 binary
+        run: |
+          npm ci
+          npm --prefix mcp ci
+          npm run build
+          npm --prefix mcp run build
+          node packaging/build-binaries.mjs --targets linux-x64
+      - name: Start the binary on a clean container (no Node) and serve the app
+        run: bash tests/install/binary-smoke.sh

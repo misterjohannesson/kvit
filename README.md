@@ -6,6 +6,25 @@ mini-kontoplan med resultat-, cashflow- og balancevisninger, og en komplet ekspo
 Erstatter HurtigFaktura og Excel-arket. Bygget til at kunne forsvares over for en revisor: ubrudt fakturanummerserie,
 uforanderlige udstedte dokumenter, hver post sporbar til en gemt PDF, og fem års opbevaring.
 
+## Installation (for alle andre end udvikleren)
+
+Tre veje, alle beskrevet i klart sprog på udgivelsessiden (`release-template.md`):
+
+- **Installer med Docker (anbefalet):** `curl -fsSL <release>/install.sh | bash` (macOS/Linux) eller `install.ps1`
+  (Windows). Fire spørgsmål – mappe, port, kodeord, API-token (kan genereres) – så skrives `.env` og
+  `docker-compose.yml` i mappen, appen og MCP-serveren startes, og adressen samt MCP-udsnittet printes. Kodeord og
+  token tastes skjult og skrives aldrig til skærm eller log. Kør scriptet igen for at opdatere; data bevares, og
+  databasen kopieres til `data/backups/` før enhver skemaændring.
+- **Selvstændig fil uden Docker:** `faktura-linux-x64-<version>`, `faktura-darwin-arm64-<version>`,
+  `faktura-windows-x64-<version>.exe` (bygget med `bun build --compile`; `packaging/`). Første start kører den samme
+  wizard og skriver `faktura.config.json` ved siden af datamappen; Chromium til PDF hentes ved første start (ca. 150 MB)
+  – indtil da nægter appen at udstede. Kun linux-x64 køres automatisk i CI; macOS og Windows bygges på hver udgivelse,
+  men er ikke afprøvet af vedligeholderen på de platforme (se udgivelsesnoterne).
+- **Fra kildekode / compose direkte:** som nedenfor.
+
+Udgivelser: `npm run release` bygger `dist/` (installer-scripts, de tre binære filer, `SHA256SUMS`, udgivelsesnoter);
+`release.yml` kalder samme script på et `v*`-tag. Fjernhosting: `HOSTING.md`. Brugervejledning på dansk: `GUIDE.md`.
+
 ## Kør
 
 Krav: Docker med `docker compose`.

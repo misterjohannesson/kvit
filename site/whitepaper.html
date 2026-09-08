@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faktura — why it is built this way</title>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-canvas); color: var(--text-body); font-family: var(--font-ui); font-size: var(--text-md); line-height: var(--leading-normal); }
+  a { color: var(--text-link); text-decoration: none; }
+  .doc { max-width: 72ch; margin: 0 auto; padding: var(--space-16) var(--space-8); }
+  .eyebrow { margin: 0 0 var(--space-2); font-size: var(--text-xs); letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--text-label); }
+  h1 { margin: 0 0 var(--space-6); font-family: var(--font-display); font-size: var(--text-3xl); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); line-height: var(--leading-tight); color: var(--text-primary); }
+  h2 { margin: var(--space-10) 0 var(--space-3); font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--display-weight); letter-spacing: var(--tracking-tight); color: var(--text-primary); }
+  p, li { max-width: var(--layout-prose-max); orphans: 3; widows: 3; }
+  p { margin: 0 0 var(--space-4); }
+  ul { margin: 0 0 var(--space-4); padding-left: var(--space-5); }
+  code { font-family: var(--font-numeric); font-size: var(--text-sm); }
+  .rule { border: 0; border-top: var(--border-hairline-style); margin: var(--space-8) 0; }
+  .quote { margin: 0 0 var(--space-4); padding: var(--space-4); border-left: var(--border-width-thick) solid var(--status-overdue-border); background: var(--status-overdue-surface); }
+  .meta { font-family: var(--font-numeric); font-size: var(--text-xs); color: var(--text-secondary); }
+  /* Print rules from style.md section 7: A4, monochrome, no chrome. tokens.css re-points colours to ink under print. */
+  @media print {
+    @page { size: A4 portrait; margin: 18mm 18mm 22mm; }
+    body { font-size: var(--print-text-size); line-height: var(--print-leading); }
+    .doc { max-width: none; padding: 0; }
+    .quote { border-left: var(--print-rule); background: none; }
+    a { color: inherit; }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: var(--print-text-small); }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<article class="doc">
+  <p class="eyebrow">Faktura · whitepaper</p>
+  <h1>The rows are the journal</h1>
+  <p class="meta">Design position for a single-user Danish invoicing and bookkeeping tool with an AI layer. Two pages.</p>
+
+  <h2>The problem</h2>
+  <p>A solo Danish business has three recurring obligations: send invoices that are legally valid, keep every purchase with its receipt, and report VAT (moms) four times a year. The tools that exist for this are either spreadsheets (flexible, error-prone, no audit trail) or accounting suites built for accountants (posting engines, charts of accounts with hundreds of lines, a subscription, and a login for a bookkeeper the business does not have).</p>
+  <p>What the owner actually needs is small: an unbroken invoice number series, documents that cannot change after they are sent, receipts next to the numbers they justify, three VAT figures per quarter, and a bank balance that agrees with the bank. Everything else is reporting over those facts. Faktura is built around that observation and refuses to grow past it.</p>
+
+  <h2>The design position</h2>
+  <p><strong>No posting engine.</strong> Faktura has no journal table and no debits and credits. Invoices, expenses and bank movements are the source records, and the finance views (resultat, cashflow, balance, the VAT report) are queries over them. A row that exists is a fact; a report is a sum. There is nothing to reconcile between a document and its posting, because there is no posting.</p>
+  <p><strong>Immutable series.</strong> An invoice number is assigned only at the moment of issuing, inside the same database transaction that freezes the document and archives its PDF. Drafts have no number and may be deleted; issued documents cannot be edited or deleted by any code path, and the database itself enforces this with triggers. The only correction is a credit note, which gets the next number from the same series. The result is a series with no gaps and no rewritten history, which is what an auditor wants to see.</p>
+  <p><strong>Accrual where the law looks, cash where the owner looks.</strong> The VAT report and the profit and loss run on document dates. Cashflow and the balance run on payment dates. The two bases live side by side on purpose, and the screens say which one they use.</p>
+  <p><strong>The afstemning ritual.</strong> Once a month the owner types the balance the bank shows. If it differs from what Faktura computes, the difference is booked as a visible, dated correction with the entered figure in the audit log. Five minutes, and the cash views stay honest without a bank integration.</p>
+  <p><strong>One folder.</strong> The database is a single SQLite file next to the PDFs and receipts. Backup is copying a folder; restore is copying it back. Before any schema change the previous file is copied aside automatically, so updating never deletes data.</p>
+
+  <h2>The AI layer, and what it may not do</h2>
+  <p>Faktura ships an MCP server so an AI assistant can work with the books: list what is due, report the bank position, read the quarter's VAT figures, book a bank movement, mark an invoice paid, run the reconciliation, draft an invoice or an expense. It is a thin client over the app's own HTTP API with a bearer token; every rule lives in the app and every write is logged with the actor <code>api</code>.</p>
+  <p>Three things are deliberately impossible through it: issuing invoices, creating credit notes, and deleting anything. Issuing and crediting consume numbers from the legal series and are irreversible; deletion has no place in bookkeeping. An assistant can prepare a draft and say so, but a human presses the button. This is not a missing feature awaiting a permission flag. It is the safety model.</p>
+
+  <h2>Honesty section</h2>
+  <div class="quote">Faktura is built for one user on a private network. It has a single shared password, no 2FA, no brute-force lockout, and has not been security audited. The recommended setup is VPN-only access (e.g. Tailscale). Exposing it directly to the internet is at your own risk — this guide reduces that risk, it does not remove it.</div>
+  <p>That paragraph opens the hosting guide, and it is true of the whole product. Faktura is single-tenant by design: one installation, one business, one user. It does not do payroll, multi-currency, e-invoicing, or a budget module yet. It does the small set of things above carefully, keeps five years of records in a folder you own, and stays out of the way the rest of the time.</p>
+
+  <hr class="rule">
+  <p class="meta">Source, installers and the hosting guide are on the project page. This document is meant to be printed from the browser; there is no separate PDF.</p>
+</article>
+</body>
+</html>
