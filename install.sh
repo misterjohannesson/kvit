@@ -12,7 +12,8 @@
 # FAKTURA_DIR, FAKTURA_PORT, APP_PASSWORD, API_TOKEN (or API_TOKEN=generate).
 # Optional in both modes, kept across reruns once set in .env: FAKTURA_MCP_PORT (3333),
 # FAKTURA_BIND (0.0.0.0; use 127.0.0.1 behind a reverse proxy), ADDRESS_HEADER and
-# XFF_DEPTH (trusted proxy header for the login throttle), FAKTURA_IMAGE.
+# XFF_DEPTH (trusted proxy header for the login throttle), MCP_ALLOWED_HOSTS (extra
+# host:port values the MCP endpoint may be addressed as), FAKTURA_IMAGE.
 [ -n "${BASH_VERSION:-}" ] || { echo "Run this script with bash: bash install.sh" >&2; exit 1; }
 set -euo pipefail
 

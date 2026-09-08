@@ -112,7 +112,10 @@ function readLine(hidden: boolean): Promise<string> {
 // ---------------------------------------------------------------- config
 
 function findConfigPath(): string | null {
-  const candidates = [opt('--config'), process.env.FAKTURA_CONFIG, path.resolve('faktura.config.json'), path.join(os.homedir(), 'faktura', 'faktura.config.json')];
+  // An explicit --config is decisive: if that file does not exist yet, the wizard creates it there.
+  const explicit = opt('--config');
+  if (explicit) return fs.existsSync(explicit) ? path.resolve(explicit) : null;
+  const candidates = [process.env.FAKTURA_CONFIG, path.resolve('faktura.config.json'), path.join(os.homedir(), 'faktura', 'faktura.config.json')];
   for (const c of candidates) if (c && fs.existsSync(c)) return path.resolve(c);
   return null;
 }

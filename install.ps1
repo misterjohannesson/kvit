@@ -10,7 +10,8 @@
 
   Non-interactive use: set FAKTURA_NONINTERACTIVE=1 and FAKTURA_DIR, FAKTURA_PORT,
   APP_PASSWORD, API_TOKEN (or API_TOKEN=generate) in the environment. Optional, kept across
-  reruns once in .env: FAKTURA_MCP_PORT (3333), FAKTURA_BIND (0.0.0.0), ADDRESS_HEADER, XFF_DEPTH, FAKTURA_IMAGE.
+  reruns once in .env: FAKTURA_MCP_PORT (3333), FAKTURA_BIND (0.0.0.0), ADDRESS_HEADER, XFF_DEPTH, MCP_ALLOWED_HOSTS,
+  FAKTURA_IMAGE.
 #>
 $ErrorActionPreference = 'Stop'
 
