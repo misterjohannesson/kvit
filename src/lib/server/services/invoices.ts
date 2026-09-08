@@ -265,10 +265,13 @@ export function createDraftWithContent(input: { customerId: unknown } & Record<s
   if (!cust) throw badRequest('Kunden findes ikke');
   const today = todayIso();
   const terms = cust.paymentTermsDays ?? (Number(getSettings().payment_terms_days) || 0);
+  // The due-date default only derives from a well-formed issue date; anything else is left for the schema to report as 400.
+  const issueRaw = input.issueDate ?? today;
+  const issueForDefault = typeof issueRaw === 'string' && isValidIsoDate(issueRaw) ? issueRaw : today;
   const data = parseDraftInput({
     customerId,
-    issueDate: input.issueDate ?? today,
-    dueDate: input.dueDate ?? addDays(String(input.issueDate ?? today), terms),
+    issueDate: issueRaw,
+    dueDate: input.dueDate ?? addDays(issueForDefault, terms),
     paymentReference: input.paymentReference ?? '',
     vatExemptReason: input.vatExemptReason ?? null,
     lines: input.lines ?? []
@@ -290,7 +293,7 @@ export function createDraftWithContent(input: { customerId: unknown } & Record<s
 /** A positive integer id from JSON: numbers or digit strings only (no `true` -> 1, no `[5]` -> 5). */
 export function strictId(raw: unknown, name: string): number {
   const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN;
-  if (!Number.isInteger(n) || n <= 0) throw badRequest(`${name} skal være et positivt heltal`);
+  if (!Number.isSafeInteger(n) || n <= 0) throw badRequest(`${name} skal være et positivt heltal`);
   return n;
 }
 

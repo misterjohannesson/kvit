@@ -38,6 +38,24 @@ describe('bearer token', () => {
     // token wins over cookie in Client.raw, so send both by hand
     const r = await fetch(both.base + '/api/invoices', { headers: { cookie: ui.cookie, authorization: 'Bearer wrong' } });
     expect(r.status).toBe(401);
+    // A malformed or non-Bearer Authorization header is just as decisive: no cookie fallback.
+    for (const header of ['Basic dXNlcjpwdw==', 'Bearer', 'Token abc', 'Bearer a b']) {
+      const m = await fetch(both.base + '/api/invoices', { headers: { cookie: ui.cookie, authorization: header } });
+      expect(m.status, header).toBe(401);
+    }
+  });
+
+  it('a malformed issueDate without dueDate on draft creation is a 400, not a 500', async () => {
+    const customers = (await api.json<{ id: number }[]>('GET', '/api/customers')).data;
+    for (const issueDate of ['abc', '2026-13-01', 20260908]) {
+      const r = await api.json<{ error: string }>('POST', '/api/invoices', { customerId: customers[0].id, issueDate, lines: [] });
+      expect(r.status, String(issueDate)).toBe(400);
+    }
+    // null means 'default': today's date, so the draft is created.
+    const nul = await api.json<{ id: number; issueDate: string }>('POST', '/api/invoices', { customerId: customers[0].id, issueDate: null, lines: [] });
+    expect(nul.status).toBe(201);
+    expect(nul.data.issueDate).toMatch(/^d{4}-d{2}-d{2}$/);
+    await ui.json('DELETE', `/api/invoices/${nul.data.id}`);
   });
 
   it('writes through the token are audited as actor "api", UI writes as "ui"', async () => {

@@ -459,7 +459,7 @@ export function registerTools(server: McpServer, client: FakturaClient): void {
     {
       title: 'Mark invoice paid',
       description:
-        'Sets the paid date on an issued invoice (on a credit note: the refund date). Changes paid_date only; the document itself stays immutable. Audit-logged with actor "api". Not found if no document has that number; conflict (409) if it is already paid, or is a credit note of an unpaid original.',
+        'Sets the paid date on an issued invoice (on a credit note: the refund date). Changes paid_date only; the document itself stays immutable. Audit-logged with actor "api". Not found if no document has that number; conflict (409) if it is already paid, has been credited, or is a credit note of an unpaid original.',
       inputSchema: {
         number: z.number().int().positive().describe('Invoice number.'),
         paid_date: isoDate.describe('The date the money arrived, ISO yyyy-mm-dd.')

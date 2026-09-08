@@ -80,7 +80,9 @@ Streamable HTTP (a client on another machine on the tailnet; the token still liv
 The HTTP transport is stateless and unauthenticated by itself; bind it only to localhost or the tailnet address,
 never to a public interface. It validates the `Host` header (DNS-rebinding protection): requests must address the
 bound `host:port`, localhost, or a value in `MCP_ALLOWED_HOSTS` (so a tailnet client should use the same address the
-server is bound to). `GET /healthz` reports whether a token is configured.
+server is bound to). With a wildcard bind (`MCP_HOST=0.0.0.0` or `::`) no client ever sends the bound address, so set
+`MCP_ALLOWED_HOSTS` to the tailnet IP or MagicDNS name plus port; the server warns at startup if it is missing.
+`GET /healthz` reports whether a token is configured.
 
 ## Tools
 
@@ -135,5 +137,5 @@ The tests boot the real app (`../build`) against a fresh seeded database with an
 client to the server over an in-memory transport, and check: the tool list and schemas; every read tool against
 hand-computed seed figures in exact øre; every write tool against the app's API afterwards, including the
 `actor = "api"` audit rows; `reconcile_balance` booking exactly the delta and then nothing; wrong and missing
-tokens failing every tool without changing state; and a grep that `src/` contains no SQLite import or database
-path.
+tokens failing every tool without changing state; and a grep over the whole `mcp/` tree (excluding `node_modules`
+and `dist`) for any database-driver import, ORM import or database file path.

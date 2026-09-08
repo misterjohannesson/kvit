@@ -191,7 +191,8 @@ den er ejerens dokument til kunden.
   i stedet for sessionscookien. Det er vejen ind for MCP-serveren i `mcp/`. En forkert eller manglende token giver
   401, og en bearer-header vinder altid over en cookie, så en fejlkonfigureret klient aldrig falder tilbage på
   browsersessionen. Alt, der skrives ad den vej, står i `audit_log` med `actor = api` (UI-skrivninger har `ui`);
-  sporet kan læses på `GET /api/audit`. Er `API_TOKEN` ikke sat, er bearer-adgang slået fra.
+  sporet kan læses på `GET /api/audit`. Er `API_TOKEN` ikke sat, er bearer-adgang slået fra. Tokenet skal være
+  mindst 16 tegn (appen nægter at starte med et kortere); lav det fx med `openssl rand -hex 24`.
 - Cookien er ikke `Secure`, fordi appen taler ren HTTP på det private net. Sæt en TLS-proxy foran, hvis den nogensinde
   skal ud af Tailscale, og slå `Secure` til i `src/routes/login/+page.server.ts`.
 - CSRF: skrivende requests med en `Origin`, der ikke matcher værtsnavnet, afvises (403), uanset hvilket navn appen

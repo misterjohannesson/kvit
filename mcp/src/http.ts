@@ -30,14 +30,19 @@ const allowedHosts = Array.from(
   )
 );
 
+if ((host === '0.0.0.0' || host === '::') && !process.env.MCP_ALLOWED_HOSTS) {
+  console.error('[kvit-mcp] MCP_HOST is a wildcard bind: clients on the tailnet must use an address listed in MCP_ALLOWED_HOSTS (e.g. "100.64.0.12:3333"), otherwise their requests are refused.');
+}
+
 const httpServer = http.createServer(async (req, res) => {
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-  if (url.pathname === '/healthz') {
+  // The path is taken from the request line only; the Host header is validated by the transport, never parsed here.
+  const pathname = (req.url ?? '/').split('?')[0];
+  if (pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ ok: true, token_configured: !!config.token }));
     return;
   }
-  if (url.pathname !== '/mcp') {
+  if (pathname !== '/mcp') {
     res.writeHead(404, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found. The MCP endpoint is /mcp.' }));
     return;
