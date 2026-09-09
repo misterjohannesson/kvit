@@ -214,7 +214,8 @@ elif [ "$TLS" = "tailscale" ]; then
   fi
   STATUS_JSON="$("$TS" status --json 2>/dev/null || true)"
   # The first DNSName in the status document is this machine's (Self precedes Peer).
-  DOMAIN="$(printf '%s' "$STATUS_JSON" | tr -d '\n' | sed -n 's/.*"Self": *{[^}]*"DNSName": *"\([^"]*\)".*/\1/p' | head -1)"
+  # tr joins the JSON into one line, so sed prints at most once; no `head` here, which could close the pipe early (exit 141).
+  DOMAIN="$(printf '%s' "$STATUS_JSON" | tr -d '\n' | sed -n 's/.*"Self": *{[^}]*"DNSName": *"\([^"]*\)".*/\1/p')"
   DOMAIN="${DOMAIN%.}"
   if [ -z "$DOMAIN" ]; then
     err "Tailscale is installed but not connected, or MagicDNS is off. Run 'tailscale up', enable MagicDNS and HTTPS in the admin console (DNS page), then rerun. Nothing was changed."

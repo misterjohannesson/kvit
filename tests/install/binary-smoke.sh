@@ -24,7 +24,8 @@ dk run -d --name "$NAME" -p "127.0.0.1:$PORT:$PORT" \
 
 ok=0
 for _ in $(seq 1 90); do
-  if curl -fsS "http://127.0.0.1:$PORT/healthz" 2>/dev/null | grep -q '"ok":true'; then ok=1; break; fi
+  # grep -c reads to EOF; grep -q would close the pipe early and turn curl's SIGPIPE into exit 141 under pipefail.
+  if curl -fsS "http://127.0.0.1:$PORT/healthz" 2>/dev/null | grep -c '"ok":true' >/dev/null; then ok=1; break; fi
   if [ "$(dk inspect -f '{{.State.Running}}' "$NAME")" != "true" ]; then break; fi
   sleep 1
 done
@@ -33,10 +34,12 @@ if [ "$ok" != "1" ]; then
 fi
 
 echo "== wizard output and config"
-dk logs "$NAME" 2>&1 | grep -q "Faktura .* is running"
+# Capture the log once: `docker logs | grep -q` dies with SIGPIPE (exit 141) as soon as grep has its match.
+LOGS="$(dk logs "$NAME" 2>&1)"
+grep -q "Faktura .* is running" <<<"$LOGS" || { echo "FAIL: launcher did not report the app running"; printf '%s\n' "$LOGS" | tail -40; exit 1; }
 dk exec "$NAME" test -f /srv/faktura/faktura.config.json
 dk exec "$NAME" test -f /srv/faktura/data/app.db
-if dk logs "$NAME" 2>&1 | grep -q "binary-smoke-password"; then echo "FAIL: password echoed"; exit 1; fi
+if grep -q "binary-smoke-password" <<<"$LOGS"; then echo "FAIL: password echoed"; exit 1; fi
 
 echo "== login"
 HDR="$(mktemp)"
