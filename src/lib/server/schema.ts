@@ -89,13 +89,26 @@ export const invoiceLine = sqliteTable(
   (t) => [index('invoice_line_invoice_idx').on(t.invoiceId), index('invoice_line_account_idx').on(t.accountId)]
 );
 
+/** Suppliers (leverandører): created from the expense form's "new supplier" text, then picked from a list. Name only. */
+export const supplier = sqliteTable(
+  'supplier',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    createdAt: text('created_at').notNull()
+  },
+  (t) => [uniqueIndex('supplier_name_unique').on(t.name)]
+);
+
 export const expense = sqliteTable(
   'expense',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     voucherNumber: integer('voucher_number').notNull(),
     date: text('date').notNull(),
-    supplier: text('supplier').notNull(),
+    supplierId: integer('supplier_id')
+      .notNull()
+      .references(() => supplier.id),
     description: text('description').notNull(),
     /** Cost account; 11 = 2900 Øvrige omkostninger (seeded id). */
     accountId: integer('account_id')
@@ -109,7 +122,12 @@ export const expense = sqliteTable(
     filePath: text('file_path'),
     createdAt: text('created_at').notNull()
   },
-  (t) => [uniqueIndex('expense_voucher_unique').on(t.voucherNumber), index('expense_date_idx').on(t.date), index('expense_account_idx').on(t.accountId)]
+  (t) => [
+    uniqueIndex('expense_voucher_unique').on(t.voucherNumber),
+    index('expense_date_idx').on(t.date),
+    index('expense_account_idx').on(t.accountId),
+    index('expense_supplier_idx').on(t.supplierId)
+  ]
 );
 
 /** Every bank movement that is not an invoice payment or an expense. Signed øre, positive = in. */
@@ -164,8 +182,9 @@ export const setting = sqliteTable('setting', {
   value: text('value').notNull()
 });
 
-export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement | typeof invoiceAttachment;
+export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement | typeof invoiceAttachment | typeof supplier;
 export type Customer = typeof customer.$inferSelect;
+export type Supplier = typeof supplier.$inferSelect;
 export type Account = typeof account.$inferSelect;
 export type CashMovement = typeof cashMovement.$inferSelect;
 export type Invoice = typeof invoice.$inferSelect;

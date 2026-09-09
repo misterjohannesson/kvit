@@ -1,35 +1,45 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { expense, type Expense } from '../schema';
+import { expense, supplier, type Expense } from '../schema';
 import { audit } from '../audit';
 import { badRequest, notFound } from '../errors';
 import { DATA_DIR } from '../env';
 import { requireAccountOfType } from './accounts';
+import { findOrCreateSupplier, getSupplier, supplierNameSchema } from './suppliers';
 import { isoDate, oreAmount } from '../zod-shared';
 
-const expenseSchema = z.object({
-  date: isoDate,
-  supplier: z.string().trim().min(1, 'Leverandør er påkrævet').max(200),
-  description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
-  /** Cost account (kontoplan); the free-text note is `description`. */
-  accountId: z.coerce.number({ error: 'Konto skal vælges' }).int('Ugyldig konto').positive('Ugyldig konto'),
-  amountExVatOre: oreAmount('Beløb'),
-  /** Entered manually, never derived: foreign purchases and repræsentation break 25 %. */
-  vatOre: oreAmount('Moms'),
-  paidDate: z
-    .union([isoDate, z.literal(''), z.null()])
-    .optional()
-    .transform((v) => (v ? v : null))
-});
+const expenseSchema = z
+  .object({
+    date: isoDate,
+    /** An existing supplier by id, or a name: an unknown name creates the supplier. */
+    supplierId: z.coerce.number({ error: 'Ugyldig leverandør' }).int('Ugyldig leverandør').positive('Ugyldig leverandør').optional(),
+    supplier: supplierNameSchema.optional(),
+    description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
+    /** Cost account (kontoplan); the free-text note is `description`. */
+    accountId: z.coerce.number({ error: 'Konto skal vælges' }).int('Ugyldig konto').positive('Ugyldig konto'),
+    amountExVatOre: oreAmount('Beløb'),
+    /** Entered manually, never derived: foreign purchases and repræsentation break 25 %. */
+    vatOre: oreAmount('Moms'),
+    paidDate: z
+      .union([isoDate, z.literal(''), z.null()])
+      .optional()
+      .transform((v) => (v ? v : null))
+  })
+  .refine((d) => d.supplierId !== undefined || d.supplier !== undefined, { message: 'Leverandør er påkrævet', path: ['supplier'] });
 
 export interface UploadFile {
   name: string;
   /** Client-declared MIME type: informational only, the bytes decide (see sniffUploadExt). */
   type: string;
   bytes: Buffer;
+}
+
+/** An expense as the app hands it out: the row plus the supplier's name. */
+export interface ExpenseRow extends Expense {
+  supplier: string;
 }
 
 function parse(input: unknown) {
@@ -52,8 +62,14 @@ function extFor(file: UploadFile): string {
   return ext;
 }
 
-export function listExpenses(filter: { year?: number } = {}): Expense[] {
-  const q = db.select().from(expense);
+const withSupplier = () =>
+  db
+    .select({ ...getTableColumns(expense), supplier: supplier.name })
+    .from(expense)
+    .innerJoin(supplier, eq(supplier.id, expense.supplierId));
+
+export function listExpenses(filter: { year?: number } = {}): ExpenseRow[] {
+  const q = withSupplier();
   if (filter.year) {
     return q
       .where(sql`substr(${expense.date}, 1, 4) = ${String(filter.year)}`)
@@ -73,8 +89,8 @@ export function listExpenseYears(): number[] {
     .map((r) => Number(r.y));
 }
 
-export function getExpense(id: number): Expense {
-  const e = db.select().from(expense).where(eq(expense.id, id)).get();
+export function getExpense(id: number): ExpenseRow {
+  const e = withSupplier().where(eq(expense.id, id)).get();
   if (!e) throw notFound('Udgift findes ikke');
   return e;
 }
@@ -83,12 +99,25 @@ export function expenseFileAbsolutePath(e: Expense): string | null {
   return e.filePath ? path.join(DATA_DIR, e.filePath) : null;
 }
 
+/** The supplier row for the input: by id (must exist) or by name (created if new). */
+function resolveSupplier(data: { supplierId?: number; supplier?: string }) {
+  if (data.supplierId !== undefined) {
+    try {
+      return getSupplier(data.supplierId);
+    } catch {
+      throw badRequest('Leverandøren findes ikke');
+    }
+  }
+  return findOrCreateSupplier(data.supplier as string);
+}
+
 /** Voucher numbers are assigned on create, sequentially from 1, in the insert transaction. */
-export function createExpense(input: unknown, file?: UploadFile | null): Expense {
+export function createExpense(input: unknown, file?: UploadFile | null): ExpenseRow {
   const data = parse(input);
   const ext = file ? extFor(file) : null;
   return db.transaction(() => {
     requireAccountOfType(data.accountId, 'cost');
+    const sup = resolveSupplier(data);
     const max = db.select({ m: sql<number | null>`max(${expense.voucherNumber})` }).from(expense).get();
     const voucherNumber = (max?.m ?? 0) + 1;
     const relPath = ext ? path.posix.join('files', 'expenses', `${voucherNumber}.${ext}`) : null;
@@ -97,7 +126,7 @@ export function createExpense(input: unknown, file?: UploadFile | null): Expense
       .values({
         voucherNumber,
         date: data.date,
-        supplier: data.supplier,
+        supplierId: sup.id,
         description: data.description,
         accountId: data.accountId,
         amountExVatOre: data.amountExVatOre,
@@ -113,30 +142,40 @@ export function createExpense(input: unknown, file?: UploadFile | null): Expense
       fs.writeFileSync(path.join(DATA_DIR, relPath), file.bytes);
       audit('expense', row.id, 'upload', { filePath: relPath, size: file.bytes.length });
     }
-    audit('expense', row.id, 'create', { voucherNumber, ...data });
-    return row;
+    audit('expense', row.id, 'create', { voucherNumber, ...data, supplierId: sup.id, supplier: sup.name });
+    return { ...row, supplier: sup.name };
   });
 }
 
-export function updateExpense(id: number, input: unknown): Expense {
+export function updateExpense(id: number, input: unknown): ExpenseRow {
   const data = parse(input);
   return db.transaction(() => {
     const before = getExpense(id);
     // The expense may stay on an account archived after it was booked; a new choice must be active.
     requireAccountOfType(data.accountId, 'cost', [before.accountId]);
+    const sup = resolveSupplier(data);
     const row = db
       .update(expense)
-      .set({ ...data, amountInclOre: data.amountExVatOre + data.vatOre })
+      .set({
+        date: data.date,
+        supplierId: sup.id,
+        description: data.description,
+        accountId: data.accountId,
+        amountExVatOre: data.amountExVatOre,
+        vatOre: data.vatOre,
+        amountInclOre: data.amountExVatOre + data.vatOre,
+        paidDate: data.paidDate
+      })
       .where(eq(expense.id, id))
       .returning()
       .get();
-    audit('expense', id, 'update', data);
-    return row;
+    audit('expense', id, 'update', { ...data, supplierId: sup.id, supplier: sup.name });
+    return { ...row, supplier: sup.name };
   });
 }
 
 /** Attach or replace the voucher file: /data/files/expenses/{voucher_number}.{ext} */
-export function uploadExpenseFile(id: number, file: UploadFile): Expense {
+export function uploadExpenseFile(id: number, file: UploadFile): ExpenseRow {
   const ext = extFor(file);
   return db.transaction(() => {
     const e = getExpense(id);
@@ -145,9 +184,9 @@ export function uploadExpenseFile(id: number, file: UploadFile): Expense {
     const old = expenseFileAbsolutePath(e);
     // Write the new file first; only remove the old one (different extension) once the new one exists.
     fs.writeFileSync(abs, file.bytes);
-    const row = db.update(expense).set({ filePath: relPath }).where(eq(expense.id, id)).returning().get();
+    db.update(expense).set({ filePath: relPath }).where(eq(expense.id, id)).run();
     audit('expense', id, 'upload', { filePath: relPath, size: file.bytes.length, replaced: e.filePath });
     if (old && old !== abs) fs.rmSync(old, { force: true });
-    return row;
+    return { ...e, filePath: relPath };
   });
 }

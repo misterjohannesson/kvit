@@ -12,16 +12,22 @@
     { group: 'Rapporter' },
     { href: '/moms', label: 'Momsindberetning' },
     { href: '/resultat', label: 'Resultat' },
+    { href: '/udgifter/rapport', label: 'Udgiftsrapport' },
     { href: '/cashflow', label: 'Cashflow' },
+    { href: '/kontoudtog', label: 'Kontoudtog' },
     { href: '/balance', label: 'Balance' },
     { group: 'System' },
     { href: '/indstillinger', label: 'Indstillinger' },
     { href: '/eksport', label: 'Eksport' }
   ];
 
+  // The longest matching href wins, so /udgifter/rapport lights Udgiftsrapport rather than Udgifter.
   function current(href: string): 'page' | undefined {
     const p = page.url.pathname;
-    return p === href || p.startsWith(href + '/') ? 'page' : undefined;
+    const best = items
+      .filter((i): i is { href: string; label: string } => 'href' in i && (p === i.href || p.startsWith(i.href + '/')))
+      .sort((a, b) => b.href.length - a.href.length)[0];
+    return best?.href === href ? 'page' : undefined;
   }
 </script>
 

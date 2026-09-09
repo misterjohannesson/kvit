@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getExpense, updateExpense, uploadExpenseFile } from '$lib/server/services/expenses';
 import { selectableAccounts } from '$lib/server/services/accounts';
+import { supplierOptions } from '$lib/server/services/suppliers';
 import { formDataToExpense, uploadFromForm } from '$lib/server/expense-form';
 import { errorMessage, formValues, routeId } from '$lib/server/api';
 import { HttpError, badRequest } from '$lib/server/errors';
@@ -10,7 +11,7 @@ export const load: PageServerLoad = ({ params }) => {
   try {
     const e = getExpense(routeId(params));
     const ext = e.filePath ? e.filePath.split('.').pop() : null;
-    return { expense: e, fileKind: ext === 'pdf' ? 'pdf' : ext ? 'image' : null, accounts: selectableAccounts('cost', [e.accountId]) };
+    return { expense: e, fileKind: ext === 'pdf' ? 'pdf' : ext ? 'image' : null, accounts: selectableAccounts('cost', [e.accountId]), suppliers: supplierOptions() };
   } catch (e) {
     if (e instanceof HttpError) error(e.status, e.message);
     throw e;

@@ -101,8 +101,9 @@ MCP client over an in-memory transport; `tests/install/` needs Docker and is run
 ## Project layout
 
 ```
-src/lib/server/services/   business rules: invoices (numbering, issue, credit), expenses, finance, cash, accounts (+ CSV), attachments,
-                           journal (derived posteringer.csv), export, restore (export zip -> data set, with data.bakNN copies)
+src/lib/server/services/   business rules: invoices (numbering, issue, credit), expenses, suppliers, finance (resultat, cashflow, balance,
+                           expense report, kontoudtog ledger), cash, accounts (+ CSV), attachments, journal (derived
+                           posteringer.csv), export, restore (export zip -> data set, with data.bakNN copies)
 src/lib/server/db.ts       database bootstrap, migrations, REQUIRED_TRIGGERS assertion, pre-migration copies
 src/lib/server/audit.ts    append-only audit log with the request actor (ui | api)
 src/lib/server/pdf.ts, invoice-template.ts   Playwright rendering, the invoice HTML template

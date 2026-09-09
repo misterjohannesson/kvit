@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { createExpense, listExpenses, listExpenseYears } from '$lib/server/services/expenses';
 import { listAccounts, listActiveAccounts } from '$lib/server/services/accounts';
+import { supplierOptions } from '$lib/server/services/suppliers';
 import { formDataToExpense, uploadFromForm } from '$lib/server/expense-form';
 import { errorMessage, formValues, isRedirect } from '$lib/server/api';
 import { HttpError } from '$lib/server/errors';
@@ -17,7 +18,8 @@ export const load: PageServerLoad = ({ url }) => {
     rows: listExpenses({ year }),
     /** Every account, for labelling rows; only active cost accounts are offered for a new expense. */
     accounts: listAccounts(),
-    costAccounts: listActiveAccounts('cost')
+    costAccounts: listActiveAccounts('cost'),
+    suppliers: supplierOptions()
   };
 };
 

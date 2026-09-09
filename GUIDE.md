@@ -91,6 +91,16 @@ det fysiske bilag eller i filnavnet, så revisor kan finde det. Nummeret kan ikk
 **Upload.** Vedhæft bilaget (PDF, JPG eller PNG) direkte på udgiften. Filen gemmes som
 `files/expenses/<bilagsnummer>.<type>` i datamappen og vises på udgiftens side.
 
+**Leverandører.** Leverandøren vælges i en liste; vælg *+ Ny leverandør* og skriv navnet, så oprettes den med et id
+og står i listen næste gang. Samme navn (uanset store og små bogstaver) bliver aldrig til to leverandører. Under
+**Udgiftsrapport** kan du omdøbe en leverandør – alle dens bilag følger med – og slette en, der ingen bilag har.
+
+**Udgiftsrapport.** Under *Rapporter → Udgiftsrapport* ser du, hvad der er købt, hos hvem og hvornår: udgifter ekskl.
+moms pr. omkostningskonto måned for måned, med leverandørerne under hver konto (størst først), og en tabel pr.
+leverandør med de konti, den er bogført på. Vælg år og eventuelt kvartal som på Resultat.
+
+![Udgiftsrapport](review/shots/18-udgiftsrapport.png)
+
 ![Udgift med bilag](review/shots/07-udgift-bilag.png)
 
 **Hvorfor tastes købsmoms manuelt?** Fordi 25 % ikke altid passer: udenlandske køb har ofte 0 % dansk moms,
@@ -125,6 +135,15 @@ saldo, banken viser. Er den lig med *Likvider*, er alt godt. Er der forskel, til
 som en *korrektion*-bevægelse med dato og det indtastede tal i revisionssporet. Herefter stemmer bogføringen med banken.
 
 ![Balance og afstemning](review/shots/17-balance.png)
+
+**Kontoudtog.** Under *Rapporter → Kontoudtog* står alle bankbevægelser, som programmet kender dem, i én liste:
+betalte fakturaer, betalte udgifter, refunderede kreditnotaer og alle bankbevægelser (moms, skat, ejer, korrektioner,
+andet) med løbende saldo. Vælg *Denne måned*, *Sidste måned*, *Dette kvartal*, *Sidste kvartal*, *I år* eller en
+egen periode; primo er saldoen ved periodens begyndelse (åbningssaldoen plus alt før), ultimo saldoen ved dens
+slutning. Sammenlign linje for linje med netbankens udtog, når afstemningen viser en forskel – eller hent perioden
+som CSV.
+
+![Kontoudtog](review/shots/19-kontoudtog.png)
 
 **Hvorfor det betyder noget.** Faktura har ingen bankintegration; det er en styrke (ingen adgangskoder til banken,
 ingen tjeneste der kan gå ned), men det betyder, at du er den, der holder tallene ærlige. Et glemt bankgebyr eller en

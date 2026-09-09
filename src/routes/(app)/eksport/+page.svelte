@@ -4,6 +4,7 @@
   const labels: Record<string, string> = {
     accounts: 'Konti',
     customers: 'Kunder',
+    suppliers: 'Leverandører',
     invoices: 'Fakturaer og kreditnotaer',
     lines: 'Fakturalinjer',
     attachments: 'Vedhæftninger',
@@ -47,6 +48,7 @@
             <tr><td class="mono">invoice_lines.csv</td><td class="wrap">Fakturalinjer</td><td class="num">{data.counts.lines}</td></tr>
             <tr><td class="mono">invoice_attachments.csv</td><td class="wrap">PDF'er vedhæftet fakturaer ved udstedelse</td><td class="num">{data.counts.attachments}</td></tr>
             <tr><td class="mono">customers.csv</td><td class="wrap">Kunder med adresse, CVR og betalingsfrist</td><td class="num">{data.counts.customers}</td></tr>
+            <tr><td class="mono">suppliers.csv</td><td class="wrap">Leverandører (id og navn); udgifterne peger på dem</td><td class="num">{data.counts.suppliers}</td></tr>
             <tr><td class="mono">expenses.csv</td><td class="wrap">Udgifter med bilagsnummer, moms og filsti</td><td class="num">{data.counts.expenses}</td></tr>
             <tr><td class="mono">cash_movements.csv</td><td class="wrap">Bankbevægelser uden for fakturaer og udgifter (moms, ejer, skat, korrektioner)</td><td class="num">{data.counts.movements}</td></tr>
             <tr><td class="mono">accounts.csv</td><td class="wrap">Kontoplan med grupper og status</td><td class="num">{data.counts.accounts}</td></tr>

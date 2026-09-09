@@ -14,7 +14,7 @@
  */
 import { asc, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { account, cashMovement, customer, expense, invoice, invoiceLine, type CashMovement } from '../schema';
+import { account, cashMovement, customer, expense, invoice, invoiceLine, supplier, type CashMovement } from '../schema';
 import { getSettings } from './settings';
 import { BALANCE_ACCOUNTS, balanceNameKey, balanceNumberKey, type BalanceAccountKey } from './settings-defaults';
 import { oreToCsv, toCsv } from '../../csv';
@@ -111,9 +111,11 @@ export function journalEvents(): Event[] {
     }
   }
 
+  const suppliers = new Map(db.select().from(supplier).all().map((s) => [s.id, s.name]));
   for (const e of db.select().from(expense).orderBy(asc(expense.voucherNumber)).all()) {
     const a = accounts.get(e.accountId);
-    const text = `${e.supplier} – ${e.description}`;
+    const name = suppliers.get(e.supplierId) ?? '';
+    const text = `${name} – ${e.description}`;
     const postings: Posting[] = [{ accountNumber: a?.number ?? 0, accountName: a?.name ?? '', amountOre: e.amountExVatOre }];
     if (e.vatOre !== 0) postings.push({ ...bal('koebsmoms'), amountOre: e.vatOre });
     postings.push({ ...bal('kreditorer'), amountOre: -e.amountInclOre });
@@ -124,7 +126,7 @@ export function journalEvents(): Event[] {
         type: 'betaling',
         voucher: String(e.voucherNumber),
         sortKey: e.voucherNumber,
-        text: `Betaling bilag ${e.voucherNumber} – ${e.supplier}`,
+        text: `Betaling bilag ${e.voucherNumber} – ${name}`,
         postings: [{ ...bal('kreditorer'), amountOre: e.amountInclOre }, { ...bal('bank'), amountOre: -e.amountInclOre }]
       });
     }

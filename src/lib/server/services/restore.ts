@@ -21,7 +21,7 @@ import { withIssueLock } from './issue-lock';
 import { computeTotals, VAT_RATE_BP } from './invoices';
 import { DEFAULT_SETTINGS, SETTING_KEYS } from './settings-defaults';
 import { countRows } from '../db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, supplier } from '../schema';
 
 export const RESTORE_DIR = path.join(DATA_DIR, 'restore');
 /** A staged upload that is not confirmed within this window is removed. */
@@ -39,13 +39,15 @@ interface InvoiceRow {
 }
 interface LineRow { id: number; invoiceId: number; description: string; quantity: number; unit: string; unitPriceOre: number; lineTotalOre: number; accountId: number }
 interface AttachmentRow { id: number; invoiceId: number; position: number; name: string; filePath: string; pages: number; sizeBytes: number; createdAt: string }
-interface ExpenseRow { id: number; voucherNumber: number; date: string; supplier: string; description: string; accountId: number; amountExVatOre: number; vatOre: number; amountInclOre: number; paidDate: string | null; filePath: string | null; createdAt: string }
+interface SupplierRow { id: number; name: string; createdAt: string }
+interface ExpenseRow { id: number; voucherNumber: number; date: string; supplierId: number; description: string; accountId: number; amountExVatOre: number; vatOre: number; amountInclOre: number; paidDate: string | null; filePath: string | null; createdAt: string }
 interface MovementRow { id: number; date: string; description: string; amountOre: number; kind: 'vat_payment' | 'owner' | 'tax' | 'correction' | 'other'; createdAt: string }
 interface AuditRow { id: number; timestamp: string; entity: string; entityId: number; action: string; detailJson: string; actor: 'ui' | 'api' }
 
 export interface RestoreData {
   accounts: AccountRow[];
   customers: CustomerRow[];
+  suppliers: SupplierRow[];
   invoices: InvoiceRow[];
   lines: LineRow[];
   attachments: AttachmentRow[];
@@ -246,6 +248,33 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
   unique(customers, (c) => c.id, 'customers.csv', 'id', errors, lineOf);
   const customerIds = new Set(customers.map((c) => c.id));
 
+  // suppliers (optional file: an older export names them on the expenses only)
+  const supRows = table(zip, 'suppliers.csv', ['id', 'navn'], errors, true);
+  const suppliers = each(supRows ?? [], 'suppliers.csv', errors, (r): SupplierRow => {
+    const name = r.get('navn').replace(/\s+/g, ' ').trim();
+    if (!name) throw new Error('navn er tomt');
+    return remember({ id: P.int(r.get('id')), name, createdAt: r.get('oprettet') || new Date().toISOString() }, r.line);
+  });
+  unique(suppliers, (s) => s.id, 'suppliers.csv', 'id', errors, lineOf);
+  unique(suppliers, (s) => s.name.toLowerCase(), 'suppliers.csv', 'navn', errors, lineOf);
+  const supplierById = new Map(suppliers.map((s) => [s.id, s]));
+  const supplierByName = new Map(suppliers.map((s) => [s.name.toLowerCase(), s]));
+  let nextSupplierId = Math.max(0, ...suppliers.map((s) => s.id)) + 1;
+  /** leverandoer_id when it points at a known supplier, else the name (created on the fly, as the form would). */
+  const supplierFor = (idCell: string, nameCell: string): number => {
+    const id = P.optInt(idCell);
+    if (id !== null && supplierById.has(id)) return id;
+    const name = nameCell.replace(/\s+/g, ' ').trim();
+    if (!name) throw new Error('leverandoer er tom');
+    const known = supplierByName.get(name.toLowerCase());
+    if (known) return known.id;
+    const created: SupplierRow = { id: nextSupplierId++, name, createdAt: new Date().toISOString() };
+    suppliers.push(created);
+    supplierById.set(created.id, created);
+    supplierByName.set(name.toLowerCase(), created);
+    return created.id;
+  };
+
   // invoices
   const invRows = table(zip, 'invoices.csv', ['id', 'fakturanr', 'status', 'kunde_id', 'fakturadato', 'forfaldsdato', 'subtotal_ekskl_moms', 'moms', 'total_inkl_moms'], errors) ?? [];
   const invoices = each(invRows, 'invoices.csv', errors, (r): InvoiceRow => {
@@ -345,7 +374,7 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
     const incl = P.ore(r.get('beloeb_inkl_moms'));
     if (incl !== ex + vat) throw new Error(`beloeb_inkl_moms skal være ekskl. + moms (${fmt(ex + vat)})`);
     return remember(
-      { id: P.int(r.get('id')), voucherNumber: P.int(r.get('bilagsnr')), date: P.date(r.get('dato')), supplier: r.get('leverandoer'), description: r.get('beskrivelse'), accountId: acc.id, amountExVatOre: ex, vatOre: vat, amountInclOre: incl, paidDate: P.optDate(r.get('betalt_dato')), filePath: P.optText(r.get('fil')), createdAt: r.get('oprettet') || new Date().toISOString() },
+      { id: P.int(r.get('id')), voucherNumber: P.int(r.get('bilagsnr')), date: P.date(r.get('dato')), supplierId: supplierFor(r.get('leverandoer_id'), r.get('leverandoer')), description: r.get('beskrivelse'), accountId: acc.id, amountExVatOre: ex, vatOre: vat, amountInclOre: incl, paidDate: P.optDate(r.get('betalt_dato')), filePath: P.optText(r.get('fil')), createdAt: r.get('oprettet') || new Date().toISOString() },
       r.line
     );
   });
@@ -419,7 +448,7 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
   if (missing.length > 20) warnings.push(`og ${missing.length - 20} filer til mangler`);
 
   errors.throwIfAny();
-  return { accounts, customers, invoices, lines, attachments, expenses, movements, audit: auditParsed, settings, files, warnings };
+  return { accounts, customers, suppliers, invoices, lines, attachments, expenses, movements, audit: auditParsed, settings, files, warnings };
 }
 
 function fmt(ore: number): string {
@@ -432,6 +461,7 @@ function currentCounts(): Record<string, number> {
   return {
     accounts: countRows(account),
     customers: countRows(customer),
+    suppliers: countRows(supplier),
     invoices: countRows(invoice),
     lines: countRows(invoiceLine),
     attachments: countRows(invoiceAttachment),
@@ -470,6 +500,7 @@ function summarize(id: string, fileName: string, sizeBytes: number, data: Restor
     counts: {
       accounts: { file: data.accounts.length, current: cur.accounts },
       customers: { file: data.customers.length, current: cur.customers },
+      suppliers: { file: data.suppliers.length, current: cur.suppliers },
       invoices: { file: data.invoices.length, current: cur.invoices },
       lines: { file: data.lines.length, current: cur.lines },
       attachments: { file: data.attachments.length, current: cur.attachments },
@@ -548,8 +579,8 @@ export interface RestoreResult {
   warnings: string[];
 }
 
-const TABLE_ORDER_DELETE = ['invoice_attachment', 'invoice_line', 'invoice', 'expense', 'cash_movement', 'audit_log', 'customer', 'account', 'setting'] as const;
-const SEQUENCE_TABLES = ['account', 'customer', 'invoice', 'invoice_line', 'invoice_attachment', 'expense', 'cash_movement', 'audit_log'] as const;
+const TABLE_ORDER_DELETE = ['invoice_attachment', 'invoice_line', 'invoice', 'expense', 'supplier', 'cash_movement', 'audit_log', 'customer', 'account', 'setting'] as const;
+const SEQUENCE_TABLES = ['account', 'customer', 'supplier', 'invoice', 'invoice_line', 'invoice_attachment', 'expense', 'cash_movement', 'audit_log'] as const;
 
 /** Step 2: back up, rebuild every table from the staged zip in one transaction, swap files/. */
 export function applyRestore(id: string): Promise<RestoreResult> {
@@ -600,8 +631,10 @@ export function applyRestore(id: string): Promise<RestoreResult> {
       for (const l of data.lines) lineIns.run(l.id, l.invoiceId, l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre, l.accountId);
       const attIns = ins('INSERT INTO invoice_attachment (id, invoice_id, position, name, file_path, pages, size_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
       for (const a of data.attachments) attIns.run(a.id, a.invoiceId, a.position, a.name, a.filePath, a.pages, a.sizeBytes, a.createdAt);
-      const expIns = ins('INSERT INTO expense (id, voucher_number, date, supplier, description, account_id, amount_ex_vat_ore, vat_ore, amount_incl_ore, paid_date, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-      for (const e of data.expenses) expIns.run(e.id, e.voucherNumber, e.date, e.supplier, e.description, e.accountId, e.amountExVatOre, e.vatOre, e.amountInclOre, e.paidDate, e.filePath, e.createdAt);
+      const supIns = ins('INSERT INTO supplier (id, name, created_at) VALUES (?, ?, ?)');
+      for (const s of data.suppliers) supIns.run(s.id, s.name, s.createdAt);
+      const expIns = ins('INSERT INTO expense (id, voucher_number, date, supplier_id, description, account_id, amount_ex_vat_ore, vat_ore, amount_incl_ore, paid_date, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      for (const e of data.expenses) expIns.run(e.id, e.voucherNumber, e.date, e.supplierId, e.description, e.accountId, e.amountExVatOre, e.vatOre, e.amountInclOre, e.paidDate, e.filePath, e.createdAt);
       const mvIns = ins('INSERT INTO cash_movement (id, date, description, amount_ore, kind, created_at) VALUES (?, ?, ?, ?, ?, ?)');
       for (const m of data.movements) mvIns.run(m.id, m.date, m.description, m.amountOre, m.kind, m.createdAt);
       const audIns = ins('INSERT INTO audit_log (id, timestamp, entity, entity_id, action, detail_json, actor) VALUES (?, ?, ?, ?, ?, ?, ?)');

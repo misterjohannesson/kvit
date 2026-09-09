@@ -57,6 +57,9 @@ describe('migrating a populated database', () => {
       expect((sqlite.prepare('SELECT count(*) AS n FROM account').get() as { n: number }).n).toBe(11);
       expect(sqlite.prepare('SELECT id, group_name, archived FROM account WHERE number = 2900').get()).toEqual({ id: 11, group_name: '', archived: 0 });
       expect(sqlite.prepare('SELECT account_id FROM expense WHERE voucher_number = 1').get()).toEqual({ account_id: 11 });
+      // 0013 moved the supplier text into its own table and pointed the expense at it.
+      expect(sqlite.prepare('SELECT s.name FROM expense e JOIN supplier s ON s.id = e.supplier_id WHERE e.voucher_number = 1').get()).toEqual({ name: 'S' });
+      expect((sqlite.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'supplier'").get() as { n: number }).n).toBe(0);
       expect(sqlite.prepare('SELECT account_id FROM invoice_line WHERE invoice_id = 1').get()).toEqual({ account_id: 1 });
       expect((sqlite.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'category'").get() as { n: number }).n).toBe(0);
       expect(sqlite.pragma('foreign_keys', { simple: true })).toBe(1);

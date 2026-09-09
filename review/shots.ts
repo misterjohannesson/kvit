@@ -68,7 +68,9 @@ async function main() {
     ['12-eksport', '/eksport'],
     ['15-resultat', '/resultat?year=2026'],
     ['16-cashflow', '/cashflow'],
-    ['17-balance', '/balance']
+    ['17-balance', '/balance'],
+    ['18-udgiftsrapport', '/udgifter/rapport?year=2026'],
+    ['19-kontoudtog', '/kontoudtog?period=this_year']
   ];
   for (const [name, url] of shots) {
     await page.goto(`${BASE}${url}`);

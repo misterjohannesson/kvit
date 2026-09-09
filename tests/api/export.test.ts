@@ -10,14 +10,14 @@ beforeAll(async () => {
 });
 
 describe('export zip', () => {
-  it('contains the ten CSVs and every file under /data/files/', async () => {
+  it('contains the eleven CSVs and every file under /data/files/', async () => {
     const r = await c.raw('GET', '/api/export');
     expect(r.status).toBe(200);
     expect(r.headers.get('content-type')).toBe('application/zip');
     const zip = new AdmZip(Buffer.from(await r.arrayBuffer()));
     const names = zip.getEntries().map((e) => e.entryName.replace(/\\/g, '/'));
 
-    for (const csv of ['invoices.csv', 'invoice_lines.csv', 'invoice_attachments.csv', 'customers.csv', 'expenses.csv', 'cash_movements.csv', 'accounts.csv', 'settings.csv', 'audit_log.csv', 'posteringer.csv']) {
+    for (const csv of ['invoices.csv', 'invoice_lines.csv', 'invoice_attachments.csv', 'customers.csv', 'suppliers.csv', 'expenses.csv', 'cash_movements.csv', 'accounts.csv', 'settings.csv', 'audit_log.csv', 'posteringer.csv']) {
       expect(names).toContain(csv);
     }
 
@@ -43,6 +43,8 @@ describe('export zip', () => {
 
     const expenses = zip.readAsText('expenses.csv').replace(/^\uFEFF/, '');
     expect(expenses).toContain('2200;Repræsentation');
+    expect(expenses.split(/\r?\n/)[0].split(';')).toEqual(expect.arrayContaining(['leverandoer_id', 'leverandoer']));
+    expect(zip.readAsText('suppliers.csv')).toContain(';Adobe Systems Software Ireland Ltd;');
     expect(expenses).toContain('74,75');
     const lines = zip.readAsText('invoice_lines.csv').replace(/^\uFEFF/, '');
     expect(lines.split(/\r?\n/)[0].split(';')).toEqual(expect.arrayContaining(['konto', 'kontonavn']));

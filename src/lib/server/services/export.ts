@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { asc } from 'drizzle-orm';
 import { db } from '../db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, setting } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, setting, supplier } from '../schema';
 import { FILES_DIR } from '../env';
 import { audit } from '../audit';
 import { decimalToCsv, oreToCsv, toCsv } from '../../csv';
@@ -64,13 +64,19 @@ export function customersCsv(): string {
   );
 }
 
+export function suppliersCsv(): string {
+  const rows = db.select().from(supplier).orderBy(asc(supplier.id)).all();
+  return toCsv(['id', 'navn', 'oprettet'], rows.map((r) => [r.id, r.name, r.createdAt]));
+}
+
 export function expensesCsv(): string {
   const accounts = accountMap();
+  const suppliers = new Map(db.select().from(supplier).all().map((s) => [s.id, s.name]));
   const rows = db.select().from(expense).orderBy(asc(expense.voucherNumber)).all();
   return toCsv(
-    ['id', 'bilagsnr', 'dato', 'leverandoer', 'beskrivelse', 'konto', 'kontonavn', 'beloeb_ekskl_moms', 'moms', 'beloeb_inkl_moms', 'betalt_dato', 'fil', 'oprettet'],
+    ['id', 'bilagsnr', 'dato', 'leverandoer_id', 'leverandoer', 'beskrivelse', 'konto', 'kontonavn', 'beloeb_ekskl_moms', 'moms', 'beloeb_inkl_moms', 'betalt_dato', 'fil', 'oprettet'],
     rows.map((r) => [
-      r.id, r.voucherNumber, r.date, r.supplier, r.description, accounts.get(r.accountId)?.number, accounts.get(r.accountId)?.name,
+      r.id, r.voucherNumber, r.date, r.supplierId, suppliers.get(r.supplierId) ?? '', r.description, accounts.get(r.accountId)?.number, accounts.get(r.accountId)?.name,
       oreToCsv(r.amountExVatOre), oreToCsv(r.vatOre), oreToCsv(r.amountInclOre), r.paidDate, r.filePath, r.createdAt
     ])
   );
@@ -112,6 +118,7 @@ export const CSV_FILES: Record<string, () => string> = {
   'invoice_lines.csv': invoiceLinesCsv,
   'invoice_attachments.csv': invoiceAttachmentsCsv,
   'customers.csv': customersCsv,
+  'suppliers.csv': suppliersCsv,
   'expenses.csv': expensesCsv,
   'cash_movements.csv': cashMovementsCsv,
   'accounts.csv': accountsCsv,
@@ -122,7 +129,7 @@ export const CSV_FILES: Record<string, () => string> = {
 
 export const CSV_FILE_NAMES = Object.keys(CSV_FILES);
 
-/** Zip with the ten CSVs and every file under /data/files/. Streams to the returned readable. */
+/** Zip with the eleven CSVs and every file under /data/files/. Streams to the returned readable. */
 export function exportZipStream(): PassThrough {
   const out = new PassThrough();
   const zip = new ZipArchive({ zlib: { level: 6 } });

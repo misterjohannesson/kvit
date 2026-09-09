@@ -84,6 +84,7 @@ export interface Expense {
   voucherNumber: number;
   date: string;
   supplier: string;
+  supplierId: number;
   description: string;
   accountId: number;
   amountExVatOre: number;

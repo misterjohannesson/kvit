@@ -4,6 +4,8 @@
   const e = $derived(data.expense);
   const v = (k: string, fallback: string) => form?.values?.[k] ?? fallback;
   const err = (k: string): string | undefined => form?.fields?.[k];
+  // svelte-ignore state_referenced_locally
+  let supplierChoice = $state(v('supplierId', String(data.expense.supplierId)));
 </script>
 
 <svelte:head><title>Bilag {e.voucherNumber} · Kvit</title></svelte:head>
@@ -59,8 +61,16 @@
           {#if err('date')}<span class="error">{err('date')}</span>{/if}
         </div>
         <div class="field {err('supplier') ? 'field--error' : ''}">
-          <label class="label" for="supplier">Leverandør</label>
-          <input class="input" id="supplier" name="supplier" value={v('supplier', e.supplier)} required />
+          <label class="label" for="supplierId">Leverandør</label>
+          <div class="supplier-pick">
+            <select class="select" id="supplierId" name="supplierId" bind:value={supplierChoice} required>
+              {#each data.suppliers as s (s.id)}<option value={String(s.id)}>{s.name}</option>{/each}
+              <option value="__new__">+ Ny leverandør</option>
+            </select>
+            {#if supplierChoice === '__new__'}
+              <input class="input" id="supplier" name="supplier" value={v('supplier', '')} placeholder="Navn på den nye leverandør" aria-label="Ny leverandør" required />
+            {/if}
+          </div>
           {#if err('supplier')}<span class="error">{err('supplier')}</span>{/if}
         </div>
         <div class="field {err('description') ? 'field--error' : ''}">
@@ -105,6 +115,7 @@
 </div>
 
 <style>
+  .supplier-pick { display: flex; flex-direction: column; gap: var(--space-2); }
   .imgwrap img { display: block; max-width: 100%; border: var(--border-hairline-style); }
   .stack { display: flex; flex-direction: column; gap: var(--space-5); }
   .input--file { padding-top: var(--space-1); }

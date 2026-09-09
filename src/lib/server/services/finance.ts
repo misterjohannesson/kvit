@@ -6,7 +6,8 @@
  */
 import { and, asc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { account, cashMovement, expense, invoice, invoiceLine, type Account } from '../schema';
+import { account, cashMovement, customer, expense, invoice, invoiceLine, supplier, type Account, type CashMovement } from '../schema';
+import { oreToCsv, toCsv } from '../../csv';
 import { formatDate, formatOre, isValidIsoDate, monthOf, nextMonth, quarterOf, quarterRange, todayIso, vatSettlementDate } from '../../format';
 import { getSettings } from './settings';
 import { listInvoices } from './invoices';
@@ -581,4 +582,269 @@ export function reconcile(actualOre: number, date = todayIso()): ReconcileResult
     }
     return { date, ...preview, movement: bookCorrection(preview, date) };
   });
+}
+
+// ------------------------------------------------------------------------------------------------ expense report
+
+export interface ExpenseCell {
+  /** One value per month in `ExpenseReport.months`, ex VAT. */
+  months: number[];
+  totalOre: number;
+  vatOre: number;
+  count: number;
+}
+
+export interface ExpenseSupplierRow extends ExpenseCell {
+  supplier: { id: number; name: string };
+}
+
+export interface ExpenseAccountRow extends ExpenseCell {
+  account: Account;
+  /** The suppliers booked on this account in the period, largest first. */
+  suppliers: ExpenseSupplierRow[];
+}
+
+export interface ExpenseReport {
+  year: number;
+  quarter: number | null;
+  from: string;
+  to: string;
+  /** yyyy-mm for every month in the period, in order. */
+  months: string[];
+  /** Cost accounts with movement in the period, by number, each with its suppliers. */
+  accounts: ExpenseAccountRow[];
+  /** Every supplier with movement in the period, largest first, with the accounts it was booked on. */
+  suppliers: (ExpenseSupplierRow & { accounts: { number: number; name: string }[] })[];
+  totalOre: number;
+  vatOre: number;
+  count: number;
+  supplierCount: number;
+}
+
+/**
+ * What was bought, from whom, when: expenses ex VAT by cost account and supplier per month, on the expense date
+ * (accrual, like Resultat). Accounts and suppliers without movement in the period are left out.
+ */
+export function expenseReport(year: number, quarter: number | null): ExpenseReport {
+  const range = quarter ? quarterRange(year, quarter) : { from: `${year}-01-01`, to: `${year}-12-31` };
+  const months: string[] = [];
+  for (let ym = monthOf(range.from); ym <= monthOf(range.to); ym = nextMonth(ym)) months.push(ym);
+  const monthIndex = new Map(months.map((m, i) => [m, i]));
+  const accounts = new Map(db.select().from(account).all().map((a) => [a.id, a]));
+  const supplierNames = new Map(db.select({ id: supplier.id, name: supplier.name }).from(supplier).all().map((s) => [s.id, s.name]));
+  const rows = db
+    .select({ date: expense.date, accountId: expense.accountId, supplierId: expense.supplierId, ex: expense.amountExVatOre, vat: expense.vatOre })
+    .from(expense)
+    .where(and(gte(expense.date, range.from), lte(expense.date, range.to)))
+    .orderBy(asc(expense.date), asc(expense.voucherNumber))
+    .all();
+
+  const cell = (): ExpenseCell => ({ months: months.map(() => 0), totalOre: 0, vatOre: 0, count: 0 });
+  const add = (c: ExpenseCell, r: (typeof rows)[number]) => {
+    c.months[monthIndex.get(monthOf(r.date)) ?? 0] += r.ex;
+    c.totalOre += r.ex;
+    c.vatOre += r.vat;
+    c.count += 1;
+  };
+  const byAccount = new Map<number, ExpenseAccountRow>();
+  const bySupplier = new Map<number, ExpenseReport['suppliers'][number]>();
+  const supplierAccounts = new Map<number, Set<number>>();
+  const total = cell();
+  for (const r of rows) {
+    add(total, r);
+    const acc = accounts.get(r.accountId);
+    if (!acc) continue;
+    let a = byAccount.get(r.accountId);
+    if (!a) {
+      a = { account: acc, suppliers: [], ...cell() };
+      byAccount.set(r.accountId, a);
+    }
+    add(a, r);
+    let as = a.suppliers.find((s) => s.supplier.id === r.supplierId);
+    if (!as) {
+      as = { supplier: { id: r.supplierId, name: supplierNames.get(r.supplierId) ?? '' }, ...cell() };
+      a.suppliers.push(as);
+    }
+    add(as, r);
+    let s = bySupplier.get(r.supplierId);
+    if (!s) {
+      s = { supplier: { id: r.supplierId, name: supplierNames.get(r.supplierId) ?? '' }, accounts: [], ...cell() };
+      bySupplier.set(r.supplierId, s);
+      supplierAccounts.set(r.supplierId, new Set());
+    }
+    add(s, r);
+    supplierAccounts.get(r.supplierId)!.add(r.accountId);
+  }
+  const byTotal = <T extends ExpenseCell>(a: T, b: T) => b.totalOre - a.totalOre;
+  const accountRows = [...byAccount.values()].sort((a, b) => a.account.number - b.account.number);
+  for (const a of accountRows) a.suppliers.sort(byTotal);
+  const supplierRows = [...bySupplier.values()].sort(byTotal);
+  for (const s of supplierRows) {
+    s.accounts = [...(supplierAccounts.get(s.supplier.id) ?? [])]
+      .map((id) => accounts.get(id)!)
+      .sort((x, y) => x.number - y.number)
+      .map((x) => ({ number: x.number, name: x.name }));
+  }
+  return {
+    year,
+    quarter,
+    from: range.from,
+    to: range.to,
+    months,
+    accounts: accountRows,
+    suppliers: supplierRows,
+    totalOre: total.totalOre,
+    vatOre: total.vatOre,
+    count: total.count,
+    supplierCount: supplierRows.length
+  };
+}
+
+// ------------------------------------------------------------------------------------------------ bank ledger (kontoudtog)
+
+export type LedgerKind = 'invoice' | 'credit_note' | 'expense' | 'movement';
+
+export interface LedgerRow {
+  date: string;
+  kind: LedgerKind;
+  /** For movements: the movement kind (vat_payment, owner, tax, correction, other). */
+  movementKind: CashMovement['kind'] | null;
+  /** Invoice number, voucher number or movement id. */
+  ref: string;
+  text: string;
+  counterparty: string;
+  /** Signed: positive = in, negative = out. */
+  amountOre: number;
+  /** Running bank balance after this row. */
+  balanceOre: number;
+  href: string;
+}
+
+export interface Ledger {
+  from: string;
+  to: string;
+  openingBalanceDate: string;
+  /** Balance the morning of `from`: the opening balance plus every flow before it (from the opening date on). */
+  primoOre: number;
+  inOre: number;
+  outOre: number;
+  ultimoOre: number;
+  rows: LedgerRow[];
+  /** Flows dated before the opening balance date are inside that balance and never listed. */
+  excludedBeforeOpening: number;
+}
+
+/**
+ * Every bank movement the app knows, in one list: invoice payments in, credit-note refunds and expense payments out,
+ * and every cash movement (VAT, tax, owner, corrections, other). Same rules as the cashflow view: paid dates, and
+ * nothing before the opening balance date. Primo and ultimo are computed for the requested window.
+ */
+export function ledger(from: string, to: string): Ledger {
+  if (!isValidIsoDate(from) || !isValidIsoDate(to)) throw badRequest('Ugyldig dato');
+  if (to < from) throw badRequest('Slutdato ligger før startdato');
+  const s = getSettings();
+  const openingBalanceOre = Number(s.opening_balance_ore) || 0;
+  const openingBalanceDate = s.opening_balance_date;
+  const customers = new Map(db.select({ id: customer.id, name: customer.name }).from(customer).all().map((c) => [c.id, c.name]));
+  const suppliers = new Map(db.select({ id: supplier.id, name: supplier.name }).from(supplier).all().map((x) => [x.id, x.name]));
+
+  type Flow = Omit<LedgerRow, 'balanceOre'> & { order: number };
+  const flows: Flow[] = [];
+  for (const i of db
+    .select({ id: invoice.id, number: invoice.invoiceNumber, paidDate: invoice.paidDate, totalOre: invoice.totalOre, customerId: invoice.customerId })
+    .from(invoice)
+    .where(and(inArray(invoice.status, [...ISSUED]), isNotNull(invoice.paidDate)))
+    .all()) {
+    const credit = i.totalOre < 0;
+    flows.push({
+      date: i.paidDate as string,
+      kind: credit ? 'credit_note' : 'invoice',
+      movementKind: null,
+      ref: String(i.number ?? ''),
+      text: credit ? `Refusion kreditnota ${i.number}` : `Betaling faktura ${i.number}`,
+      counterparty: customers.get(i.customerId) ?? '',
+      amountOre: i.totalOre,
+      href: `/fakturaer/${i.id}`,
+      order: credit ? 1 : 0
+    });
+  }
+  for (const e of db
+    .select({ id: expense.id, voucher: expense.voucherNumber, paidDate: expense.paidDate, totalOre: expense.amountInclOre, supplierId: expense.supplierId, description: expense.description })
+    .from(expense)
+    .where(isNotNull(expense.paidDate))
+    .all()) {
+    flows.push({
+      date: e.paidDate as string,
+      kind: 'expense',
+      movementKind: null,
+      ref: String(e.voucher),
+      text: e.description,
+      counterparty: suppliers.get(e.supplierId) ?? '',
+      amountOre: -e.totalOre,
+      href: `/udgifter/${e.id}`,
+      order: 2
+    });
+  }
+  for (const m of listMovementsAsc()) {
+    flows.push({
+      date: m.date,
+      kind: 'movement',
+      movementKind: m.kind,
+      ref: `B${m.id}`,
+      text: m.description,
+      counterparty: '',
+      amountOre: m.amountOre,
+      href: '/cashflow',
+      order: 3
+    });
+  }
+  flows.sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order || a.ref.localeCompare(b.ref, undefined, { numeric: true }));
+
+  let excludedBeforeOpening = 0;
+  let primoOre = openingBalanceOre;
+  const rows: LedgerRow[] = [];
+  let inOre = 0;
+  let outOre = 0;
+  let balance = 0;
+  for (const f of flows) {
+    if (f.date < openingBalanceDate) {
+      excludedBeforeOpening += 1;
+      continue;
+    }
+    if (f.date < from) {
+      primoOre += f.amountOre;
+      continue;
+    }
+    if (f.date > to) continue;
+    if (!rows.length) balance = primoOre;
+    balance += f.amountOre;
+    if (f.amountOre >= 0) inOre += f.amountOre;
+    else outOre += -f.amountOre;
+    const { order: _order, ...row } = f;
+    void _order;
+    rows.push({ ...row, balanceOre: balance });
+  }
+  return { from, to, openingBalanceDate, primoOre, inOre, outOre, ultimoOre: primoOre + inOre - outOre, rows, excludedBeforeOpening };
+}
+
+const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { invoice: 'faktura', credit_note: 'kreditnota', expense: 'udgift', movement: 'bankbevægelse' };
+
+/** kontoudtog.csv for the window: primo first, one row per flow with the running balance, ultimo last. */
+export function ledgerCsv(from: string, to: string): string {
+  const l = ledger(from, to);
+  const rows: unknown[][] = [[l.from, 'primo', '', 'Primo saldo', '', '', '', oreToCsv(l.primoOre)]];
+  for (const r of l.rows) {
+    rows.push([
+      r.date,
+      r.movementKind ? `${LEDGER_KIND_LABEL[r.kind]} (${r.movementKind})` : LEDGER_KIND_LABEL[r.kind],
+      r.ref,
+      r.text,
+      r.counterparty,
+      r.amountOre >= 0 ? oreToCsv(r.amountOre) : '',
+      r.amountOre < 0 ? oreToCsv(-r.amountOre) : '',
+      oreToCsv(r.balanceOre)
+    ]);
+  }
+  rows.push([l.to, 'ultimo', '', 'Ultimo saldo', '', oreToCsv(l.inOre), oreToCsv(l.outOre), oreToCsv(l.ultimoOre)]);
+  return toCsv(['dato', 'type', 'nr', 'tekst', 'modpart', 'ind', 'ud', 'saldo'], rows);
 }

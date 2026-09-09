@@ -6,6 +6,8 @@
   const err = (k: string): string | undefined => form?.fields?.[k];
   const acc = (id: number) => data.accounts.find((a) => a.id === id);
   const sum = (k: 'amountExVatOre' | 'vatOre' | 'amountInclOre') => data.rows.reduce((s, r) => s + r[k], 0);
+  // svelte-ignore state_referenced_locally
+  let supplierChoice = $state(v('supplierId') || (form?.values?.supplier ? '__new__' : data.suppliers.length ? '' : '__new__'));
 </script>
 
 <svelte:head><title>Udgifter · Kvit</title></svelte:head>
@@ -16,6 +18,7 @@
     <h1>Udgifter</h1>
   </div>
   <div class="pagehead__actions">
+    <a class="btn btn--ghost" href="/udgifter/rapport">Rapport</a>
     <a class="btn" href="#ny-udgift">Ny udgift</a>
   </div>
 </div>
@@ -108,9 +111,18 @@
           {#if err('date')}<span class="error">{err('date')}</span>{/if}
         </div>
         <div class="field field--span-5 {err('supplier') ? 'field--error' : ''}">
-          <label class="label" for="supplier">Leverandør</label>
-          <input class="input" id="supplier" name="supplier" value={v('supplier')} required />
-          {#if err('supplier')}<span class="error">{err('supplier')}</span>{/if}
+          <label class="label" for="supplierId">Leverandør</label>
+          <div class="supplier-pick">
+            <select class="select" id="supplierId" name="supplierId" bind:value={supplierChoice} required>
+              <option value="" disabled>Vælg leverandør …</option>
+              {#each data.suppliers as s (s.id)}<option value={String(s.id)}>{s.name}</option>{/each}
+              <option value="__new__">+ Ny leverandør</option>
+            </select>
+            {#if supplierChoice === '__new__'}
+              <input class="input" id="supplier" name="supplier" value={v('supplier')} placeholder="Navn på den nye leverandør" aria-label="Ny leverandør" required />
+            {/if}
+          </div>
+          {#if err('supplier')}<span class="error">{err('supplier')}</span>{:else if supplierChoice === '__new__'}<span class="hint">Leverandøren oprettes med et id og kan vælges næste gang.</span>{/if}
         </div>
         <div class="field field--span-4 {err('accountId') ? 'field--error' : ''}">
           <label class="label" for="accountId">Konto</label>
@@ -164,4 +176,5 @@
 
 <style>
   .input--file { padding-top: var(--space-1); }
+  .supplier-pick { display: flex; flex-direction: column; gap: var(--space-2); }
 </style>

@@ -1,8 +1,9 @@
-import { and, asc, gte, inArray, lte } from 'drizzle-orm';
+import { and, gte, inArray, lte } from 'drizzle-orm';
 import { db } from '../db';
-import { expense, invoice, type Expense } from '../schema';
+import { expense, invoice } from '../schema';
 import { quarterRange } from '../../format';
 import { listInvoices, type InvoiceListRow } from './invoices';
+import { listExpenses, type ExpenseRow } from './expenses';
 
 export interface VatReport {
   year: number;
@@ -18,7 +19,7 @@ export interface VatReport {
   salesExVatOre: number;
   purchasesExVatOre: number;
   salesRows: InvoiceListRow[];
-  purchaseRows: Expense[];
+  purchaseRows: ExpenseRow[];
 }
 
 export function vatReport(year: number, quarter: number): VatReport {
@@ -26,12 +27,9 @@ export function vatReport(year: number, quarter: number): VatReport {
   const salesRows = listInvoices()
     .filter((r) => r.status !== 'draft' && r.issueDate >= from && r.issueDate <= to)
     .sort((a, b) => (a.invoiceNumber ?? 0) - (b.invoiceNumber ?? 0));
-  const purchaseRows = db
-    .select()
-    .from(expense)
-    .where(and(gte(expense.date, from), lte(expense.date, to)))
-    .orderBy(asc(expense.date), asc(expense.voucherNumber))
-    .all();
+  const purchaseRows = listExpenses()
+    .filter((e) => e.date >= from && e.date <= to)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.voucherNumber - b.voucherNumber);
 
   const salesVatOre = salesRows.reduce((s, r) => s + r.vatOre, 0);
   const salesExVatOre = salesRows.reduce((s, r) => s + r.subtotalOre, 0);

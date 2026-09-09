@@ -4,6 +4,9 @@ import type { UploadFile } from './services/expenses';
 
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
+/** The select's value that reveals the "new supplier" text field. */
+export const NEW_SUPPLIER = '__new__';
+
 const LABELS: Record<string, string> = {
   date: 'Dato',
   supplier: 'Leverandør',
@@ -17,7 +20,8 @@ const LABELS: Record<string, string> = {
 /**
  * Shared by the API (multipart) and the form actions: form fields -> service input.
  * Every field is validated before throwing, so the form can mark all offending
- * fields at once (style.md §4).
+ * fields at once (style.md §4). The supplier comes as `supplierId` (an existing
+ * one) or, when that is empty or "__new__", as the typed `supplier` name.
  */
 export function formDataToExpense(form: FormData) {
   const str = (k: string) => String(form.get(k) ?? '').trim();
@@ -48,14 +52,26 @@ export function formDataToExpense(form: FormData) {
       return null;
     }
   };
-  for (const k of ['supplier', 'description']) {
-    if (str(k) === '') fields[k] = 'Skal udfyldes';
+  if (str('description') === '') fields.description = 'Skal udfyldes';
+
+  const supplierChoice = str('supplierId');
+  let supplierId: number | undefined;
+  let supplierName: string | undefined;
+  if (supplierChoice !== '' && supplierChoice !== NEW_SUPPLIER) {
+    supplierId = Number(supplierChoice);
+    if (!Number.isInteger(supplierId) || supplierId <= 0) fields.supplier = 'Vælg en leverandør';
+  } else if (str('supplier') === '') {
+    fields.supplier = supplierChoice === NEW_SUPPLIER ? 'Skriv navnet på den nye leverandør' : 'Vælg en leverandør, eller skriv en ny';
+  } else {
+    supplierName = str('supplier');
   }
+
   const accountId = Number(str('accountId'));
   if (!Number.isInteger(accountId) || accountId <= 0) fields.accountId = 'Vælg en konto';
   const result = {
     date: date('date', true) as string,
-    supplier: str('supplier'),
+    supplierId,
+    supplier: supplierName,
     description: str('description'),
     accountId,
     amountExVatOre: money('amountExVat'),
@@ -75,4 +91,3 @@ export async function uploadFromForm(form: FormData, field = 'file'): Promise<Up
   if (f.size > MAX_UPLOAD_BYTES) throw badRequest('Filen er for stor (maks. 20 MB)', { [field]: 'Maks. 20 MB' });
   return { name: f.name, type: f.type, bytes: Buffer.from(await f.arrayBuffer()) };
 }
-

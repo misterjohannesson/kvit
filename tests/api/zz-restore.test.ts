@@ -44,7 +44,7 @@ describe('restore from export', () => {
   it('the export carries what a restore needs: customers, settings, attachments, the audit actor and a balanced journal', () => {
     const zip = new AdmZip(exportZip);
     const names = zip.getEntries().map((e) => e.entryName);
-    for (const f of ['customers.csv', 'settings.csv', 'invoice_attachments.csv', 'posteringer.csv']) expect(names).toContain(f);
+    for (const f of ['customers.csv', 'suppliers.csv', 'settings.csv', 'invoice_attachments.csv', 'posteringer.csv']) expect(names).toContain(f);
     expect(csv(zip, 'audit_log.csv').split(/\r?\n/)[0]).toContain('aktoer');
     expect(csv(zip, 'settings.csv')).toContain('next_invoice_number;');
     expect(csv(zip, 'settings.csv')).toContain('bal_bank_number;5820');
@@ -164,6 +164,23 @@ describe('restore from export', () => {
     const r = await c.raw('GET', '/api/export');
     const zip = new AdmZip(Buffer.from(await r.arrayBuffer()));
     expect(csv(zip, 'posteringer.csv')).toContain(';5810;Bank;');
+  });
+
+  it('an export without suppliers.csv (older version) restores with suppliers rebuilt from the expense names', async () => {
+    const older = edited(exportZip, (zip) => {
+      zip.deleteFile('suppliers.csv');
+      const lines = csv(zip, 'expenses.csv').split('\r\n');
+      const header = lines[0].split(';');
+      const drop = header.indexOf('leverandoer_id');
+      setCsv(zip, 'expenses.csv', lines.map((l) => l.split(';').filter((_c, i) => i !== drop).join(';')).join('\r\n'));
+    });
+    const staged = await stage(older);
+    expect(staged.status, JSON.stringify(staged.data)).toBe(201);
+    expect(staged.data.counts.suppliers.file).toBe(staged.data.counts.suppliers.current);
+    expect((await c.json('POST', `/api/restore/${staged.data.id}`, { confirm: true })).status).toBe(200);
+    const expenses = (await c.json<{ supplier: string; supplierId: number }[]>('GET', '/api/expenses?year=2026')).data;
+    const suppliers = (await c.json<{ id: number; name: string }[]>('GET', '/api/suppliers')).data;
+    for (const e of expenses) expect(suppliers.find((s) => s.id === e.supplierId)?.name).toBe(e.supplier);
   });
 
   it('refuses a zip whose figures do not add up, and nothing changes', async () => {
