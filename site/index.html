@@ -135,6 +135,8 @@
     </tbody>
   </table>
   <pre>curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash</pre>
+  <p class="small">Windows med Docker Desktop, i PowerShell:</p>
+  <pre>powershell -ExecutionPolicy Bypass -Command "irm https://github.com/kvit-app/faktura/releases/latest/download/install.ps1 | iex"</pre>
   <p class="small">Kontrolsummer for alle filer ligger i <a href="https://github.com/kvit-app/faktura/releases/latest/download/SHA256SUMS">SHA256SUMS</a>. Opdatering sletter aldrig data: databasen kopieres til <code>data/backups/</code>, før noget ændres.</p>
 
   <div class="two" style="margin-top:var(--space-10)">

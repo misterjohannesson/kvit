@@ -29,10 +29,11 @@ Rendering PDFs needs the usual Chromium system libraries; if issuing an invoice 
 curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash
 ```
 
-On Windows with Docker Desktop, in PowerShell:
+On Windows with Docker Desktop, paste this into PowerShell (it runs the installer in a child shell, so nothing
+changes in the window you typed it in):
 
 ```powershell
-irm https://github.com/kvit-app/faktura/releases/latest/download/install.ps1 -OutFile install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -Command "irm https://github.com/kvit-app/faktura/releases/latest/download/install.ps1 | iex"
 ```
 
 The installer asks the same four questions, starts Faktura, and prints the address to open plus a ready-made snippet

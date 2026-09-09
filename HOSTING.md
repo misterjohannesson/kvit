@@ -268,6 +268,12 @@ docker compose up -d` in the install directory):
 curl -fsSL https://github.com/kvit-app/faktura/releases/latest/download/install.sh | bash
 ```
 
+On Windows, the same in PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://github.com/kvit-app/faktura/releases/latest/download/install.ps1 | iex"
+```
+
 The installer keeps your `.env` values as defaults (press Enter to keep them; the secrets are never shown), including
 the proxy settings from section 2, and restarts the containers on the new image. It rewrites `docker-compose.yml`, so
 keep your own adjustments in `.env`, not in that file. On first start the new version applies its database migrations; before it

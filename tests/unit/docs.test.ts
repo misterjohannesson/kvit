@@ -126,6 +126,9 @@ describe('GUIDE.md', () => {
   });
 });
 
+/** Runs the installer in a child powershell, so its `exit` never closes the window the user typed in. */
+const PS_ONE_LINER = /powershell -ExecutionPolicy Bypass -Command "irm https:\/\/github\.com\/kvit-app\/faktura\/releases\/latest\/download\/install\.ps1 \| iex"/;
+
 describe('release-template.md', () => {
   const md = read('release-template.md');
   it('has per-OS download instructions in plain language, the one-liner, the paranoid variant and the no-data-loss sentence', () => {
@@ -133,6 +136,7 @@ describe('release-template.md', () => {
     expect(md).toMatch(/\*\*Mac[^*]*\*\*[\s\S]*faktura-darwin-arm64/);
     expect(md).toMatch(/\*\*Linux[^*]*\*\*[\s\S]*faktura-linux-x64/);
     expect(md).toMatch(/curl -fsSL https:\/\/github\.com\/kvit-app\/faktura\/releases\/latest\/download\/install\.sh \| bash/);
+    expect(md).toMatch(PS_ONE_LINER);
     expect(md).not.toMatch(/OWNER\/REPO/);
     expect(md).toMatch(/sha256sum --check/);
     expect(md).toMatch(/\*\*Updating never deletes data\.\*\*/);
@@ -159,6 +163,9 @@ describe('site/', () => {
     expect(index).toMatch(/<html lang="da">/);
     expect(index).toContain('Faktura is built for one user on a private network.');
     expect(index).toMatch(/releases\/latest\/download\/install\.sh/);
+    // The Windows one-liner sits next to the curl one wherever the curl one is shown.
+    expect(index).toMatch(PS_ONE_LINER);
+    expect(read('HOSTING.md')).toMatch(PS_ONE_LINER);
     expect(index).toMatch(/releases\/latest\//);
     expect(index).toMatch(/whitepaper\.html/);
     expect(index).toMatch(/GUIDE\.md/);
