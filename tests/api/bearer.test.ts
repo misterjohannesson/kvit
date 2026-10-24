@@ -130,6 +130,8 @@ describe('endpoints added for the MCP', () => {
 
     const ok = await api.json<Inv>('POST', '/api/invoices', {
       customerId: customers[0].id,
+      // Both dates are explicit: the default issue date is today, which may already lie after any fixed due date.
+      issueDate: '2026-10-01',
       dueDate: '2026-10-15',
       lines: [{ description: 'Rådgivning', quantity: 2, unit: 'time', unitPriceOre: 100000 }]
     });

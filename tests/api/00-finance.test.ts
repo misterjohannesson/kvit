@@ -20,6 +20,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { Client, loggedIn } from './client';
+import { quarterOf, todayIso } from '../../src/lib/format';
 
 type Balance = { likviderOre: number; debitorerOre: number; kreditorerOre: number; skyldigeKreditnotaerOre: number; skyldigMomsOre: number; nettoOre: number; accruedVatOre: number; vatPaymentsOre: number };
 type Resultat = { revenue: { account: { number: number }; totalOre: number }[]; costs: { account: { number: number }; totalOre: number }[]; revenueOre: number; costsOre: number; resultOre: number };
@@ -127,7 +128,11 @@ describe('cashflow on seed data', () => {
     const vat = ofKind('vat');
     expect(vat.reduce((s, i) => s + i.amountOre, 0)).toBe(-b.skyldigMomsOre);
     expect(vat.length).toBe(1);
-    expect(vat[0].label).toMatch(/^Moms, [1-4]\. kvartal 20\d\d \(foreløbig\)$/);
+    // The quarter left to pay depends on the day the tests run: the running quarter is marked foreløbig, a closed one is not.
+    const m = /^Moms, ([1-4])\. kvartal (20\d\d)( \(foreløbig\))?$/.exec(vat[0].label);
+    expect(m, vat[0].label).not.toBeNull();
+    const running = quarterOf(todayIso());
+    expect(!!m![3]).toBe(Number(m![1]) === running.quarter && Number(m![2]) === running.year);
     expect(vat[0].detail).toMatch(/^frist 01\.(03|06|09|12)\.20\d\d/);
     expect(vat[0].month >= now).toBe(true);
     expect(fc.invoicesInOre).toBe(2_775_000);
