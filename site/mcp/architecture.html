@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvit MCP — sådan er den bygget</title>
+<meta name="description" content="Kvits MCP-server er en tynd, typet HTTP-klient over programmets eget API: få filer, to afhængigheder, ingen adgang til databasen. Her er filerne, reglerne og testene.">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./mcp.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<header class="rail">
+  <div class="rail__inner">
+    <a class="brand" href="../">
+      <img src="../logo.svg" width="26" height="26" alt="">
+      <span class="brand__name">Kvit<span class="brand__sub">MCP-server</span></span>
+    </a>
+    <nav>
+      <a href="./">Tilslut</a>
+      <a href="./tools.html">Værktøjer</a>
+      <a href="./architecture.html" aria-current="page">Opbygning</a>
+      <a href="../">Kvit</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="kicker">Kvit MCP · opbygning</p>
+  <h1>En tynd klient, med vilje</h1>
+  <p class="lede">MCP-serveren oversætter værktøjskald fra en AI-assistent til HTTP-kald mod Kvits eget JSON-API. Den har ingen regler selv. Nummerserien, uforanderligheden og revisionssporet håndhæves ét sted, i programmet, og serveren får præcis de samme svar og afslag som browseren. Hele koden kan man læse på en eftermiddag.</p>
+
+  <svg class="diagram" viewBox="0 0 1100 200" role="img" aria-labelledby="diagram-title">
+    <title id="diagram-title">AI-klienten taler MCP med kvit-mcp, som taler HTTP med Kvit-programmet, som alene åbner databasen.</title>
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" class="arrowhead"/>
+      </marker>
+    </defs>
+
+    <rect class="box" x="10" y="50" width="180" height="100" rx="5"/>
+    <text class="label" x="100" y="92" text-anchor="middle">AI-klient</text>
+    <text class="sub" x="100" y="114" text-anchor="middle">Claude Code, Desktop …</text>
+
+    <path class="wire" d="M 192 100 H 338"/>
+    <path class="wire" d="M 338 100 H 192"/>
+    <text class="wire-label" x="265" y="80" text-anchor="middle">MCP</text>
+    <text class="wire-label" x="265" y="126" text-anchor="middle">stdio · HTTP</text>
+
+    <rect class="box box--rail" x="340" y="50" width="210" height="100" rx="5"/>
+    <text class="label label--rail" x="445" y="92" text-anchor="middle">kvit-mcp</text>
+    <text class="sub sub--rail" x="445" y="114" text-anchor="middle">værktøjer → JSON-API, ingen regler</text>
+
+    <path class="wire" d="M 552 100 H 708"/>
+    <path class="wire" d="M 708 100 H 552"/>
+    <text class="wire-label" x="630" y="80" text-anchor="middle">HTTP + bearer-token</text>
+    <text class="wire-label" x="630" y="126" text-anchor="middle">JSON, kun GET og POST</text>
+
+    <rect class="box box--app" x="710" y="50" width="210" height="100" rx="5"/>
+    <text class="label" x="815" y="86" text-anchor="middle">Kvit</text>
+    <text class="sub" x="815" y="108" text-anchor="middle">nummerserie · uforanderlighed</text>
+    <text class="sub" x="815" y="126" text-anchor="middle">revisionsspor (actor = api)</text>
+
+    <path class="wire" d="M 922 100 H 968"/>
+    <rect class="box" x="970" y="70" width="120" height="60" rx="5"/>
+    <text class="label" x="1030" y="96" text-anchor="middle" style="font-size:13px">SQLite</text>
+    <text class="sub" x="1030" y="116" text-anchor="middle">én mappe</text>
+  </svg>
+
+  <h2>Filerne</h2>
+  <p>Alt ligger i <code>mcp/src/</code>. Tabellen er lavet af det samme script som værktøjssiden, så tallene passer med den kode, siden er udgivet fra.</p>
+<!-- gen:files -->
+<table>
+<thead><tr><th>Fil</th><th>Linjer</th><th>Gør</th></tr></thead>
+<tbody>
+<tr><td><code>src/stdio.ts</code></td><td class="num">14</td><td>stdio-transport til lokale klienter (Claude Code, Claude Desktop, MCP Inspector)</td></tr>
+<tr><td><code>src/http.ts</code></td><td class="num">85</td><td>streamable HTTP på <code>/mcp</code> med Host-validering, og <code>/healthz</code></td></tr>
+<tr><td><code>src/server.ts</code></td><td class="num">19</td><td>opretter MCP-serveren med dens instruktion og registrerer værktøjerne</td></tr>
+<tr><td><code>src/tools.ts</code></td><td class="num">771</td><td>værktøjerne: skemaer, beskrivelser og formning af svar</td></tr>
+<tr><td><code>src/client.ts</code></td><td class="num">324</td><td>typet HTTP-klient til appens JSON-API; kun GET og POST findes</td></tr>
+<tr><td><code>src/config.ts</code></td><td class="num">72</td><td><code>FAKTURA_URL</code> og token fra miljøet og de to valgfrie .env-filer</td></tr>
+<tr><td><code>src/format.ts</code></td><td class="num">58</td><td>øre til <code>1.234,56 kr.</code>, datoer, kvartaler og momsfrister</td></tr>
+<tr><td><strong>I alt</strong></td><td class="num"><strong>1343</strong></td><td>7 filer, 18 værktøjer; tomme linjer er ikke talt med</td></tr>
+</tbody>
+</table>
+<!-- /gen:files -->
+
+  <h2>Afhængigheder</h2>
+  <p>To pakker i produktion: MCP-SDK'et og Zod til skemaerne. Ingen HTTP-ramme, ingen database-driver, ingen ORM; Node's egen <code>fetch</code> og <code>node:http</code> er nok.</p>
+<!-- gen:deps -->
+<ul>
+<li><code>@modelcontextprotocol/sdk</code></li>
+<li><code>zod</code></li>
+</ul>
+<p class="small">Til udvikling desuden <code>@types/node</code>, <code>tsx</code>, <code>typescript</code>, <code>vitest</code>.</p>
+<!-- /gen:deps -->
+
+  <h2>Reglerne, den er bygget efter</h2>
+
+  <h3>Den åbner aldrig databasen</h3>
+  <p>Serveren kender ikke filstien, har ingen driver og ingen ORM. Det er en test, ikke en hensigt: <code>test/04-static.test.ts</code> søger hele <code>mcp/</code> igennem for database-drivere, ORM-imports og database-stier og fejler, hvis nogen af dem dukker op. Samme test tjekker, at klienten kun kender GET og POST, så der findes ingen vej til at slette eller redigere noget.</p>
+
+  <h3>Alle regler bor i programmet</h3>
+  <p>Vil assistenten sætte betalingsdato på en faktura, der er krediteret, svarer programmet 409 med sin egen danske besked, og serveren sender den videre uændret med <code>retry: false</code> og en opfordring til at sige det til ejeren. Der er ingen anden kopi af reglerne at holde i sync.</p>
+
+  <h3>Kun tilføjelser</h3>
+  <p>Skriveværktøjerne tilføjer en række (bankbevægelse, udgift, kladde, time) eller sætter en dato (betalt). Ingen af dem udsteder, krediterer, sletter eller retter noget, der findes. Hver skrivning får <code>actor = "api"</code> i revisionssporet, så man i eksporten kan se, hvad der kom fra AI'en.</p>
+
+  <h3>Tokenet bliver på serversiden</h3>
+  <p>Over HTTP-transporten sender klienten intet token; det ligger i serverens miljø og følger med hvert kald til programmet. Over stdio kører serveren som en proces hos klienten og får tokenet i sin <code>env</code>-blok. Rækkefølgen, når serveren leder efter det: shellen, så <code>mcp/.env</code>, så programmets egen <code>.env</code>, hvor <code>API_TOKEN</code> genbruges, så ét token kan ligge ét sted.</p>
+
+  <h3>HTTP-transporten er stateless og uden eget login</h3>
+  <p>Hvert kald får sin egen server og transport, og der er ingen session at kapre. Til gengæld har endpointet ikke noget login: den, der kan nå porten, kan bruge værktøjerne. Derfor binder den til <code>127.0.0.1</code>, og over VPN binder man til tailnet-adressen og ikke mere. Host-headeren valideres (beskyttelse mod DNS-rebinding), så en webside, der peger et offentligt navn mod din maskine, ikke kan kalde skriveværktøjerne fra din browser.</p>
+
+  <h2>Testene</h2>
+  <p>Testene snyder ikke med en mock. De bygger programmet, starter det mod en frisk database med demodata og et <code>API_TOKEN</code>, kobler en rigtig MCP-klient på serveren over en in-memory-transport og kører hvert værktøj gennem protokollen:</p>
+  <ul>
+    <li>værktøjslisten og skemaerne er dem, siden <a href="./tools.html">Værktøjer</a> viser,</li>
+    <li>hvert læseværktøj mod håndregnede tal fra demodataene, i øre,</li>
+    <li>hvert skriveværktøj mod programmets API bagefter, inklusive revisionsrækken med <code>actor = api</code>,</li>
+    <li>afstemningen bogfører præcis differencen, og ved næste kald ingenting,</li>
+    <li>forkert og manglende token får alle værktøjer til at fejle uden at ændre noget,</li>
+    <li>og den statiske søgning efter databaseadgang beskrevet ovenfor.</li>
+  </ul>
+  <pre>npm run build        # programmet, én gang
+npm run mcp:test     # bygger og tester serveren mod det</pre>
+
+  <h2>Kør den selv</h2>
+  <pre>npm run mcp                  # stdio, fra kildekode (tsx)
+npm run mcp:http             # streamable HTTP på http://127.0.0.1:3333/mcp
+npm --prefix mcp run inspect # MCP Inspector mod den byggede server
+npm --prefix mcp run docs    # genererer disse sider fra serveren</pre>
+  <p>Miljøvariabler, .env-filer og transportdetaljer står i <a href="https://github.com/kvit-app/faktura/blob/main/mcp/README.md">mcp/README.md</a> (engelsk). I Docker-installationen og den selvstændige version er serveren bygget med og startes automatisk; se <a href="./">Tilslut</a>.</p>
+
+  <p class="foot">Kvit · MCP-serveren er en del af <a href="https://github.com/kvit-app/faktura">kildekoden</a> og udgives sammen med programmet.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvit MCP — kobl din AI-assistent på</title>
+<meta name="description" content="Sådan kobler du Claude Code, Claude Desktop eller en anden MCP-klient på Kvit: adressen, konfigurationen pr. klient, og det, folk snubler over.">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./mcp.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<header class="rail">
+  <div class="rail__inner">
+    <a class="brand" href="../">
+      <img src="../logo.svg" width="26" height="26" alt="">
+      <span class="brand__name">Kvit<span class="brand__sub">MCP-server</span></span>
+    </a>
+    <nav>
+      <a href="./" aria-current="page">Tilslut</a>
+      <a href="./tools.html">Værktøjer</a>
+      <a href="./architecture.html">Opbygning</a>
+      <a href="../">Kvit</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="kicker">Kvit MCP · tilslutning</p>
+  <h1>Kobl din AI-assistent på Kvit</h1>
+  <p class="lede">Kvit leveres med en MCP-server. Den kører ved siden af programmet på din egen maskine, og du giver din assistent én adresse. Så kan den svare på, hvad der forfalder, hvad du står i banken, og hvad momsen bliver, og bogføre de rutineposter, du beder om. Nøglen bliver på serversiden.</p>
+
+  <div class="cards">
+    <div class="card"><h3>Tilslut</h3><p>Denne side: adressen, konfigurationen pr. klient, og det, der driller.</p></div>
+    <div class="card"><h3><a href="./tools.html">Værktøjer</a></h3><p>Alt, assistenten kan læse og skrive, genereret fra serveren selv. Og de tre ting, den ikke kan.</p></div>
+    <div class="card"><h3><a href="./architecture.html">Opbygning</a></h3><p>Få filer, to afhængigheder, ingen adgang til databasen. Reglerne og testene.</p></div>
+  </div>
+
+  <h2>Før du starter</h2>
+  <p>Du skal bruge to ting. Et API-token: installationen og den selvstændige version spørger om det og laver et, hvis du bare trykker Enter. Kører du fra kildekode, sætter du <code>API_TOKEN</code> i <code>.env</code> (mindst 16 tegn). Og programmet skal køre, for MCP-serveren åbner aldrig databasen selv; alt går gennem programmets API.</p>
+
+  <h2>Find din adresse</h2>
+  <table>
+    <thead><tr><th>Du kører</th><th>Adresse</th><th>Hvor den står</th></tr></thead>
+    <tbody>
+      <tr><td>Docker-installationen (<code>install.sh</code> / <code>install.ps1</code>)</td><td><code>http://localhost:3333/mcp</code></td><td>Installationen skriver den og konfigurationsudsnittet til sidst. Kør den igen, hvis du mistede det; data bevares.</td></tr>
+      <tr><td>Den selvstændige version (én fil)</td><td><code>http://127.0.0.1:3333/mcp</code></td><td>I terminalen ved start, sammen med en stdio-variant.</td></tr>
+      <tr><td>Kildekoden</td><td><code>http://127.0.0.1:3333/mcp</code> efter <code>npm run mcp:http</code></td><td>Serveren skriver adressen, og om tokenet er sat, når den starter.</td></tr>
+    </tbody>
+  </table>
+  <p class="small">Valgte du HTTPS i installationen, er adressen i stedet <code>https://…:8443/mcp</code>; installationen viser den præcise. Porten kan ændres med <code>FAKTURA_MCP_PORT</code>, hvis 3333 er optaget.</p>
+
+  <h2>Sæt den ind i din klient</h2>
+
+  <h3>Claude Code</h3>
+  <pre>claude mcp add --transport http kvit http://localhost:3333/mcp</pre>
+  <p>Det er det hele. Kør <code>claude mcp list</code> for at se, at den svarer.</p>
+
+  <h3>Claude Desktop</h3>
+  <p>Desktop henter kun fjernservere over <code>https</code> med en offentlig adresse, så en lokal server kobles på over stdio: Desktop starter selv serverprocessen. Udsnittet skal i <code>claude_desktop_config.json</code> (Windows: <code>%APPDATA%\Claude\</code>, Mac: <code>~/Library/Application Support/Claude/</code>). Vælg det, der passer til din installation.</p>
+  <p class="small">Docker-installationen (kører serveren inde i containeren, tokenet læses derinde):</p>
+  <pre>{
+  "mcpServers": {
+    "kvit": {
+      "command": "docker",
+      "args": ["compose", "-f", "/sti/til/kvit/docker-compose.yml", "exec", "-i", "-T",
+               "-e", "FAKTURA_URL=http://127.0.0.1:3000",
+               "app", "sh", "-c", "FAKTURA_API_TOKEN=$API_TOKEN exec node mcp/dist/stdio.js"]
+    }
+  }
+}</pre>
+  <p class="small">Den selvstændige version (programmet kører selv som MCP-server med <code>--mcp-stdio</code>; den præcise linje står i terminalen ved start):</p>
+  <pre>{
+  "mcpServers": {
+    "kvit": {
+      "command": "C:/sti/til/faktura.exe",
+      "args": ["--mcp-stdio", "--config", "C:/sti/til/faktura.json"]
+    }
+  }
+}</pre>
+  <p class="small">Kildekoden (efter <code>npm --prefix mcp run build</code>):</p>
+  <pre>{
+  "mcpServers": {
+    "kvit": {
+      "command": "node",
+      "args": ["C:/sti/til/micro-finance/mcp/dist/stdio.js"],
+      "env": {
+        "FAKTURA_URL": "http://127.0.0.1:3000",
+        "FAKTURA_API_TOKEN": "samme-vaerdi-som-API_TOKEN"
+      }
+    }
+  }
+}</pre>
+
+  <h3>Andre MCP-klienter</h3>
+  <p>Alle klienter, der taler streamable HTTP, bruger adressen direkte:</p>
+  <pre>{ "mcpServers": { "kvit": { "type": "http", "url": "http://localhost:3333/mcp" } } }</pre>
+  <p>Klienter, der kun taler stdio, bruger et af <code>command</code>-udsnittene ovenfor. MCP Inspector virker også: <code>npm --prefix mcp run inspect</code> fra kildekoden.</p>
+
+  <h2>Fra en anden maskine</h2>
+  <p>MCP-endpointet har ikke noget login. Den, der kan nå porten, kan bruge værktøjerne, så det er bundet til din egen maskine og skal aldrig ud på internettet. Vil du bruge det fra din bærbare, går vejen over din VPN:</p>
+  <ul>
+    <li><strong>Tailscale, med installationen.</strong> Svar <code>tailscale</code> på HTTPS-spørgsmålet, så udgives endpointet som <code>https://&lt;maskine&gt;.&lt;tailnet&gt;.ts.net:8443/mcp</code> med et rigtigt certifikat, og alle enheder på dit tailnet kan bruge adressen. Installationen tilføjer selv navnet til de tilladte hosts.</li>
+    <li><strong>Tailscale, uden HTTPS.</strong> Sæt <code>MCP_ALLOWED_HOSTS=100.64.0.12:3333</code> (din tailnet-adresse) i <code>.env</code> og kør installationen igen; fra kildekode sættes <code>MCP_HOST</code> til tailnet-adressen. Brug præcis den adresse i klienten, serveren afviser andre (se nedenfor).</li>
+  </ul>
+  <p>Resten, med WireGuard, firewall og Caddy, står i <a href="https://github.com/kvit-app/faktura/blob/main/HOSTING.md">hosting-vejledningen</a> (engelsk).</p>
+
+  <h2>Det, folk snubler over</h2>
+  <ul>
+    <li><strong>»url must start with https«</strong> i claude.ai eller Desktops <em>Add custom connector</em>. Den dialog er til servere på internettet, som Anthropic kan nå. En lokal server eller en tailnet-adresse går ikke der; brug Claude Code eller stdio-udsnittet til Desktop.</li>
+    <li><strong>Alle værktøjer fejler med en auth-fejl.</strong> Serveren kender ikke tokenet, eller det passer ikke med programmets <code>API_TOKEN</code>. <code>GET http://localhost:3333/healthz</code> svarer <code>{"ok":true,"token_configured":true}</code>, når det er sat. Intet er sendt eller ændret, når fejlen kommer.</li>
+    <li><strong>Serveren svarer ikke på tailnet-adressen.</strong> Host-headeren valideres som beskyttelse mod DNS-rebinding. Klienten skal bruge den adresse, serveren er bundet til, eller en, der står i <code>MCP_ALLOWED_HOSTS</code>; serveren advarer ved start, hvis listen mangler.</li>
+    <li><strong>Lokal HTTPS (<code>kvit.localhost</code>).</strong> Certifikatet ligger i installationsmappen som <code>kvit-root-ca.crt</code>, og Claude Code skal startes med <code>NODE_EXTRA_CA_CERTS</code> pegende på det.</li>
+    <li><strong>Assistenten vil udstede en faktura.</strong> Det kan den ikke, og det er med vilje. Den laver kladden, og du trykker <em>Udsted</em> i programmet. Mere om det under <a href="./tools.html">Værktøjer</a>.</li>
+  </ul>
+
+  <h2>Prøv det</h2>
+  <p>Når den er koblet på, kan du spørge på dansk:</p>
+  <ul>
+    <li>»Hvilke fakturaer forfalder snart?«</li>
+    <li>»Hvad står jeg i banken?«</li>
+    <li>»Hvad skal jeg indberette i moms for 2. kvartal?«</li>
+    <li>»Registrér min saldo: 84.250 kr« – assistenten kører afstemningen og bogfører forskellen som korrektion.</li>
+    <li>»Bogfør bankgebyret på 45 kr fra i går.«</li>
+    <li>»Lav en kladde til Nordhavn Arkitekter: 12 timer rådgivning à 950 kr.«</li>
+    <li>»Log 2,5 timer hos Nordhavn i dag: workshop om tilgængelighed.«</li>
+    <li>»Hvor mange ufakturerede timer har jeg, og hvad er de værd?«</li>
+    <li>»Opret en udgift: Hetzner, serverhosting september, 380 kr uden moms, konto 2000.«</li>
+  </ul>
+  <p>Alt, den skriver, står i revisionssporet med afsender <code>api</code> (<code>audit_log.csv</code> i eksport-zippen), så du altid kan se, hvad der kom fra AI'en.</p>
+
+  <div class="aside">
+    <p><strong>Læs mere.</strong> <a href="https://github.com/kvit-app/faktura/blob/main/GUIDE.md#7-ai-adgang-mcp">Brugervejledningens afsnit om AI-adgang</a> siger det samme kortere. <a href="https://github.com/kvit-app/faktura/blob/main/mcp/README.md">mcp/README.md</a> (engelsk) har miljøvariabler, .env-filer og testene for den, der vil køre serveren fra kildekode.</p>
+  </div>
+
+  <p class="foot">Kvit · MCP-serveren er en del af <a href="https://github.com/kvit-app/faktura">kildekoden</a> og udgives sammen med programmet.</p>
+</main>
+</body>
+</html>

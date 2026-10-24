@@ -10,6 +10,11 @@ audit log are enforced once, in the app; every write made through this server is
 legal series and are irreversible, so they stay human-only in the app UI. There is likewise no tool that
 deletes anything or edits an issued document. Their absence is the safety model, not an oversight.
 
+This file is for running the server from source. The user-facing documentation is on the site (Danish):
+[connect](https://misterjohannesson.github.io/kvit/mcp/) per client,
+[tools](https://misterjohannesson.github.io/kvit/mcp/tools.html) (generated from this server) and
+[how it is built](https://misterjohannesson.github.io/kvit/mcp/architecture.html).
+
 ## Setup
 
 In the app: set `API_TOKEN` (see the root README / `.env.example`) and restart. In `mcp/`:
@@ -115,41 +120,16 @@ Amounts are returned as both `amount_ore` (integer) and `amount_formatted` (`"1.
 8601. Names and descriptions are English; data values stay Danish. Errors pass through structured: the app's
 409 on an immutability rule becomes a tool error with `http_status: 409` and `retry: false`, never a retry.
 
-Read:
+The full reference, one card per tool with arguments, annotations and a Danish example prompt, is generated
+from this server by `npm run docs` (`scripts/docs.ts`: tools/list over an in-memory transport) and published at
+<https://misterjohannesson.github.io/kvit/mcp/tools.html>. CI runs `npm run docs:check`, so the page and the code
+cannot drift; adding a tool without a prompt in `PROMPTS` fails the build.
 
-| Tool | Answers | Arguments |
-|---|---|---|
-| `list_invoices` | what is coming in, who is overdue | `status?` (open · overdue · paid · draft · credited · credit_note · all; default open), `due_before?`, `year?` |
-| `get_invoice` | full detail incl. lines and payment state | `number` |
-| `list_expenses` | expenses with supplier, account, amounts, paid state | `year?` (default current), `unpaid_only?` |
-| `cash_position` | what is my current bank: likvider, debitorer, kreditorer, skyldig moms, nettoposition, last reconciliation | – |
-| `cashflow` | monthly in/out/net/position, `actual` vs `projected` months | `months_back?` (6), `months_forward?` |
-| `vat_report` | salgsmoms, købsmoms, momstilsvar, deadline; `estimate: true` for future quarters | `quarter?` (`"2026-Q3"`, default current) |
-| `resultat` | P&L per account, accrual basis; budget/variance columns (always null until a budget exists) | `year?`, `quarter?` |
-| `budget_status` | YTD actual vs budget per account (budget_exists: false until a budget exists) | `year?` |
-| `list_accounts` | kontoplan ids for the write tools, with each account's group; archived accounts only with `include_archived` | `type?`, `include_archived?` |
-| `list_customers` | customer ids for drafts and time, with payment terms and hourly rate | – |
-| `list_time` | logged time; default unbilled, with hours and value per customer at its hourly rate | `customer_id?`, `status?` (unbilled · draft · billed · not_billable · all), `from?`, `to?` |
-
-Write (append-only or reversible, all audit-logged as `actor = api`):
-
-| Tool | Changes | Arguments |
-|---|---|---|
-| `mark_invoice_paid` | sets `paid_date` on an issued invoice (refund date on a credit note) | `number`, `paid_date` |
-| `create_cash_movement` | appends a bank movement (vat_payment · owner · tax · correction · other) | `date`, `description`, `amount_ore` (signed), `kind` |
-| `reconcile_balance` | afstemning: compares the bank's figure with likvider and books a `correction` for the delta (nothing if equal) | `actual_bank_balance_ore`, `date?` |
-| `create_draft_invoice` | creates a **draft** only; the response says issuing is done by the owner in the UI | `customer_id`, `lines[]`, `issue_date?`, `due_date?`, `payment_reference?`, `vat_exempt_reason?` |
-| `create_expense` | creates the expense row (next voucher number); the bilag file is attached in the UI | `date`, `supplier`, `description`, `account_id`, `amount_ex_vat_ore`, `vat_ore`, `paid_date?` |
-| `log_time` | logs hours for a customer; returns the customer's other entries that day and `possible_duplicate` when the same hours and text were already logged | `customer_id`, `hours`, `description`, `date?` (today), `billable?` (true) |
-| `create_draft_from_time` | a **draft** with the customer's unbilled time, one line per entry at its rate; rounding, rates and headings are done on the draft in the UI | `customer_id`, `entry_ids?` |
-
-Logged time can be added but not edited or deleted over MCP, in line with the rest: the client has no PATCH or DELETE.
-The owner corrects or removes an entry under **Timer** in the app; once it is on an invoice it is locked there too.
-
-Beyond the spec's parameter lists, a few optional arguments are accepted because the app supports them: `list_accounts(type?)`,
-`create_draft_invoice(issue_date?, payment_reference?, vat_exempt_reason?)` and `create_expense(paid_date?)`. All stay
-append-only. Writes made by the seed script or by code outside a request are logged as `actor = "ui"`; the app's audit
-enum has only `ui` and `api`.
+In short, read: invoices (list, get), expenses, cash position, cashflow, VAT report, resultat, budget status, accounts,
+customers, logged time. Write (append-only or reversible, all audit-logged as `actor = api`): mark invoice paid, cash
+movement, reconcile balance, draft invoice, expense, log time, draft from time. Logged time can be added but not edited
+or deleted over MCP, in line with the rest: the client has no PATCH or DELETE. Writes made by the seed script or by code
+outside a request are logged as `actor = "ui"`; the app audit enum has only `ui` and `api`.
 
 Budget note: the app does not have a budget feature yet. `resultat` and `budget_status` return `budget_exists:
 false` with null budget/variance columns, `cashflow` projects from open invoices, unpaid expenses, credit notes

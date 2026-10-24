@@ -6,7 +6,7 @@ name: pages
 on:
   push:
     branches: [main, master]
-    paths: ['site/**', 'tokens.css', 'static/logo.svg', 'static/favicon.svg', '.github/workflows/pages.yml']
+    paths: ['site/**', 'tokens.css', 'static/logo.svg', 'static/favicon.svg', '.github/workflows/pages.yml', 'mcp/src/**', 'mcp/scripts/**', 'mcp/package.json']
   # Manual redeploy from the Actions tab (or `gh workflow run pages.yml`).
   workflow_dispatch:
 
@@ -24,14 +24,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # site/mcp/tools.html and the file table in architecture.html come from the MCP server itself
+      # (tools/list over an in-memory transport), so the site cannot disagree with the code.
+      - name: Generate the MCP pages from the server
+        run: |
+          npm --prefix mcp ci
+          npm --prefix mcp run docs
       - name: Assemble the site
         run: |
           cp tokens.css site/
           cp static/logo.svg static/favicon.svg site/
           # The sources carry the default slug; the published site links to this repository.
-          sed -i "s#github.com/kvit-app/faktura#github.com/${{ github.repository }}#g" site/index.html site/whitepaper.html
+          sed -i "s#github.com/kvit-app/faktura#github.com/${{ github.repository }}#g" site/index.html site/whitepaper.html site/mcp/*.html
           test -f site/.nojekyll
           test -f site/index.html && test -f site/whitepaper.html
+          test -f site/mcp/index.html && test -f site/mcp/tools.html && test -f site/mcp/architecture.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

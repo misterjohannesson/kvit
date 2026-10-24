@@ -211,8 +211,9 @@ Cashflow-prognosen det bedste billede af de kommende måneder.
 veldefinerede »værktøjer«. Faktura leverer en MCP-server, så din assistent kan læse dine tal og bogføre rutineposter –
 uden nogensinde at rode i databasen direkte.
 
-**Tilslutning.** Installationen viste et konfigurationsudsnit til sidst (kør installationen igen, hvis du mistede
-det; data bevares). Med Docker-installationen kører MCP-serveren ved
+**Tilslutning.** Den fulde vejledning pr. klient, listen over alle værktøjer og en side om, hvordan serveren er
+bygget, ligger på [kvit-siden under MCP](https://misterjohannesson.github.io/kvit/mcp/). Det korte af det: installationen
+viste et konfigurationsudsnit til sidst (kør installationen igen, hvis du mistede det; data bevares). Med Docker-installationen kører MCP-serveren ved
 siden af programmet på din egen maskine, og du indsætter dette i din AI-klient (Claude Code, Claude Desktop eller
 en anden MCP-klient):
 

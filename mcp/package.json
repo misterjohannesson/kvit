@@ -18,7 +18,9 @@
     "dev": "tsx src/stdio.ts",
     "dev:http": "tsx src/http.ts",
     "inspect": "npx @modelcontextprotocol/inspector node dist/stdio.js",
-    "test": "npm run build && vitest run"
+    "test": "npm run build && vitest run",
+    "docs": "tsx scripts/docs.ts",
+    "docs:check": "tsx scripts/docs.ts --check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

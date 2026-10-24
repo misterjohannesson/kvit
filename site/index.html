@@ -119,6 +119,11 @@
     <div>
       <p>Kvit har en indbygget MCP-server, så en AI-assistent (fx Claude) kan arbejde med dit bogholderi: »Hvilke fakturaer forfalder snart?«, »Hvad står jeg i banken?«, »Registrér min saldo: 84.250 kr.« Den kan markere fakturaer betalt, bogføre bankbevægelser, lave kladder og udgifter – og alt, den skriver, står i revisionssporet med afsender <code>api</code>.</p>
       <p>Tre ting kan den <strong>ikke</strong>: udstede fakturaer, oprette kreditnotaer og slette noget. De to første tager numre fra den lovpligtige serie og er uigenkaldelige; sletning hører ikke til i et bogholderi. Det er ikke en manglende funktion – det er selve sikkerhedsmodellen.</p>
+      <div class="actions">
+        <a class="btn btn--secondary" href="./mcp/">Kobl din assistent på</a>
+        <a href="./mcp/tools.html">Alle værktøjer</a>
+        <a href="./mcp/architecture.html">Sådan er den bygget</a>
+      </div>
     </div>
     <img class="shot" src="./img/fakturaer.png" alt="Fakturalisten med status, forfald og markering af dokumenter, der ikke er sendt" width="1280" height="800" loading="lazy">
   </div>
@@ -145,6 +150,7 @@
       <ul>
         <li><a href="https://github.com/kvit-app/faktura/blob/main/GUIDE.md">Brugervejledning</a> – kom i gang, fakturaer, udgifter, moms, månedsrutinen, AI-adgang, eksport.</li>
         <li><a href="./whitepaper.html">Hvorfor Kvit er bygget sådan</a> – to sider om designet: ingen posteringsmotor, rækkerne er journalen.</li>
+        <li><a href="./mcp/">MCP-serveren</a> – tilslutning pr. klient, alle værktøjer, og hvordan den er bygget.</li>
         <li><a href="https://github.com/kvit-app/faktura/blob/main/HOSTING.md">Hosting-vejledning</a> (engelsk) – VPN, offentlig adgang bag Caddy, backup, opdatering.</li>
         <li><a href="https://github.com/kvit-app/faktura">Kildekoden</a> – open source, én mappe med alle data, ingen abonnementer.</li>
       </ul>

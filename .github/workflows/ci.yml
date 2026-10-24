@@ -45,6 +45,9 @@ jobs:
       - name: Docs checks (disclaimer verbatim, guide sections, screenshots, site, workflows)
         run: npm run test:docs
 
+      - name: MCP pages on the site match the server (site/mcp/tools.html is generated)
+        run: npm --prefix mcp run docs:check
+
       - name: App test suite (unit + API, incl. the migration test)
         env:
           CI: 'true'

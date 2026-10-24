@@ -179,6 +179,27 @@ describe('site/', () => {
     expect(wp).toMatch(/@media print/);
     expect(wp).toContain('Faktura is built for one user on a private network.');
   });
+
+  it('the MCP pages exist, are Danish, share the stylesheet, link each other and are reached from the homepage', () => {
+    const pages = ['site/mcp/index.html', 'site/mcp/tools.html', 'site/mcp/architecture.html'];
+    for (const f of pages) {
+      const html = read(f);
+      expect(html, f).toMatch(/<html lang="da">/);
+      expect(html, f).toMatch(/href="\.\.\/tokens\.css"/);
+      expect(html, f).toMatch(/href="\.\/mcp\.css"/);
+      expect(html, f).not.toMatch(/\bv\d+\.\d+\.\d+\b|OWNER\/REPO/);
+      for (const other of ['./', './tools.html', './architecture.html']) expect(html, `${f} links ${other}`).toContain(`href="${other}"`);
+    }
+    expect(fs.existsSync(path.resolve('site/mcp/mcp.css'))).toBe(true);
+    // tools.html is generated from the server (mcp/scripts/docs.ts); the three forbidden actions stay on it.
+    const tools = read('site/mcp/tools.html');
+    expect(tools).toMatch(/Udstede fakturaer, oprette kreditnotaer og slette noget/);
+    expect((tools.match(/class="tool"/g) ?? []).length).toBeGreaterThanOrEqual(18);
+    const arch = read('site/mcp/architecture.html');
+    expect(arch).toMatch(/<!-- gen:files -->\s*<table>/);
+    expect(arch).toMatch(/<!-- gen:deps -->\s*<ul>/);
+    expect(read('site/index.html')).toMatch(/href="\.\/mcp\/"/);
+  });
 });
 
 describe('workflows', () => {
@@ -194,10 +215,13 @@ describe('workflows', () => {
     expect(release).toMatch(/RELEASE_NOTES\.md/);
     expect(release).toMatch(/linux\/amd64,linux\/arm64/);
     const ci = read('.github/workflows/ci.yml');
-    for (const s of ['npm run check', 'npm test', 'npm run mcp:test', 'npm run test:install', 'npm run test:docs', 'docker build']) expect(ci, s).toContain(s);
+    for (const s of ['npm run check', 'npm test', 'npm run mcp:test', 'npm run test:install', 'npm run test:docs', 'npm --prefix mcp run docs:check', 'docker build']) expect(ci, s).toContain(s);
     const pages = read('.github/workflows/pages.yml');
     expect(pages).toMatch(/upload-pages-artifact/);
     expect(pages).toMatch(/deploy-pages/);
     expect(pages).toMatch(/cp tokens\.css site\//);
+    // The MCP pages are regenerated at deploy and the slug substitution covers them.
+    expect(pages).toMatch(/npm --prefix mcp run docs\b/);
+    expect(pages).toMatch(/site\/mcp\/\*\.html/);
   });
 });

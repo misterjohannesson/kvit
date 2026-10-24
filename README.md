@@ -13,7 +13,7 @@ This file is for developers: how to run, build, test and release. Other document
 | Users (Danish) | [GUIDE.md](GUIDE.md) — the user guide, with screenshots |
 | Operators | [HOSTING.md](HOSTING.md) — VPN-only setup, public hosting with Caddy, backups, updating |
 | Release readers | [release-template.md](release-template.md) — the plain-language release page |
-| AI integration | [mcp/README.md](mcp/README.md) — the MCP server, tools, client config |
+| AI integration | [MCP pages on the site](https://misterjohannesson.github.io/kvit/mcp/) (Danish: connect, tools, how it is built) and [mcp/README.md](mcp/README.md) — running the server from source, env, tests |
 | Design authority | [style.md](style.md), [tokens.css](tokens.css), [example.html](example.html) |
 | Reviews | [review/REVIEW.md](review/REVIEW.md) — every reviewer pass, zero open findings |
 

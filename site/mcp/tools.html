@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvit MCP — hvad AI'en kan</title>
+<meta name="description" content="Alle 18 værktøjer i Kvits MCP-server: 11 der læser, 7 der skriver, og de tre handlinger, der med vilje mangler.">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./mcp.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+</head>
+<body>
+<header class="rail">
+  <div class="rail__inner">
+    <a class="brand" href="../">
+      <img src="../logo.svg" width="26" height="26" alt="">
+      <span class="brand__name">Kvit<span class="brand__sub">MCP-server</span></span>
+    </a>
+    <nav>
+      <a href="./">Tilslut</a>
+      <a href="./tools.html" aria-current="page">Værktøjer</a>
+      <a href="./architecture.html">Opbygning</a>
+      <a href="../">Kvit</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="kicker">Kvit MCP · værktøjer</p>
+  <h1>Hvad AI'en kan, og hvad den ikke kan</h1>
+  <p class="lede">MCP-serveren har 18 værktøjer: 11 der læser, og 7 der skriver. Denne side er lavet af serveren selv: navne, beskrivelser og argumenter er dem, en assistent ser, når den kobler sig på. Beskrivelserne er på engelsk, fordi assistenten læser dem; dataene er danske.</p>
+
+  <div class="note">
+    <p><strong>Tre ting kan den ikke.</strong> Udstede fakturaer, oprette kreditnotaer og slette noget. De to første tager numre fra den lovpligtige serie og kan ikke gøres om; sletning hører ikke til i et bogholderi. Der findes heller ikke et værktøj, der redigerer et udstedt dokument eller en logget time. Assistenten kan lave kladden og sige det, men <em>Udsted</em> trykker du selv i programmet.</p>
+    <p>Alt, der skrives via MCP, står i revisionssporet med afsender <code>api</code>, så du altid kan se, hvad der kom fra AI'en.</p>
+  </div>
+
+  <h2>Sådan svarer værktøjerne</h2>
+  <ul>
+    <li>Beløb kommer både som heltal i øre (<code>amount_ore</code>) og formateret (<code>amount_formatted</code>, fx <code>1.234,56 kr.</code>).</li>
+    <li>Datoer er ISO 8601, kvartaler skrives <code>2026-Q3</code>.</li>
+    <li>Fejl fra programmet sendes videre som de er, med HTTP-status og programmets egen danske besked. Et 409 på en uforanderlighedsregel bliver til en fejl med <code>retry: false</code>; assistenten bliver bedt om at sige det til dig i stedet for at prøve igen.</li>
+    <li>Serveren præsenterer sig for assistenten med denne instruktion:</li>
+  </ul>
+  <pre lang="en">Kvit (Faktura) bookkeeping for one Danish business, DKK only. Amounts come as integer øre plus a formatted string; dates are ISO. Read tools answer cash, VAT, P&amp;L and invoice questions; write tools only append reversible records (paid dates, cash movements, reconciliations, drafts, expenses). Issuing and crediting invoices is intentionally not possible via MCP: the owner does that in the app UI.</pre>
+
+  <h2>Læser <span class="sub">(11)</span></h2>
+  <ul class="toc"><li><a href="#list_invoices">List invoices</a> <code class="sub">list_invoices</code></li><li><a href="#get_invoice">Get invoice</a> <code class="sub">get_invoice</code></li><li><a href="#list_expenses">List expenses</a> <code class="sub">list_expenses</code></li><li><a href="#cash_position">Cash position (Balance)</a> <code class="sub">cash_position</code></li><li><a href="#cashflow">Cashflow by month</a> <code class="sub">cashflow</code></li><li><a href="#vat_report">VAT report (momsindberetning)</a> <code class="sub">vat_report</code></li><li><a href="#resultat">Resultat (P&amp;L)</a> <code class="sub">resultat</code></li><li><a href="#budget_status">Budget status</a> <code class="sub">budget_status</code></li><li><a href="#list_accounts">List accounts (kontoplan)</a> <code class="sub">list_accounts</code></li><li><a href="#list_customers">List customers</a> <code class="sub">list_customers</code></li><li><a href="#list_time">List logged time</a> <code class="sub">list_time</code></li></ul>
+  <section class="tool" id="list_invoices">
+<div class="tool__head"><h3>List invoices</h3><code>list_invoices</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Invoices and credit notes with number, customer, dates, amounts and status.</p><p>With no arguments: open (unpaid, issued) invoices, soonest due first, overdue ones included and flagged.</p><p>Answers &quot;what is coming in&quot; and &quot;who is overdue&quot;.</p><p>Amounts are DKK incl.</p><p>VAT unless named otherwise.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>status</code></td><td><code>open</code> · <code>overdue</code> · <code>paid</code> · <code>draft</code> · <code>credited</code> · <code>credit_note</code> · <code>all</code></td><td><span class="sub">nej</span></td><td>Filter. open = issued and unpaid (includes overdue); overdue = open and past due date; default open.</td></tr><tr><td><code>due_before</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>Only invoices due on or before this ISO date.</td></tr><tr><td><code>year</code></td><td>heltal <span class="sub">(2000–2100)</span></td><td><span class="sub">nej</span></td><td>Only documents dated in this year.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvilke fakturaer forfalder snart?</q></p>
+</section>
+<section class="tool" id="get_invoice">
+<div class="tool__head"><h3>Get invoice</h3><code>get_invoice</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Full detail of one issued invoice or credit note by its number: customer, lines with accounts, VAT, totals, payment state, sent state, attachments and whether the archived PDF exists.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>number</code></td><td>heltal <span class="sub">(positivt)</span></td><td>ja</td><td>The invoice number (e.g. 1004). Drafts have no number.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Vis mig faktura 1004.</q></p>
+</section>
+<section class="tool" id="list_expenses">
+<div class="tool__head"><h3>List expenses</h3><code>list_expenses</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Expenses (udgifter) with voucher number, supplier, cost account, amounts ex/incl.</p><p>VAT and paid state.</p><p>Default: the current year, newest first.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>year</code></td><td>heltal <span class="sub">(2000–2100)</span></td><td><span class="sub">nej</span></td><td>Expense date year; default current year.</td></tr><tr><td><code>unpaid_only</code></td><td>ja/nej</td><td><span class="sub">nej</span></td><td>Only expenses without a paid date.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvilke udgifter har jeg ikke betalt endnu?</q></p>
+</section>
+<section class="tool" id="cash_position">
+<div class="tool__head"><h3>Cash position (Balance)</h3><code>cash_position</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>The Balance view: likvider (bank position from the opening balance plus every paid flow), debitorer (open invoices), kreditorer (unpaid expenses), skyldige kreditnotaer, skyldig moms and nettoposition, plus the date of the last reconciliation.</p><p>Answers &quot;what is my current bank&quot;.</p></div>
+<p class="small">Ingen argumenter.</p>
+<p class="prompt">Prøv: <q>Hvad står jeg i banken?</q></p>
+</section>
+<section class="tool" id="cashflow">
+<div class="tool__head"><h3>Cashflow by month</h3><code>cashflow</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Monthly in/out/net and running bank position.</p><p>Closed months are actuals (flag &quot;actual&quot;); the current month and every month ahead are &quot;projected&quot;: actuals to date plus the forecast of open invoices by due month, unpaid expenses, credit notes to refund and VAT by settlement deadline.</p><p>Note: the app has no budget yet, so the projection is not budget-blended; the response says so.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>months_back</code></td><td>heltal <span class="sub">(0–120)</span></td><td><span class="sub">nej</span></td><td>How many closed months before the current one to include; default 6.</td></tr><tr><td><code>months_forward</code></td><td>heltal <span class="sub">(0–24)</span></td><td><span class="sub">nej</span></td><td>How many months after the current one; default: every month the forecast reaches.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvordan ser cashflowet ud frem til nytår?</q></p>
+</section>
+<section class="tool" id="vat_report">
+<div class="tool__head"><h3>VAT report (momsindberetning)</h3><code>vat_report</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Salgsmoms, købsmoms and momstilsvar for one quarter, the three figures on skat.dk's momsangivelse, with the settlement deadline.</p><p>Default: the current quarter.</p><p>Future quarters are flagged estimate: true (figures come from documents already dated in that quarter; the app has no budget to estimate from).</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>quarter</code></td><td>tekst</td><td><span class="sub">nej</span></td><td>Quarter as &quot;2026-Q3&quot; (also &quot;2026-3&quot;). Default: current quarter.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvad skal jeg indberette i moms for 2. kvartal?</q></p>
+</section>
+<section class="tool" id="resultat">
+<div class="tool__head"><h3>Resultat (P&amp;L)</h3><code>resultat</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Profit and loss per account on accrual basis: revenue per revenue account (issued invoices ex VAT, credit notes netting out), costs per cost account (expenses ex VAT) and resultat før skat.</p><p>Default: the current year.</p><p>Budget and variance columns are null until a budget exists in the app.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>year</code></td><td>heltal <span class="sub">(2000–2100)</span></td><td><span class="sub">nej</span></td><td>Default current year.</td></tr><tr><td><code>quarter</code></td><td>heltal <span class="sub">(1–4)</span></td><td><span class="sub">nej</span></td><td>Restrict to one quarter of the year.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvad er resultatet for året indtil nu, fordelt på konti?</q></p>
+</section>
+<section class="tool" id="budget_status">
+<div class="tool__head"><h3>Budget status</h3><code>budget_status</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Year-to-date actual vs budget per account and in total.</p><p>The app has no budget feature yet: the tool returns budget_exists: false with the YTD actuals per account and null budget/variance, so callers can rely on one shape.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>year</code></td><td>heltal <span class="sub">(2000–2100)</span></td><td><span class="sub">nej</span></td><td>Default current year.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvordan ligger jeg i forhold til budgettet?</q></p>
+</section>
+<section class="tool" id="list_accounts">
+<div class="tool__head"><h3>List accounts (kontoplan)</h3><code>list_accounts</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>The chart of accounts: id, number, name, type (revenue | cost) and group (the heading the P&amp;L subtotals on).</p><p>Use the ids for create_draft_invoice (revenue) and create_expense (cost).</p><p>Archived accounts are left out unless include_archived is set; they refuse new records.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>type</code></td><td><code>revenue</code> · <code>cost</code></td><td><span class="sub">nej</span></td><td>Filter by type.</td></tr><tr><td><code>include_archived</code></td><td>ja/nej</td><td><span class="sub">nej</span></td><td>Also list archived accounts (marked archived: true).</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvilke omkostningskonti har jeg?</q></p>
+</section>
+<section class="tool" id="list_customers">
+<div class="tool__head"><h3>List customers</h3><code>list_customers</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Customers with id, name, address, CVR, e-mail and payment terms (days; null = the app default).</p><p>Use the id for create_draft_invoice.</p></div>
+<p class="small">Ingen argumenter.</p>
+<p class="prompt">Prøv: <q>Hvilken betalingsfrist har Nordhavn Arkitekter?</q></p>
+</section>
+<section class="tool" id="list_time">
+<div class="tool__head"><h3>List logged time</h3><code>list_time</code><span class="badge badge--read">læser</span></div>
+<div class="tool__desc" lang="en"><p>Logged time (tidsregistreringer).</p><p>Default: unbilled billable time, with a per-customer summary (hours and value at the customer's hourly rate). status: unbilled (not on any invoice), draft (on a draft invoice), billed (on an issued or credited invoice, with its number), not_billable, or all.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>customer_id</code></td><td>heltal <span class="sub">(positivt)</span></td><td><span class="sub">nej</span></td><td>Only this customer.</td></tr><tr><td><code>status</code></td><td><code>unbilled</code> · <code>draft</code> · <code>billed</code> · <code>not_billable</code> · <code>all</code></td><td><span class="sub">nej</span></td><td>Default unbilled.</td></tr><tr><td><code>from</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>First day, inclusive.</td></tr><tr><td><code>to</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>Last day, inclusive.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Hvor mange ufakturerede timer har jeg, og hvad er de værd?</q></p>
+</section>
+
+  <h2>Skriver <span class="sub">(7)</span></h2>
+  <p>Alle skriveværktøjer tilføjer en række eller sætter en dato, der kan rettes i programmet. Ingen af dem sletter eller overskriver.</p>
+  <ul class="toc"><li><a href="#mark_invoice_paid">Mark invoice paid</a> <code class="sub">mark_invoice_paid</code></li><li><a href="#create_cash_movement">Create cash movement</a> <code class="sub">create_cash_movement</code></li><li><a href="#reconcile_balance">Reconcile bank balance (afstemning)</a> <code class="sub">reconcile_balance</code></li><li><a href="#create_draft_invoice">Create draft invoice</a> <code class="sub">create_draft_invoice</code></li><li><a href="#create_expense">Create expense</a> <code class="sub">create_expense</code></li><li><a href="#log_time">Log time (tidsregistrering)</a> <code class="sub">log_time</code></li><li><a href="#create_draft_from_time">Create draft invoice from logged time</a> <code class="sub">create_draft_from_time</code></li></ul>
+  <section class="tool" id="mark_invoice_paid">
+<div class="tool__head"><h3>Mark invoice paid</h3><code>mark_invoice_paid</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>Sets the paid date on an issued invoice (on a credit note: the refund date).</p><p>Changes paid_date only; the document itself stays immutable.</p><p>Audit-logged with actor &quot;api&quot;.</p><p>Not found if no document has that number; conflict (409) if it is already paid, has been credited, or is a credit note of an unpaid original.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>number</code></td><td>heltal <span class="sub">(positivt)</span></td><td>ja</td><td>Invoice number.</td></tr><tr><td><code>paid_date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td>ja</td><td>The date the money arrived, ISO yyyy-mm-dd.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Faktura 1004 blev betalt i går.</q> <span class="sub">· tilføjer en række pr. kald · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+<section class="tool" id="create_cash_movement">
+<div class="tool__head"><h3>Create cash movement</h3><code>create_cash_movement</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>Books a bank movement that is neither an invoice payment nor an expense: VAT payment, owner deposit/draw, tax, correction, other.</p><p>Positive amount = money in, negative = money out.</p><p>Movements are append-only (never edited or deleted; a mistake gets a correction).</p><p>Audit-logged with actor &quot;api&quot;.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td>ja</td><td>Movement date, ISO.</td></tr><tr><td><code>description</code></td><td>tekst</td><td>ja</td><td>Free text, Danish, e.g. &quot;Momsafregning 2. kvartal 2026&quot;.</td></tr><tr><td><code>amount_ore</code></td><td>heltal</td><td>ja</td><td>Signed integer øre: positive = in, negative = out.</td></tr><tr><td><code>kind</code></td><td><code>vat_payment</code> · <code>owner</code> · <code>tax</code> · <code>correction</code> · <code>other</code></td><td>ja</td><td>vat_payment | owner | tax | correction | other</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Bogfør bankgebyret på 45 kr fra i går.</q> <span class="sub">· tilføjer en række pr. kald · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+<section class="tool" id="reconcile_balance">
+<div class="tool__head"><h3>Reconcile bank balance (afstemning)</h3><code>reconcile_balance</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>The afstemning ritual: give the actual balance from the bank.</p><p>The app compares it with computed likvider and, if they differ, books a &quot;correction&quot; cash movement for exactly the difference so likvider matches the bank.</p><p>Returns both figures and the delta.</p><p>A second call with a matching figure books nothing.</p><p>Every call is audit-logged with actor &quot;api&quot; (the booked correction too).</p><p>Answers &quot;register my balance today&quot;.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>actual_bank_balance_ore</code></td><td>heltal</td><td>ja</td><td>The balance shown by the bank, in integer øre (e.g. 10530500 for 105.305,00 kr.).</td></tr><tr><td><code>date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>Date of the reconciliation / correction; default today.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Registrér min saldo: 84.250 kr.</q> <span class="sub">· kan gentages uden at ændre mere · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+<section class="tool" id="create_draft_invoice">
+<div class="tool__head"><h3>Create draft invoice</h3><code>create_draft_invoice</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>Creates a DRAFT invoice for a customer with the given lines.</p><p>Drafts have no number and nothing legal happens.</p><p>Issuing (Udsted) and crediting (Opret kreditnota) are intentionally not possible via MCP: they consume numbers from the legal series and are irreversible, so the owner does them in the app UI.</p><p>Use list_customers and list_accounts to resolve ids.</p><p>Amounts are integer øre ex VAT; VAT (25 %) is computed by the app unless vat_exempt_reason is given.</p><p>Audit-logged with actor &quot;api&quot;.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>customer_id</code></td><td>heltal <span class="sub">(positivt)</span></td><td>ja</td><td>Customer id from list_customers.</td></tr><tr><td><code>lines</code></td><td>liste af objekter <span class="sub">(1–200)</span></td><td>ja</td><td></td></tr><tr><td><code>lines[].description</code></td><td>tekst</td><td>ja</td><td></td></tr><tr><td><code>lines[].quantity</code></td><td>tal</td><td>ja</td><td></td></tr><tr><td><code>lines[].unit</code></td><td>tekst</td><td>ja</td><td>e.g. &quot;time&quot;, &quot;stk.&quot;</td></tr><tr><td><code>lines[].unit_price_ore</code></td><td>heltal</td><td>ja</td><td>Unit price ex VAT in integer øre; negative for a discount line.</td></tr><tr><td><code>lines[].account_id</code></td><td>heltal <span class="sub">(positivt)</span></td><td><span class="sub">nej</span></td><td>Revenue account id (list_accounts type revenue); default 1000 Konsulentydelser.</td></tr><tr><td><code>issue_date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>Fakturadato; default today.</td></tr><tr><td><code>due_date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>Forfaldsdato; default: issue date plus the customer's payment terms.</td></tr><tr><td><code>payment_reference</code></td><td>tekst</td><td><span class="sub">nej</span></td><td>Text the customer writes on the transfer; default &quot;Faktura &lt;nr&gt;&quot; at issue.</td></tr><tr><td><code>vat_exempt_reason</code></td><td>tekst</td><td><span class="sub">nej</span></td><td>Set to make the invoice VAT-free with this statutory reason printed, e.g. &quot;Omvendt betalingspligt, jf. momslovens § 46&quot;.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Lav en kladde til Nordhavn Arkitekter: 12 timer rådgivning à 950 kr.</q> <span class="sub">· tilføjer en række pr. kald · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+<section class="tool" id="create_expense">
+<div class="tool__head"><h3>Create expense</h3><code>create_expense</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>Creates an expense (udgift) row with the next voucher number: date, supplier, description, cost account, amount ex VAT and VAT (entered, not derived: foreign purchases and repræsentation break the 25 % assumption).</p><p>The bilag file (PDF/JPG/PNG) must be attached by the owner in the app UI afterwards.</p><p>Audit-logged with actor &quot;api&quot;.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td>ja</td><td>Voucher date, ISO.</td></tr><tr><td><code>supplier</code></td><td>tekst</td><td>ja</td><td></td></tr><tr><td><code>description</code></td><td>tekst</td><td>ja</td><td></td></tr><tr><td><code>account_id</code></td><td>heltal <span class="sub">(positivt)</span></td><td>ja</td><td>Cost account id from list_accounts (type cost).</td></tr><tr><td><code>amount_ex_vat_ore</code></td><td>heltal</td><td>ja</td><td>Amount ex VAT, integer øre.</td></tr><tr><td><code>vat_ore</code></td><td>heltal</td><td>ja</td><td>VAT amount, integer øre (0 for VAT-free/foreign).</td></tr><tr><td><code>paid_date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>Set if already paid.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Opret en udgift: Hetzner, serverhosting september, 380 kr uden moms, konto 2000.</q> <span class="sub">· tilføjer en række pr. kald · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+<section class="tool" id="log_time">
+<div class="tool__head"><h3>Log time (tidsregistrering)</h3><code>log_time</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>Logs hours worked for a customer, to be billed later from the app (or with create_draft_from_time).</p><p>Use list_customers to resolve the customer id.</p><p>The response includes every entry already logged for that customer on that day, so a repeated call is visible: check possible_duplicate before logging again.</p><p>Logged time cannot be edited or deleted via MCP; the owner does that in the app (Timer).</p><p>Audit-logged with actor &quot;api&quot;.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>customer_id</code></td><td>heltal <span class="sub">(positivt)</span></td><td>ja</td><td>Customer id from list_customers.</td></tr><tr><td><code>hours</code></td><td>tal <span class="sub">(positivt)</span></td><td>ja</td><td>Hours worked, e.g. 1.5 for 1 h 30 min; stored as whole minutes.</td></tr><tr><td><code>description</code></td><td>tekst</td><td>ja</td><td>What was done; data values stay Danish, e.g. &quot;Workshop om tilgængelighed&quot;.</td></tr><tr><td><code>date</code></td><td>dato <span class="sub">(åååå-mm-dd)</span></td><td><span class="sub">nej</span></td><td>The day the work was done; default today.</td></tr><tr><td><code>billable</code></td><td>ja/nej</td><td><span class="sub">nej</span></td><td>false for time that should never be invoiced (kept for the record); default true.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Log 2,5 timer hos Nordhavn i dag: workshop om tilgængelighed.</q> <span class="sub">· tilføjer en række pr. kald · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+<section class="tool" id="create_draft_from_time">
+<div class="tool__head"><h3>Create draft invoice from logged time</h3><code>create_draft_from_time</code><span class="badge badge--write">skriver</span></div>
+<div class="tool__desc" lang="en"><p>Creates a DRAFT invoice holding a customer's unbilled time: all of it, or the given entry ids.</p><p>One line per entry at the customer's hourly rate; nothing legal happens and no number is assigned.</p><p>The owner then rounds hours, adjusts rates and groups lines under headings on the draft in the app.</p><p>Deleting that draft in the app returns the time to unbilled.</p><p>Issuing (Udsted) and crediting (Opret kreditnota) are intentionally not possible via MCP: they consume numbers from the legal series and are irreversible, so the owner does them in the app UI.</p><p>Audit-logged with actor &quot;api&quot;.</p></div>
+<table><thead><tr><th>Argument</th><th>Type</th><th>Krævet</th><th>Betydning</th></tr></thead><tbody><tr><td><code>customer_id</code></td><td>heltal <span class="sub">(positivt)</span></td><td>ja</td><td>Customer id from list_customers.</td></tr><tr><td><code>entry_ids</code></td><td>liste af heltal <span class="sub">(positivt)</span> <span class="sub">(1–500)</span></td><td><span class="sub">nej</span></td><td>Only these unbilled entries (ids from list_time); default all unbilled billable time of the customer.</td></tr></tbody></table>
+<p class="prompt">Prøv: <q>Lav en kladde med Vestergaards timer fra oktober.</q> <span class="sub">· tilføjer en række pr. kald · sletter eller ændrer ingenting, der findes</span></p>
+</section>
+
+  <p class="foot">Genereret fra <code>kvit-mcp 1.0.0</code> med <code>npm --prefix mcp run docs</code>. Tilføjer man et værktøj uden et eksempel på dansk, fejler genereringen.</p>
+</main>
+</body>
+</html>
