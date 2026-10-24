@@ -17,7 +17,7 @@
 </div>
 
 <p class="hint prose">
-  En positionsopgørelse beregnet direkte fra data – ikke et årsregnskab. Likvider og debitorer på den ene side, kreditorer og skyldig moms på den anden.
+  En positionsopgørelse beregnet direkte fra data, ikke et årsregnskab.
 </p>
 
 <section class="layout-6-6">
@@ -59,7 +59,7 @@
 <section>
   <div class="section__head">
     <h2>Afstemning</h2>
-    <p>Indtast bankens saldo. Afviger den fra Likvider, kan forskellen bogføres som en korrektion, så kassevisningerne igen svarer til banken. En månedlig vane.</p>
+    <p>Indtast bankens saldo. Afviger den fra Likvider, kan forskellen bogføres som en korrektion.</p>
   </div>
   <div class="panel">
     {#if form?.booked}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDate, formatOre } from '$lib/format';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data } = $props();
   const l = $derived(data.ledger);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
@@ -65,9 +66,8 @@
 </section>
 
 <p class="hint prose">
-  Alle bevægelser på bankkontoen, som appen kender dem: fakturaer på betalingsdatoen, udgifter på betalingsdatoen, refusioner af
-  kreditnotaer og alle bankbevægelser (moms, skat, ejer, korrektioner fra afstemning, andet). Primo er åbningssaldoen plus alt før
-  periodens første dag; ultimo er primo plus periodens bevægelser.
+  Alle bevægelser på bankkontoen, som appen kender dem.
+  <InfoTip label="Hvad tæller med?">Fakturaer og udgifter på betalingsdatoen, refusioner af kreditnotaer og alle bankbevægelser (moms, skat, ejer, korrektioner fra afstemning, andet). Primo er åbningssaldoen plus alt før periodens første dag; ultimo er primo plus periodens bevægelser.</InfoTip>
   {#if l.from < l.openingBalanceDate}
     Åbningssaldoen gælder fra <span class="mono">{formatDate(l.openingBalanceDate)}</span>; bevægelser før den dato er allerede en del af saldoen og vises ikke.
   {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data, form } = $props();
   const staged = $derived(form?.staged ?? data.staged);
   const labels: Record<string, string> = {
@@ -35,9 +36,8 @@
     </div>
     <div class="panel__body">
       <p class="prose">
-        Én zip-fil med alt, revisor eller Skattestyrelsen kan bede om. CSV-filerne er UTF-8, semikolonseparerede
-        og bruger dansk decimalkomma. Alle bilag og fakturaer ligger med som de gemte filer. Den samme zip kan
-        indlæses igen nedenfor, så revisors rettelser eller en gammel eksport kan blive til appens data.
+        Én zip-fil med alt, revisor eller Skattestyrelsen kan bede om, inklusive alle bilag og fakturaer.
+        <InfoTip label="Om CSV-formatet">CSV-filerne er UTF-8, semikolonseparerede og bruger dansk decimalkomma. Den samme zip kan indlæses igen nedenfor, så revisors rettelser eller en gammel eksport kan blive til appens data.</InfoTip>
       </p>
       <div class="table-wrap">
         <table class="data data--dense">
@@ -69,19 +69,20 @@
       <h3 class="panel__title">Opbevaring</h3>
     </div>
     <div class="panel__body">
-      <p class="hint prose">Bogføringsloven kræver fem års opbevaring og sikkerhedskopi hos tredjepart. Gem eksporten et andet sted end på serveren – se README for backup med cron.</p>
+      <p class="hint prose">Bogføringsloven kræver fem års opbevaring og sikkerhedskopi hos tredjepart. Gem eksporten et andet sted end på serveren.</p>
     </div>
   </div>
 </div>
 
 <section>
   <div class="section__head">
-    <h2>Gendan fra eksport</h2>
+    <h2>
+      Gendan fra eksport
+      <InfoTip label="Om gendannelse">Filen kontrolleres først: beløb skal passe til linjerne, numre må ikke gentages, og konti og kunder skal findes. De nuværende data kopieres til <span class="mono">backups/data.bakNN/</span> i datamappen, inden noget erstattes.</InfoTip>
+    </h2>
     <p>
-      Indlæs en eksport-zip og erstat alle appens data med den: revisors rettelser i CSV-filerne, eller en ældre
-      eksport som sikkerhedskopi. Filen kontrolleres først (beløb skal passe til linjerne, numre må ikke gentages,
-      konti og kunder skal findes), og intet ændres, før du har set opsummeringen og bekræftet. De nuværende data
-      kopieres til <span class="mono">backups/data.bakNN/</span> i datamappen, inden noget erstattes.
+      Erstat alle appens data med en eksport-zip, fx revisors rettelser eller en ældre sikkerhedskopi. Intet ændres,
+      før du har set opsummeringen og bekræftet.
     </p>
   </div>
 

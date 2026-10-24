@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
   import { formatDate, formatOre, formatQuantity, minutesToHours } from '$lib/format';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data, form } = $props();
 
   const STATUS: Record<string, { label: string; cls: string }> = {
@@ -108,8 +109,11 @@
 
 <section>
   <div class="section__head">
-    <h2>Klar til fakturering</h2>
-    <p>Fakturerbar tid, der ikke er lagt på en faktura. »Fakturér« laver en kladde med alle kundens timer, én linje pr. registrering; afrunding, timepris og overskrifter klares på kladden.</p>
+    <h2>
+      Klar til fakturering
+      <InfoTip label="Om Fakturér">»Fakturér« laver en kladde med alle kundens ufakturerede timer, én linje pr. registrering. Afrunding, timepris og overskrifter klarer du på kladden.</InfoTip>
+    </h2>
+    <p>Fakturerbar tid, der ikke er lagt på en faktura endnu.</p>
   </div>
   <div class="panel">
     <div class="table-wrap">

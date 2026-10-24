@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatDate, formatOre } from '$lib/format';
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data, form } = $props();
   const s = $derived(data.settings);
   const err = (k: string): string | undefined => form?.fields?.[k];
@@ -73,9 +74,12 @@
         <legend>Åbningssaldo</legend>
         <div class="form-grid">
           <div class="field field--span-3 {err('opening_balance') ? 'field--error' : ''}">
-            <label class="label" for="opening_balance">Banksaldo</label>
+            <label class="label" for="opening_balance">
+              Banksaldo
+              <InfoTip label="Om åbningssaldoen">Saldoen ved dagens begyndelse; bevægelser på selve datoen tælles med. Cashflow og balance regner herfra.</InfoTip>
+            </label>
             <input class="input input--num input--short" id="opening_balance" name="opening_balance" value={formatOre(Number(s.opening_balance_ore) || 0, false)} inputmode="decimal" required />
-            {#if err('opening_balance')}<span class="error">{err('opening_balance')}</span>{:else}<span class="hint">Saldoen ved dagens begyndelse; bevægelser på selve datoen tælles med. Cashflow og balance tæller herfra.</span>{/if}
+            {#if err('opening_balance')}<span class="error">{err('opening_balance')}</span>{/if}
           </div>
           <div class="field field--span-3 {err('opening_balance_date') ? 'field--error' : ''}">
             <label class="label" for="opening_balance_date">Pr. dato</label>
@@ -90,9 +94,8 @@
         <div class="form-grid">
           <div class="field field--span-12">
             <span class="hint">
-              Appen fører ingen balance selv. Numrene her bruges kun i eksportens <span class="mono">posteringer.csv</span>, hvor hver faktura,
-              betaling, udgift og bankbevægelse står som debet og kredit mod kontoplanen og disse konti, så revisors system kan læse
-              kladden direkte. Ret numrene, så de passer til revisors kontoplan.
+              Bruges kun i eksportens <span class="mono">posteringer.csv</span>. Ret numrene, så de passer til revisors kontoplan.
+              <InfoTip label="Om balancekontiene">Appen fører ingen balance selv. I <span class="mono">posteringer.csv</span> står hver faktura, betaling, udgift og bankbevægelse som debet og kredit mod kontoplanen og disse konti, så revisors system kan læse kladden direkte.</InfoTip>
             </span>
           </div>
           {#each data.balanceAccounts as b (b.key)}
@@ -112,9 +115,12 @@
         <legend>Nummerserie</legend>
         <div class="form-grid">
           <div class="field field--span-3">
-            <label class="label" for="next_invoice_number">Næste fakturanummer</label>
+            <label class="label" for="next_invoice_number">
+              Næste fakturanummer
+              <InfoTip label="Om nummerserien">Det er den eneste måde, serien kan få et hul, og ændringen logges i revisionssporet. Nummeret tildeles først, når en faktura udstedes.</InfoTip>
+            </label>
             <input class="input input--num input--short" id="next_invoice_number" name="next_invoice_number" type="number" min={s.next_invoice_number} value={s.next_invoice_number} required />
-            <span class="hint">Kan kun sættes op, og det er den eneste måde, serien kan få et hul. Ændringen logges i revisionssporet. Nummeret tildeles først, når en faktura udstedes.</span>
+            <span class="hint">Kan kun sættes op.</span>
           </div>
         </div>
       </fieldset>
@@ -128,7 +134,7 @@
 <section>
   <div class="section__head">
     <h2>Udseende</h2>
-    <p>Temaet gælder for denne browser og gemmes med det samme. <strong>Auto</strong> følger styresystemets lyse eller mørke indstilling. Udskrifter og PDF'er er altid sort på hvidt.</p>
+    <p>Gælder for denne browser. <strong>Auto</strong> følger styresystemet; udskrifter er altid sort på hvidt.</p>
   </div>
   <div class="panel">
     <div class="panel__body">
@@ -142,12 +148,11 @@
 
 <section>
   <div class="section__head">
-    <h2>Kontoplan</h2>
-    <p>
-      Salgskonti bruges på fakturalinjer, omkostningskonti på udgifter. Grupper giver Resultat sine mellemsummer og
-      vises i rækkefølge efter laveste kontonummer. En konto kan omdøbes, flyttes til en anden gruppe og arkiveres
-      (skjules for nye bilag, historikken bliver), men aldrig slettes, mens den er i brug. Nummer og type er faste.
-    </p>
+    <h2>
+      Kontoplan
+      <InfoTip label="Om kontoplanen">Grupper giver Resultat sine mellemsummer og vises i rækkefølge efter laveste kontonummer. En konto kan omdøbes, flyttes til en anden gruppe og arkiveres, så den skjules for nye bilag, mens historikken bliver. Den kan ikke slettes, mens den er i brug, og nummer og type er faste.</InfoTip>
+    </h2>
+    <p>Salgskonti bruges på fakturalinjer, omkostningskonti på udgifter.</p>
   </div>
   <div class="panel">
     <div class="table-wrap">
@@ -242,15 +247,17 @@
 
 <section>
   <div class="section__head">
-    <h2>Kontoplan som fil</h2>
+    <h2>
+      Kontoplan som fil
+      <InfoTip label="Om CSV-formatet">
+        Kolonnerne er <span class="mono">kontonr;navn;type;gruppe;arkiveret</span>, med type <span class="mono">salg</span> eller
+        <span class="mono">omkostning</span> og arkiveret <span class="mono">ja</span>/<span class="mono">nej</span>. Kontonummeret er nøglen:
+        kendte numre får nyt navn, gruppe og status, og nye numre oprettes. Type kan ikke ændres. Er der én fejl i filen, ændres intet.
+      </InfoTip>
+    </h2>
     <p>
-      Hent kontoplanen som CSV, ret den i et regneark og indlæs den igen. Kolonnerne er
-      <span class="mono">kontonr;navn;type;gruppe;arkiveret</span> med type <span class="mono">salg</span> eller
-      <span class="mono">omkostning</span> og arkiveret <span class="mono">ja</span>/<span class="mono">nej</span>.
-      Kontonummeret er nøglen: kendte numre får nyt navn, gruppe og status, nye numre oprettes. Type kan ikke ændres.
-      Indlæsningen sker samlet – er der én fejl, ændres intet. Vil du have en større kontoplan med grupper
-      (direkte omkostninger, personale, finansielle poster), så hent forslaget og indlæs det; det beholder dine
-      elleve konti og deres navne.
+      Hent kontoplanen som CSV, ret den i et regneark og indlæs den igen. Forslaget er en større kontoplan med grupper,
+      som beholder dine nuværende konti.
     </p>
   </div>
   <div class="panel">

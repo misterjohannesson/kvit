@@ -1,5 +1,6 @@
 <script lang="ts">
   import DensityToggle from '$lib/components/DensityToggle.svelte';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   import { formatDate, formatOre } from '$lib/format';
   let { data, form } = $props();
   const v = (k: string, fallback = '') => form?.values?.[k] ?? fallback;
@@ -96,8 +97,11 @@
 
 <section id="ny-udgift">
   <div class="section__head">
-    <h2>Ny udgift</h2>
-    <p>Bilaget får næste bilagsnummer ved oprettelse og bogføres på en omkostningskonto. Momsen indtastes manuelt fra bilaget – udenlandske køb og repræsentation følger ikke 25 %.</p>
+    <h2>
+      Ny udgift
+      <InfoTip label="Om momsen">Momsen indtastes manuelt fra bilaget, fordi udenlandske køb og repræsentation ikke følger 25 %.</InfoTip>
+    </h2>
+    <p>Bilaget får næste bilagsnummer og bogføres på en omkostningskonto.</p>
   </div>
   <form class="panel" method="POST" action="?/create" enctype="multipart/form-data">
     <div class="panel__body">

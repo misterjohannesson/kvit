@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDate, formatMonth, formatOre } from '$lib/format';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data, form } = $props();
   const f = $derived(data.flow);
   const fc = $derived(data.flow.forecast);
@@ -48,8 +49,11 @@
 
 <section>
   <div class="section__head">
-    <h2>Pr. måned</h2>
-    <p>Betalte fakturaer, udgifter og bankbevægelser pr. betalingsdato, løbende fra åbningssaldoen. Tonede rækker er prognose: åbne fakturaer, ubetalte udgifter, kreditnotaer til refusion og moms efter frist.{#if f.excludedBeforeOpening.count > 0} <span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser før åbningssaldoen tælles ikke med.{/if}</p>
+    <h2>
+      Pr. måned
+      <InfoTip label="Hvad tæller med?">Betalte fakturaer, udgifter og bankbevægelser pr. betalingsdato, løbende fra åbningssaldoen. Prognosen bygger på åbne fakturaer, ubetalte udgifter, kreditnotaer til refusion og moms efter frist.</InfoTip>
+    </h2>
+    <p>Tonede rækker er prognose.{#if f.excludedBeforeOpening.count > 0} <span class="mono">{f.excludedBeforeOpening.count}</span> bevægelser før åbningssaldoen tælles ikke med.{/if}</p>
   </div>
   <div class="panel">
     <div class="table-wrap">

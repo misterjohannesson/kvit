@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDate, formatOre } from '$lib/format';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data } = $props();
   const r = $derived(data.report);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
@@ -53,7 +54,8 @@
 </section>
 
 <p class="hint prose">
-  Periode <span class="mono">{formatDate(r.from)}</span> – <span class="mono">{formatDate(r.to)}</span>, periodiseret: fakturaer efter fakturadato, udgifter efter bilagsdato. Ingen dobbelt bogføring – tallene er summer over de udstedte fakturaer og bogførte udgifter.
+  Periode <span class="mono">{formatDate(r.from)}</span> – <span class="mono">{formatDate(r.to)}</span>.
+  <InfoTip label="Hvordan beregnes tallene?">Periodiseret: fakturaer efter fakturadato, udgifter efter bilagsdato. Appen fører ikke dobbelt bogføring; tallene er summer over de udstedte fakturaer og bogførte udgifter.</InfoTip>
 </p>
 
 <section class="layout-6-6 layout-6-6--tables">

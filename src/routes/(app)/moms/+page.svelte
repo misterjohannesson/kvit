@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDate, formatOre, QUARTER_LABELS } from '$lib/format';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   let { data } = $props();
   const r = $derived(data.report);
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
@@ -50,8 +51,8 @@
 
 <p class="hint prose">
   {QUARTER_LABELS[data.quarter]} {data.year}: <span class="mono">{formatDate(r.from)}</span> – <span class="mono">{formatDate(r.to)}</span>.
-  De tre tal svarer til felterne <em>Salgsmoms</em>, <em>Købsmoms</em> og <em>Momstilsvar</em> på momsangivelsen på skat.dk.
-  Beregnet direkte fra data: fakturaer efter fakturadato (kreditnotaer modregnes), udgifter efter bilagsdato.
+  De tre tal svarer til felterne <em>Salgsmoms</em>, <em>Købsmoms</em> og <em>Momstilsvar</em> på skat.dk.
+  <InfoTip label="Hvordan beregnes tallene?">Direkte fra data: fakturaer efter fakturadato, hvor kreditnotaer modregnes, og udgifter efter bilagsdato.</InfoTip>
 </p>
 
 <section class="layout-6-6 layout-6-6--tables">

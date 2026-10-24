@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatOre } from '$lib/format';
+  import InfoTip from './InfoTip.svelte';
   let {
     values = {},
     defaultTermsDays
@@ -43,13 +44,17 @@
     <input class="input" id="email" name="email" type="email" value={v('email')} />
   </div>
   <div class="field field--span-3">
-    <label class="label" for="paymentTermsDays">Betalingsfrist, dage <span class="label__optional">(valgfri)</span></label>
+    <label class="label" for="paymentTermsDays">
+      Betalingsfrist, dage <span class="label__optional">(valgfri)</span>
+      <InfoTip label="Om betalingsfristen">Sætter forfaldsdatoen på nye fakturaer. Tom betyder standarden fra Indstillinger (<span class="mono">{defaultTermsDays}</span> dage).</InfoTip>
+    </label>
     <input class="input input--num input--short" id="paymentTermsDays" name="paymentTermsDays" type="number" min="0" max="365" value={v('paymentTermsDays')} placeholder={String(defaultTermsDays)} />
-    <span class="hint">Tom = standarden fra Indstillinger (<span class="mono">{defaultTermsDays}</span> dage). Sætter forfaldsdatoen på nye fakturaer.</span>
   </div>
   <div class="field field--span-3">
-    <label class="label" for="hourlyRate">Timepris ekskl. moms <span class="label__optional">(valgfri)</span></label>
+    <label class="label" for="hourlyRate">
+      Timepris ekskl. moms <span class="label__optional">(valgfri)</span>
+      <InfoTip label="Om timeprisen">Bruges, når registreret tid lægges på en faktura, og kan rettes pr. linje på kladden.</InfoTip>
+    </label>
     <input class="input input--num input--short" id="hourlyRate" name="hourlyRate" value={rate()} inputmode="decimal" placeholder="0,00" />
-    <span class="hint">Bruges, når registreret tid lægges på en faktura. Kan rettes pr. linje på kladden.</span>
   </div>
 </div>

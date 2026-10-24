@@ -3,6 +3,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import InvoiceEditor from '$lib/components/InvoiceEditor.svelte';
   import InvoiceGuide from '$lib/components/InvoiceGuide.svelte';
+  import InfoTip from '$lib/components/InfoTip.svelte';
   import { formatCvr, formatDate, formatOre, formatQuantity, formatVatRate, needsSending } from '$lib/format';
   let { data, form } = $props();
 
@@ -35,7 +36,7 @@
       <div class="panel__body">
         {#if form?.fields?.file}<p class="error formerror">{form.error}</p>{/if}
         {#if inv.attachments.length === 0}
-          <p class="hint">Ingen bilag. Vedhæft fx en timeopgørelse eller en produktliste; den følger efter fakturasiderne i det udstedte dokument.</p>
+          <p class="hint">Ingen bilag. Vedhæft fx en timeopgørelse; den følger efter fakturasiderne.</p>
         {:else}
           <ul class="attachlist">
             {#each inv.attachments as a (a.id)}
@@ -55,7 +56,7 @@
           <input class="input input--md" type="file" id="attach-file" name="file" accept="application/pdf,.pdf" required />
           <button type="submit" class="btn">Vedhæft PDF</button>
         </form>
-        <span class="hint">Kun PDF, højst 20 MB pr. fil. Ved udstedelse samles faktura og bilag i ét dokument, som ikke kan ændres bagefter.</span>
+        <span class="hint">Kun PDF, højst 20 MB pr. fil.</span>
       </div>
     </div>
 
@@ -65,7 +66,7 @@
         <span class="panel__meta">gemt kladde</span>
       </div>
       <div class="panel__body">
-        <p class="hint">Viser den gemte kladde med bilag, mærket UDKAST og uden nummer. Gem først, hvis du har ændret noget.</p>
+        <p class="hint">Den gemte kladde med bilag, mærket UDKAST. Gem først, hvis du har ændret noget.</p>
         <p class="previewactions">
           <button type="button" class="btn" onclick={() => (showPreview = !showPreview)}>{showPreview ? 'Skjul udkast' : 'Vis udkast'}</button>
           <a class="btn btn--ghost" href={previewSrc.replace('#toolbar=0', '')} target="_blank" rel="noopener">Åbn i ny fane</a>
@@ -252,8 +253,11 @@
     {@const t = data.time.totals}
     <section>
       <div class="section__head">
-        <h2>Timer på fakturaen</h2>
-        <p>Den loggede tid mod det fakturerede. Afvigelse i kroner måles mod kundens timepris, da timerne blev lagt på kladden.</p>
+        <h2>
+          Timer på fakturaen
+          <InfoTip label="Om afvigelsen">Afvigelsen i kroner måles mod kundens timepris, da timerne blev lagt på kladden.</InfoTip>
+        </h2>
+        <p>Den loggede tid mod det fakturerede.</p>
       </div>
       <div class="panel">
         <div class="table-wrap">

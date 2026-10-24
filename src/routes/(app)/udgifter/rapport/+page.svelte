@@ -55,8 +55,7 @@
 </section>
 
 <p class="hint prose">
-  Hvad der er købt, hos hvem og hvornår: udgifter ekskl. moms pr. omkostningskonto og leverandør, måned for måned efter bilagsdato.
-  Under hver konto står de leverandører, der er bogført på den, størst først.
+  Udgifter ekskl. moms pr. konto og leverandør, måned for måned efter bilagsdato.
 </p>
 
 <section>
@@ -148,7 +147,7 @@
 <section>
   <div class="section__head">
     <h2>Leverandører</h2>
-    <p>Alle leverandører med antal bilag og beløb i alt. Omdøb en leverandør, og alle dens bilag følger med. En leverandør uden bilag kan slettes.</p>
+    <p>Omdøber du en leverandør, følger dens bilag med. Leverandører uden bilag kan slettes.</p>
   </div>
   {#if form?.error}<p class="error">{form.error}</p>{/if}
   {#if form?.saved}<p class="hint">Gemt.</p>{/if}

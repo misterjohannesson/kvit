@@ -53,7 +53,7 @@
 <section id="ny-kunde">
   <div class="section__head">
     <h2>Ny kunde</h2>
-    <p>Kundens navn og adresse trykkes på fakturaen. Ændringer senere påvirker ikke allerede udstedte fakturaer.</p>
+    <p>Navn og adresse trykkes på fakturaen. Senere ændringer rører ikke udstedte fakturaer.</p>
   </div>
   <form class="panel" method="POST" action="?/create">
     <div class="panel__body">
