@@ -101,6 +101,7 @@
   --text-disabled:    var(--slate-400);
   --text-inverse:     var(--slate-0);
   --text-link:        var(--accent-600);
+  --text-link-hover:  var(--accent-700);
   --text-negative:    var(--status-overdue-ink);
 
   --border-hairline:  var(--slate-100);   /* table rules, dividers    */
@@ -134,6 +135,12 @@
   --primary-border:    var(--brass-500);
   --primary-ink:       var(--brass-ink);
   --primary-shadow:    0 1px 0 oklch(24% 0.030 70 / 0.18);
+
+  /* --- Misc semantic ------------------------------------------------ */
+  --kpi-accent-bg:     var(--brass-100);   /* the one highlighted KPI */
+  --kpi-accent-border: var(--brass-200);
+  --check-fill:        var(--slate-900);
+  --bg-row-forecast-hover: var(--accent-100); /* Cashflow forecast rows */
 
   /* ------------------------------------------------------------------ *
    * 3. TYPOGRAPHY
@@ -309,6 +316,7 @@
     --text-secondary: #4a4a4a;
     --text-label: #4a4a4a;
     --text-link: #000;
+    --text-link-hover: #000;
 
     --border-hairline: #c9c9c9;
     --border-default: #9a9a9a;
@@ -340,5 +348,197 @@
     --shadow-dropdown: none;
     --shadow-modal: none;
     --shadow-sticky: none;
+  }
+}
+
+
+/* ==========================================================================
+   THEMES
+   Set on <html>:  data-theme="light" (default) | "solarized" | "dark"
+   Each theme re-declares SEMANTIC tokens only; layout, type, spacing and
+   radii are shared. Wrapped in @media screen so print always uses the
+   monochrome block above. Themes can also be scoped to any element
+   (e.g. a preview frame) — derived tokens are recomputed below for that.
+   ========================================================================== */
+
+/* Derived tokens: recompute wherever a theme is applied, so composites
+   like border shorthands pick up the theme's colours. */
+[data-theme] {
+  --border-hairline-style: var(--border-width) solid var(--border-hairline);
+  --border-default-style:  var(--border-width) solid var(--border-default);
+  --border-strong-style:   var(--border-width) solid var(--border-strong);
+  --table-rule:            1px solid var(--border-hairline);
+  --shadow-sticky:         0 1px 0 var(--border-hairline),
+                           0 4px 8px -6px oklch(0% 0 0 / 0.25);
+}
+
+@media screen {
+
+  /* ------------------------------------------------------------------ *
+   * SOLARIZED — Ethan Schoonover's palette, light variant.
+   * base3 paper, base03 rail, yellow primary. Body/label inks are pushed
+   * one step darker than canonical Solarized to hold 4.5:1 at 12-13px.
+   * ------------------------------------------------------------------ */
+  [data-theme="solarized"] {
+    color-scheme: light;
+
+    --sol-base03: #002b36; --sol-base02: #073642;
+    --sol-base01: #586e75; --sol-base00: #657b83;
+    --sol-base0:  #839496; --sol-base1:  #93a1a1;
+    --sol-base2:  #eee8d5; --sol-base3:  #fdf6e3;
+    --sol-yellow: #b58900; --sol-orange: #cb4b16; --sol-red:    #dc322f;
+    --sol-magenta:#d33682; --sol-violet: #6c71c4; --sol-blue:   #268bd2;
+    --sol-cyan:   #2aa198; --sol-green:  #859900;
+
+    --bg-canvas:       var(--sol-base2);
+    --bg-surface:      var(--sol-base3);
+    --bg-surface-sunk: #f5efdc;
+    --bg-header:       #faf3df;
+    --bg-row-alt:      #f8f1de;
+    --bg-row-hover:    color-mix(in oklab, var(--sol-blue) 8%, var(--sol-base3));
+    --bg-row-selected: color-mix(in oklab, var(--sol-blue) 13%, var(--sol-base3));
+    --bg-disabled:     var(--sol-base2);
+    --bg-panel-head:   #f7f0dc;
+    --bg-thead:        #f3ecd7;
+    --bg-tfoot:        #f7f0dc;
+
+    --text-primary:     var(--sol-base02);
+    --text-body:        var(--sol-base01);
+    --text-secondary:   #5e737b;
+    --text-label:       var(--sol-base01);
+    --text-placeholder: var(--sol-base1);
+    --text-disabled:    var(--sol-base1);
+    --text-inverse:     var(--sol-base3);
+    --text-link:        color-mix(in oklab, var(--sol-blue) 78%, var(--sol-base03));
+    --text-link-hover:  color-mix(in oklab, var(--sol-blue) 60%, var(--sol-base03));
+    --text-negative:    color-mix(in oklab, var(--sol-red) 82%, var(--sol-base03));
+
+    --border-hairline: #e8e0c9;
+    --border-default:  #ddd4bb;
+    --border-strong:   #c4bba1;
+    --border-ink:      var(--sol-base02);
+    --focus-ring:      var(--sol-blue);
+
+    --nav-bg:          var(--sol-base03);
+    --nav-border:      #0a3d4a;
+    --nav-text:        var(--sol-base1);
+    --nav-title:       var(--sol-base3);
+    --nav-muted:       #7f9399;
+    --nav-hover:       var(--sol-base02);
+    --nav-active-bg:   #0b4654;
+    --nav-active-ink:  var(--sol-base3);
+    --nav-active-edge: var(--sol-yellow);
+
+    --brand-mark-bg:  var(--sol-yellow);
+    --brand-mark-ink: var(--sol-base03);
+
+    --primary-bg:       var(--sol-yellow);
+    --primary-bg-hover: #a07900;
+    --primary-border:   var(--sol-yellow);
+    --primary-ink:      var(--sol-base03);
+    --primary-shadow:   0 1px 0 rgb(0 43 54 / 0.20);
+
+    --kpi-accent-bg:     color-mix(in oklab, var(--sol-yellow) 12%, var(--sol-base3));
+    --kpi-accent-border: color-mix(in oklab, var(--sol-yellow) 38%, var(--sol-base3));
+    --check-fill:        var(--sol-base02);
+    --bg-row-forecast-hover: color-mix(in oklab, var(--sol-blue) 18%, var(--sol-base3));
+
+    --status-open-surface:     color-mix(in oklab, var(--sol-blue) 11%, var(--sol-base3));
+    --status-open-border:      color-mix(in oklab, var(--sol-blue) 38%, var(--sol-base3));
+    --status-open-ink:         color-mix(in oklab, var(--sol-blue) 72%, var(--sol-base03));
+    --status-overdue-surface:  color-mix(in oklab, var(--sol-red) 10%, var(--sol-base3));
+    --status-overdue-border:   color-mix(in oklab, var(--sol-red) 36%, var(--sol-base3));
+    --status-overdue-ink:      color-mix(in oklab, var(--sol-red) 82%, var(--sol-base03));
+    --status-paid-surface:     color-mix(in oklab, var(--sol-green) 13%, var(--sol-base3));
+    --status-paid-border:      color-mix(in oklab, var(--sol-green) 42%, var(--sol-base3));
+    --status-paid-ink:         color-mix(in oklab, var(--sol-green) 62%, var(--sol-base03));
+    --status-credited-surface: color-mix(in oklab, var(--sol-violet) 11%, var(--sol-base3));
+    --status-credited-border:  color-mix(in oklab, var(--sol-violet) 36%, var(--sol-base3));
+    --status-credited-ink:     color-mix(in oklab, var(--sol-violet) 80%, var(--sol-base03));
+    --status-draft-surface:    var(--sol-base2);
+    --status-draft-border:     #ddd4bb;
+    --status-draft-ink:        var(--sol-base01);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * DARK — Kvit at night. Same navy + brass identity, inverted: the rail
+   * goes deepest, surfaces step UP in lightness as they come forward.
+   * Status ramps flip to dark surface / light ink at equal budgets.
+   * ------------------------------------------------------------------ */
+  [data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg-canvas:       oklch(18.5% 0.022 258);
+    --bg-surface:      oklch(22.5% 0.024 258);
+    --bg-surface-sunk: oklch(20.5% 0.023 258);
+    --bg-header:       oklch(21.0% 0.024 258);
+    --bg-row-alt:      oklch(21.5% 0.024 258);
+    --bg-row-hover:    oklch(26.0% 0.032 255);
+    --bg-row-selected: oklch(28.0% 0.045 255);
+    --bg-disabled:     oklch(24.0% 0.020 258);
+    --bg-panel-head:   oklch(24.5% 0.026 258);
+    --bg-thead:        oklch(25.5% 0.026 258);
+    --bg-tfoot:        oklch(24.5% 0.026 258);
+
+    --text-primary:     oklch(95% 0.006 250);
+    --text-body:        oklch(84% 0.012 250);
+    --text-secondary:   oklch(70% 0.016 252);
+    --text-label:       oklch(74% 0.016 252);
+    --text-placeholder: oklch(56% 0.016 252);
+    --text-disabled:    oklch(52% 0.014 252);
+    --text-inverse:     oklch(18% 0.022 258);
+    --text-link:        oklch(76% 0.100 250);
+    --text-link-hover:  oklch(86% 0.080 250);
+    --text-negative:    oklch(74% 0.130 22);
+
+    --border-hairline: oklch(29% 0.024 258);
+    --border-default:  oklch(34% 0.026 258);
+    --border-strong:   oklch(44% 0.026 256);
+    --border-ink:      oklch(95% 0.006 250);
+    --focus-ring:      oklch(70% 0.120 250);
+
+    --nav-bg:          oklch(14.5% 0.020 258);
+    --nav-border:      oklch(24% 0.024 258);
+    --nav-text:        oklch(80% 0.014 250);
+    --nav-title:       oklch(97% 0.006 250);
+    --nav-muted:       oklch(62% 0.018 252);
+    --nav-hover:       oklch(20% 0.026 258);
+    --nav-active-bg:   oklch(25% 0.040 258);
+    --nav-active-ink:  oklch(98% 0.005 250);
+    --nav-active-edge: oklch(82% 0.115 80);
+
+    --brand-mark-bg:  oklch(82% 0.115 80);
+    --brand-mark-ink: oklch(24% 0.040 70);
+
+    --primary-bg:       oklch(78% 0.130 80);
+    --primary-bg-hover: oklch(84% 0.120 82);
+    --primary-border:   oklch(78% 0.130 80);
+    --primary-ink:      oklch(22% 0.040 70);
+    --primary-shadow:   none;
+
+    --kpi-accent-bg:     oklch(27% 0.040 80);
+    --kpi-accent-border: oklch(40% 0.070 80);
+    --check-fill:        oklch(90% 0.010 250);
+    --bg-row-forecast-hover: oklch(31% 0.045 250);
+
+    --status-open-surface:     oklch(27% 0.035 250);
+    --status-open-border:      oklch(40% 0.060 250);
+    --status-open-ink:         oklch(80% 0.090 250);
+    --status-overdue-surface:  oklch(27% 0.045 22);
+    --status-overdue-border:   oklch(42% 0.090 22);
+    --status-overdue-ink:      oklch(80% 0.110 22);
+    --status-paid-surface:     oklch(27% 0.035 165);
+    --status-paid-border:      oklch(40% 0.060 165);
+    --status-paid-ink:         oklch(82% 0.090 165);
+    --status-credited-surface: oklch(27% 0.030 290);
+    --status-credited-border:  oklch(40% 0.050 290);
+    --status-credited-ink:     oklch(80% 0.075 290);
+    --status-draft-surface:    oklch(26% 0.020 258);
+    --status-draft-border:     oklch(38% 0.020 258);
+    --status-draft-ink:        oklch(74% 0.016 252);
+
+    --shadow-raised:   0 1px 1px oklch(0% 0 0 / 0.30);
+    --shadow-dropdown: 0 1px 2px oklch(0% 0 0 / 0.35), 0 8px 20px -4px oklch(0% 0 0 / 0.50);
+    --shadow-modal:    0 2px 4px oklch(0% 0 0 / 0.35), 0 20px 44px -8px oklch(0% 0 0 / 0.60);
   }
 }

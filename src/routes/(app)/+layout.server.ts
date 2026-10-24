@@ -3,6 +3,7 @@ import { countRows } from '$lib/server/db';
 import { customer, expense, invoice } from '$lib/server/schema';
 import { getSettings } from '$lib/server/services/settings';
 import { formatDate, quarterOf, QUARTER_LABELS, todayIso, vatSettlementDate } from '$lib/format';
+import { parseTheme, THEME_COOKIE } from '$lib/theme';
 
 export const load: LayoutServerLoad = ({ cookies }) => {
   const s = getSettings();
@@ -15,6 +16,8 @@ export const load: LayoutServerLoad = ({ cookies }) => {
     /** The rail footer and topbar pin the current quarter's VAT deadline: this app exists because of that date. */
     vatDeadline: { quarter: q.quarter, year: q.year, date: formatDate(vatSettlementDate(q.year, q.quarter)) },
     /** "Kompakt" table density, per user (cookie). */
-    dense: cookies.get('faktura_density') === 'dense'
+    dense: cookies.get('faktura_density') === 'dense',
+    /** Colour theme, per browser (cookie); applied to <html> in hooks.server.ts. */
+    theme: parseTheme(cookies.get(THEME_COOKIE))
   };
 };

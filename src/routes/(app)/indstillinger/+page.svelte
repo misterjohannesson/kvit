@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDate, formatOre } from '$lib/format';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   let { data, form } = $props();
   const s = $derived(data.settings);
   const err = (k: string): string | undefined => form?.fields?.[k];
@@ -123,6 +124,21 @@
     <button type="submit" class="btn btn--primary btn--std">Gem indstillinger</button>
   </div>
 </form>
+
+<section>
+  <div class="section__head">
+    <h2>Udseende</h2>
+    <p>Temaet gælder for denne browser og gemmes med det samme. <strong>Auto</strong> følger styresystemets lyse eller mørke indstilling. Udskrifter og PDF'er er altid sort på hvidt.</p>
+  </div>
+  <div class="panel">
+    <div class="panel__body">
+      <div class="field">
+        <span class="label" id="tema-label">Tema</span>
+        <div aria-labelledby="tema-label"><ThemeToggle theme={data.theme} /></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section>
   <div class="section__head">

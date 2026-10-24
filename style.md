@@ -172,3 +172,16 @@ The printed/PDF invoice is a legal document, not a screenshot of the UI. `tokens
 - Archivo (400/500/600) and IBM Plex Mono (400/500) are self-hosted from the `@fontsource` packages (no CDN, per the spec). The browser loads them through `src/routes/+layout.svelte`; the invoice PDF embeds the same woff2 files as data URIs so Chromium renders the document with the exact faces.
 - `static/logo.svg` is the 26px rail mark and the login lockup; `static/favicon.svg` is the tab icon.
 - The rail footer and the topbar pin the current quarter's VAT deadline (`vatSettlementDate`).
+
+---
+
+## 9. Themes
+
+Three colour themes, one set of components. A theme re-declares **semantic** tokens only (§2 of `tokens.css`); layout, type, spacing, radii and density are shared, so nothing moves when the theme changes.
+
+- `data-theme="light"` (default, "Kontor"), `"solarized"` (Solarized light: base3 paper, base03 rail, yellow primary; inks pushed one step darker than canonical to hold 4.5:1 at 12–13px) and `"dark"` (the same navy and brass, inverted: the rail goes deepest and surfaces step up in lightness as they come forward; status badges flip to dark surface / light ink at equal budgets).
+- The choice is **per browser**, like Kompakt: cookie `faktura_theme`, set by `POST /theme`, picker (`ThemeToggle`, a `.segment`) in the topbar and under *Udseende* on Indstillinger. Values `light | solarized | dark | auto`.
+- `hooks.server.ts` writes the attribute onto `<html>` on every page, login included, so the first paint is already themed. **Auto** follows `prefers-color-scheme`: the server renders light and a nonce'd inline script in `app.html` switches to dark before the body is parsed, and on OS changes.
+- Component CSS must reference semantic tokens only; a raw `--slate-*`, `--brass-*` or `--accent-*` would stay "Kontor" in the other themes. Themed semantics added for the app: `--kpi-accent-*`, `--check-fill`, `--text-link-hover`, `--bg-row-forecast-hover`; input focus and the loading bar use `--focus-ring`.
+- Print and the PDF invoice are unaffected: the theme blocks live under `@media screen`, the PDF is rendered under print media and its HTML carries no `data-theme`. The invoice stays a monochrome legal document whatever the screen looks like.
+- `themes.html` (project root, alongside `example.html`) shows all three side by side on the same markup; use it to check a new component in every theme.

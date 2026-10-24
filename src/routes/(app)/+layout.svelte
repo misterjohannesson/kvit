@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import NavProgress from '$lib/components/NavProgress.svelte';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   let { data, children } = $props();
 
   const items = [
@@ -61,6 +62,7 @@
       <span class="topbar__ctx topbar__ctx--now">{data.context}</span>
       <span class="topbar__right">
         <span class="topbar__ctx">Frist for moms: {data.vatDeadline.date}</span>
+        <ThemeToggle theme={data.theme} />
         <form method="POST" action="/logout">
           <button type="submit" class="btn btn--sm">Log ud</button>
         </form>

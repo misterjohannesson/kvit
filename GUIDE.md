@@ -23,6 +23,10 @@ Betalingsfristen (standard 14 dage) bruges til at foreslå forfaldsdato; den kan
 
 ![Indstillinger](review/shots/11-indstillinger.png)
 
+**Tema.** Øverst til højre og under *Udseende* på Indstillinger vælger du mellem **Lys**, **Solarized**, **Mørk**
+og **Auto**, der følger styresystemets indstilling. Valget gemmes i browseren, så hver skærm kan have sit eget.
+Fakturaer og andre udskrifter er altid sort på hvidt, uanset tema.
+
 **Kontoplan.** Under Indstillinger ligger en lille, flad kontoplan: salgskonti (1000 Konsulentydelser, 1100 Andet
 salg, 1200 Momsfrit salg) og omkostningskonti (2000 Software og hosting … 2900 Øvrige omkostninger). Hver
 fakturalinje og hver udgift bogføres på én konto. Du kan tilføje konti, omdøbe dem, give dem en gruppe og arkivere

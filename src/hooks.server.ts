@@ -7,6 +7,7 @@ import { runWithActor, type Actor } from '$lib/server/audit';
 import { sqlite } from '$lib/server/db';
 import { closeBrowser } from '$lib/server/pdf';
 import { repairArchivedPdfs } from '$lib/server/services/invoices';
+import { parseTheme, THEME_COOKIE } from '$lib/theme';
 
 // Halt at startup if the design authority files or the password are missing.
 assertDesignAssets();
@@ -77,7 +78,15 @@ export const handle: Handle = async ({ event, resolve }) => {
     redirect(303, '/');
   }
 
-  const response = await runWithActor(actor, () => resolve(event));
+  // Colour theme (style.md §9): the cookie's choice goes on <html> before the first paint, login page included.
+  // "auto" renders as light; the inline script in app.html switches it to the OS preference before anything shows.
+  const theme = parseTheme(event.cookies.get(THEME_COOKIE));
+  const response = await runWithActor(actor, () =>
+    resolve(event, {
+      transformPageChunk: ({ html }) =>
+        html.replace('<html lang="da">', `<html lang="da" data-theme="${theme === 'auto' ? 'light' : theme}" data-theme-pref="${theme}">`)
+    })
+  );
   response.headers.set('Cache-Control', 'no-store');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('X-Content-Type-Options', 'nosniff');

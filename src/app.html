@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kvit</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script nonce="%sveltekit.nonce%">
+      // Theme "auto" (style.md §9): follow the OS. hooks.server.ts puts the cookie's choice on <html>;
+      // this runs before the body is parsed, so an auto user never sees the light theme flash first.
+      (function () {
+        var h = document.documentElement;
+        if (h.getAttribute('data-theme-pref') !== 'auto') return;
+        var m = window.matchMedia('(prefers-color-scheme: dark)');
+        var apply = function () { h.setAttribute('data-theme', m.matches ? 'dark' : 'light'); };
+        apply();
+        m.addEventListener('change', apply);
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body>
