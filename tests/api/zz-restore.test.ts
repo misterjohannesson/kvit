@@ -79,13 +79,18 @@ describe('restore from export', () => {
       invoices: (await c.json('GET', '/api/invoices')).data,
       expenses: (await c.json('GET', '/api/expenses?year=2026')).data,
       balance: (await c.json('GET', '/api/finance?view=balance')).data,
-      audit: (await c.json<unknown[]>('GET', '/api/audit?limit=500')).data
+      audit: (await c.json<unknown[]>('GET', '/api/audit?limit=500')).data,
+      time: (await c.json<{ id: number }[]>('GET', '/api/time')).data,
+      invoiceTime: await Promise.all(((await c.json<{ id: number }[]>('GET', '/api/invoices')).data).map(async (i) => (await c.json('GET', `/api/invoices/${i.id}/time`)).data)),
+      customers: (await c.json('GET', '/api/customers')).data
     };
     const staged = await stage(exportZip, 'faktura-eksport.zip');
     expect(staged.status, JSON.stringify(staged.data)).toBe(201);
     const s = staged.data;
     expect(s.counts.invoices.file).toBe(s.counts.invoices.current);
     expect(s.counts.expenses.file).toBe(s.counts.expenses.current);
+    expect(s.counts.timeEntries.file).toBe(s.counts.timeEntries.current);
+    expect(s.counts.timeEntries.file).toBeGreaterThan(0);
     expect(s.files.inZip).toBe(s.files.current);
     expect(s.files.missing).toEqual([]);
     expect(s.invoiceRange.first).toBe(1001);
@@ -104,6 +109,10 @@ describe('restore from export', () => {
     expect((await c.json('GET', '/api/invoices')).data).toEqual(before.invoices);
     expect((await c.json('GET', '/api/expenses?year=2026')).data).toEqual(before.expenses);
     expect((await c.json('GET', '/api/finance?view=balance')).data).toEqual(before.balance);
+    // Time comes back with its invoice links, headings, invoiced hours and rates, and the customers' hourly rates.
+    expect((await c.json('GET', '/api/time')).data).toEqual(before.time);
+    expect(await Promise.all(((await c.json<{ id: number }[]>('GET', '/api/invoices')).data).map(async (i) => (await c.json('GET', `/api/invoices/${i.id}/time`)).data))).toEqual(before.invoiceTime);
+    expect((await c.json('GET', '/api/customers')).data).toEqual(before.customers);
     // The restored audit log is exactly the exported one plus the restore row (the export's own row and the staging
     // row were written after the CSV was built, so they belong to the replaced set and live on in the backup copy).
     const audit = (await c.json<{ action: string; entity: string }[]>('GET', '/api/audit?limit=500')).data;

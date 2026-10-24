@@ -8,6 +8,7 @@
     invoices: 'Fakturaer og kreditnotaer',
     lines: 'Fakturalinjer',
     attachments: 'Vedhæftninger',
+    timeEntries: 'Tidsregistreringer',
     expenses: 'Udgifter',
     movements: 'Bankbevægelser',
     audit: 'Revisionsspor'
@@ -47,7 +48,9 @@
             <tr><td class="mono">invoices.csv</td><td class="wrap">Fakturaer og kreditnotaer med nummer, status, beløb og PDF-sti</td><td class="num">{data.counts.invoices}</td></tr>
             <tr><td class="mono">invoice_lines.csv</td><td class="wrap">Fakturalinjer</td><td class="num">{data.counts.lines}</td></tr>
             <tr><td class="mono">invoice_attachments.csv</td><td class="wrap">PDF'er vedhæftet fakturaer ved udstedelse</td><td class="num">{data.counts.attachments}</td></tr>
-            <tr><td class="mono">customers.csv</td><td class="wrap">Kunder med adresse, CVR og betalingsfrist</td><td class="num">{data.counts.customers}</td></tr>
+            <tr><td class="mono">time_entries.csv</td><td class="wrap">Tidsregistreringer: logget tid, og for fakturerede også faktura, fakturerede timer, tekst og timepris</td><td class="num">{data.counts.timeEntries}</td></tr>
+            <tr><td class="mono">time_groups.csv</td><td class="wrap">Overskrifter, som timer er samlet under på en faktura</td><td class="num">{data.counts.timeGroups}</td></tr>
+            <tr><td class="mono">customers.csv</td><td class="wrap">Kunder med adresse, CVR, betalingsfrist og timepris</td><td class="num">{data.counts.customers}</td></tr>
             <tr><td class="mono">suppliers.csv</td><td class="wrap">Leverandører (id og navn); udgifterne peger på dem</td><td class="num">{data.counts.suppliers}</td></tr>
             <tr><td class="mono">expenses.csv</td><td class="wrap">Udgifter med bilagsnummer, moms og filsti</td><td class="num">{data.counts.expenses}</td></tr>
             <tr><td class="mono">cash_movements.csv</td><td class="wrap">Bankbevægelser uden for fakturaer og udgifter (moms, ejer, skat, korrektioner)</td><td class="num">{data.counts.movements}</td></tr>

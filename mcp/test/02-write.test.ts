@@ -76,6 +76,8 @@ describe('write tools', () => {
     const acc1100 = accounts.data.accounts.find((a) => a.number === 1100)!.id;
     const r = await mcp.call<Record<string, any>>('create_draft_invoice', {
       customer_id: customers.data.customers[0].id,
+      // Explicit issue date: the default is today, which may already lie after the fixed due date.
+      issue_date: '2026-09-15',
       due_date: '2026-10-01',
       lines: [
         { description: 'Workshop', quantity: 1, unit: 'stk.', unit_price_ore: 500_000, account_id: acc1100 },
@@ -131,5 +133,43 @@ describe('write tools', () => {
     const wrongType = await mcp.call<{ http_status: number }>('create_expense', { date: '2026-09-08', supplier: 'x', description: 'y', account_id: revenueAcc, amount_ex_vat_ore: 100, vat_ore: 25 });
     expect(wrongType.isError).toBe(true);
     expect(wrongType.data.http_status).toBe(400);
+  });
+  it('log_time logs hours, shows the day total and flags a likely retry; list_time sees it as unbilled', async () => {
+    const r = await mcp.call<Record<string, any>>('log_time', { customer_id: 2, date: '2026-10-21', hours: 1.25, description: 'Gennemlæsning af rapportudkast' });
+    expect(r.isError).toBe(false);
+    expect(r.data.logged).toEqual(expect.objectContaining({ customer_id: 2, minutes: 75, hours: 1.25, status: 'unbilled', billable: true }));
+    expect(r.data.day_total).toEqual(expect.objectContaining({ entries: 1, hours: 1.25 }));
+    expect(r.data.possible_duplicate).toBeNull();
+    const trail = await appGet<AuditRow[]>(`/api/audit?entity=time_entry&entityId=${r.data.logged.id}`);
+    expect(trail[0].actor).toBe('api');
+
+    const again = await mcp.call<Record<string, any>>('log_time', { customer_id: 2, date: '2026-10-21', hours: 1.25, description: 'gennemlæsning af rapportudkast' });
+    expect(again.data.possible_duplicate).toEqual(expect.objectContaining({ id: r.data.logged.id }));
+    expect(again.data.day_total.entries).toBe(2);
+
+    const list = await mcp.call<Record<string, any>>('list_time', { customer_id: 2 });
+    expect(list.data.status).toBe('unbilled');
+    expect(list.data.count).toBe(4);
+    expect(list.data.by_customer[0]).toEqual(expect.objectContaining({ customer_id: 2, entries: 4, hourly_rate: money(85_000) }));
+
+    const bad = await mcp.call<{ http_status: number }>('log_time', { customer_id: 999, hours: 1, description: 'x' });
+    expect(bad.isError).toBe(true);
+    expect(bad.data.http_status).toBe(400);
+  });
+
+  it('create_draft_from_time puts the unbilled time on a draft, one line per entry at the customer rate', async () => {
+    const r = await mcp.call<Record<string, any>>('create_draft_from_time', { customer_id: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.data.created).toMatch(/draft/);
+    expect(r.data.lines).toBe(4);
+    expect(r.data.next_step).toMatch(/Udsted/);
+    const left = await mcp.call<{ count: number }>('list_time', { customer_id: 2 });
+    expect(left.data.count).toBe(0);
+    const onDraft = await mcp.call<{ count: number }>('list_time', { customer_id: 2, status: 'draft' });
+    expect(onDraft.data.count).toBe(4);
+    const none = await mcp.call<{ http_status: number; message: string }>('create_draft_from_time', { customer_id: 2 });
+    expect(none.isError).toBe(true);
+    expect(none.data.http_status).toBe(400);
+    expect(none.data.message).toMatch(/ingen ufakturerede timer/);
   });
 });

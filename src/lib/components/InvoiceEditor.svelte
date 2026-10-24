@@ -1,9 +1,12 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { addDays, formatOre, formatQuantity, lineTotalOre, parseKrToOre, parseQuantity, roundOre } from '$lib/format';
+  import TimeLines from './TimeLines.svelte';
+  import InfoTip from './InfoTip.svelte';
+  import { serialize, timeProblems, timeSubtotal, type EditorTimeRow } from '$lib/time-rows';
 
   type Line = { description: string; quantity: string; unit: string; unitPrice: string; accountId: number | undefined };
-  type Customer = { id: number; name: string; paymentTermsDays: number | null };
+  type Customer = { id: number; name: string; paymentTermsDays: number | null; hourlyRateOre: number | null };
   type Account = { id: number; number: number; name: string; archived?: boolean };
   type Invoice = {
     id: number;
@@ -12,7 +15,7 @@
     dueDate: string;
     paymentReference: string;
     vatExemptReason: string | null;
-    lines: { description: string; quantity: number; unit: string; unitPriceOre: number; accountId: number }[];
+    lines: { description: string; quantity: number; unit: string; unitPriceOre: number; accountId: number; kind: string }[];
   };
 
   let {
@@ -23,8 +26,13 @@
     nextNumber,
     problems,
     error,
-    fieldErrors = {}
+    fieldErrors = {},
+    time,
+    availableTime
   }: {
+    /** The stored time section (server figures). */
+    time: { rows: ServerTimeRow[] };
+    availableTime: { id: number; date: string; minutes: number; description: string }[];
     invoice: Invoice;
     customers: Customer[];
     accounts: Account[];
@@ -35,6 +43,32 @@
     error?: string;
     fieldErrors?: Record<string, string>;
   } = $props();
+
+  type ServerTimeRow =
+    | { type: 'group'; description: string }
+    | { type: 'entry'; entryId: number; indent: boolean; date: string; minutes: number; description: string; invoicedHours: number; invoicedDescription: string; rateOre: number | null; standardRateOre: number | null };
+
+  // svelte-ignore state_referenced_locally
+  let timeRows = $state<EditorTimeRow[]>(
+    time.rows.map((r, i): EditorTimeRow =>
+      r.type === 'group'
+        ? { type: 'group', key: `s${i}`, description: r.description }
+        : {
+            type: 'entry',
+            key: `s${i}`,
+            entryId: r.entryId,
+            indent: r.indent,
+            date: r.date,
+            minutes: r.minutes,
+            loggedDescription: r.description,
+            invoicedHours: formatQuantity(r.invoicedHours),
+            invoicedDescription: r.invoicedDescription,
+            rate: r.rateOre === null ? '' : formatOre(r.rateOre, false),
+            standardRateOre: r.standardRateOre
+          }
+    )
+  );
+  const hasTime = $derived(timeRows.some((r) => r.type === 'entry'));
 
   const toLine = (l: Invoice['lines'][number]): Line => ({
     description: l.description,
@@ -49,7 +83,9 @@
   const defaultAccountId = (active.find((a) => a.number === 1000) ?? active[0] ?? accounts[0])?.id;
 
   // svelte-ignore state_referenced_locally
-  let lines = $state<Line[]>(invoice.lines.length ? invoice.lines.map(toLine) : [{ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: defaultAccountId }]);
+  const manualLines = invoice.lines.filter((l) => l.kind === 'manual');
+  // svelte-ignore state_referenced_locally
+  let lines = $state<Line[]>(manualLines.length ? manualLines.map(toLine) : time.rows.length ? [] : [{ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: defaultAccountId }]);
   // svelte-ignore state_referenced_locally
   let vatExempt = $state(invoice.vatExemptReason !== null);
   // svelte-ignore state_referenced_locally
@@ -84,23 +120,30 @@
     }
   }
 
+  const timeIssues = $derived(timeProblems(timeRows));
+  const timeLineCount = $derived(timeRows.filter((r) => r.type === 'group' || !r.indent).length);
+
   const totals = $derived.by(() => {
     const filled = lines.filter((l) => l.description.trim() || l.quantity.trim() || l.unitPrice.trim());
     const amounts = filled.map(lineTotal);
-    const valid = filled.length > 0 && amounts.every((a) => a !== null) && filled.every((l) => l.description.trim() && l.unit.trim());
-    const subtotal = amounts.reduce<number>((s, a) => s + (a ?? 0), 0);
+    const timeTotal = timeSubtotal(timeRows);
+    const manualValid = amounts.every((a) => a !== null) && filled.every((l) => l.description.trim() && l.unit.trim());
+    const valid = filled.length + timeLineCount > 0 && manualValid && timeIssues.length === 0;
+    const subtotal = amounts.reduce<number>((s, a) => s + (a ?? 0), 0) + (timeTotal ?? 0);
     const vat = vatExempt ? 0 : roundOre((subtotal * 2500) / 10000);
-    return { subtotal, vat, total: subtotal + vat, valid, count: filled.length };
+    return { subtotal, vat, total: subtotal + vat, valid, manualValid, count: filled.length + timeLineCount };
   });
 
-  const canIssue = $derived(totals.valid && problems.filter((p) => !p.startsWith('Fakturaen har ingen linjer')).length === 0);
+  // Time problems from the last save are replaced by the live ones from the editor.
+  const serverProblems = $derived(problems.filter((p) => !p.startsWith('Fakturaen har ingen linjer') && !/timepris|Overskriften/.test(p)));
+  const canIssue = $derived(totals.valid && serverProblems.length === 0);
 
   function addLine() {
     lines.push({ description: '', quantity: '1,00', unit: 'time', unitPrice: '', accountId: lines[lines.length - 1]?.accountId ?? defaultAccountId });
   }
   function removeLine(i: number) {
     lines.splice(i, 1);
-    if (lines.length === 0) addLine();
+    if (lines.length === 0 && timeRows.length === 0) addLine();
   }
   const err = (k: string) => fieldErrors[k];
 </script>
@@ -126,6 +169,7 @@
   }}
 >
   <input type="hidden" name="lines" value={JSON.stringify(lines)} />
+  <input type="hidden" name="time" value={serialize(timeRows)} />
   <!-- The number shown in the confirm step; the server refuses to issue if the series has moved. -->
   <input type="hidden" name="expectedNumber" value={nextNumber} />
 
@@ -141,12 +185,16 @@
       {/if}
       <div class="form-grid">
         <div class="field field--span-6">
-          <label class="label" for="customerId">Kunde</label>
-          <select class="select" id="customerId" name="customerId" bind:value={customerId} onchange={recalcDue} required>
+          <label class="label" for="customerId">
+            Kunde
+            {#if hasTime}<InfoTip label="Hvorfor kan kunden ikke skiftes?">Kladden har kundens timer. Fjern dem fra kladden, hvis du vil skifte kunde.</InfoTip>{/if}
+          </label>
+          <select class="select" id="customerId" name="customerId" bind:value={customerId} onchange={recalcDue} required disabled={hasTime}>
             {#each customers as c (c.id)}
               <option value={c.id}>{c.name}</option>
             {/each}
           </select>
+          {#if hasTime}<input type="hidden" name="customerId" value={customerId} />{/if}
         </div>
         <div class="field field--span-3 {err('issueDate') ? 'field--error' : ''}">
           <label class="label" for="issueDate">Fakturadato</label>
@@ -154,22 +202,26 @@
           {#if err('issueDate')}<span class="error">{err('issueDate')}</span>{/if}
         </div>
         <div class="field field--span-3 {err('dueDate') ? 'field--error' : ''}">
-          <label class="label" for="dueDate">Forfaldsdato</label>
+          <label class="label" for="dueDate">
+            Forfaldsdato
+            <InfoTip label="Om forfaldsdatoen">Netto <span class="mono">{terms.days}</span> dage ({terms.source}). Datoen følger fakturadatoen, men du kan rette den frit, hvis I har aftalt noget andet.</InfoTip>
+          </label>
           <input class="input input--date" id="dueDate" name="dueDate" type="date" bind:value={dueDate} required />
           {#if err('dueDate')}<span class="error">{err('dueDate')}</span>{/if}
         </div>
-        <div class="field field--span-12">
-          <span class="hint">Betalingsbetingelser: netto <span class="mono">{terms.days}</span> dage ({terms.source}). Forfaldsdatoen følger fakturadatoen; ret den frit, hvis I har aftalt andet.</span>
-        </div>
 
         <div class="field field--span-12">
-          <label class="label" for="paymentReference">Betalingsreference <span class="label__optional">(valgfri)</span></label>
+          <label class="label" for="paymentReference">
+            Betalingsreference <span class="label__optional">(valgfri)</span>
+            <InfoTip label="Om betalingsreferencen">Den tekst, kunden skriver på bankoverførslen. Lader du feltet stå tomt, bliver det til »Faktura <span class="mono">{nextNumber}</span>«, når fakturaen udstedes. Reg.- og kontonummer kommer fra Indstillinger.</InfoTip>
+          </label>
           <input class="input input--wide" id="paymentReference" name="paymentReference" value={invoice.paymentReference} placeholder="Faktura {nextNumber}" />
-          <span class="hint">Teksten kunden skal skrive på bankoverførslen. Tom = »Faktura <span class="mono">{nextNumber}</span>« ved udstedelse. Reg.- og kontonummer kommer fra Indstillinger.</span>
         </div>
+
+        <TimeLines bind:rows={timeRows} available={availableTime} customerRateOre={customers.find((c) => c.id === customerId)?.hourlyRateOre ?? null} error={err('time')} />
 
         <fieldset class="field--span-12">
-          <legend>Fakturalinjer</legend>
+          <legend>{hasTime ? 'Øvrige linjer' : 'Fakturalinjer'}</legend>
           {#if err('lines')}<p class="error formerror">{err('lines')}</p>{/if}
           <div class="table-wrap">
             <table class="data data--dense lines">
@@ -273,10 +325,11 @@
         <p class="hint summaryhint">
           Ved udstedelse tildeles nummer <span class="mono">{nextNumber}</span>. Herefter kan fakturaen kun annulleres med en kreditnota.
         </p>
-        {#if problems.length > 0 || !totals.valid}
+        {#if serverProblems.length > 0 || !totals.valid}
           <ul class="problems">
-            {#if !totals.valid}<li class="error">Udfyld mindst én linje med beskrivelse, antal, enhed og pris.</li>{/if}
-            {#each problems.filter((p) => !p.startsWith('Fakturaen har ingen linjer')) as p (p)}
+            {#if totals.count === 0 || !totals.manualValid}<li class="error">Udfyld mindst én linje med beskrivelse, antal, enhed og pris.</li>{/if}
+            {#each timeIssues as p (p)}<li class="error">{p}</li>{/each}
+            {#each serverProblems as p (p)}
               <li class="error">{p}</li>
             {/each}
           </ul>

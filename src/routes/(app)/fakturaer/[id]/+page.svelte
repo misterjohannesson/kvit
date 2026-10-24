@@ -2,6 +2,7 @@
   import { page } from '$app/state';
   import Badge from '$lib/components/Badge.svelte';
   import InvoiceEditor from '$lib/components/InvoiceEditor.svelte';
+  import InvoiceGuide from '$lib/components/InvoiceGuide.svelte';
   import { formatCvr, formatDate, formatOre, formatQuantity, formatVatRate, needsSending } from '$lib/format';
   let { data, form } = $props();
 
@@ -12,6 +13,8 @@
   const neg = (n: number) => (n < 0 ? 'num num--neg' : 'num');
   const unsent = $derived(needsSending(inv, data.today));
   const attachmentPages = $derived(inv.attachments.reduce((n, a) => n + a.pages, 0));
+  const plusOre = (n: number) => (n > 0 ? '+' : '') + formatOre(n, false);
+  const plusHours = (n: number) => (n > 0 ? '+' : '') + formatQuantity(n);
   const kb = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} kB`;
   // The key changes on every load, so the preview re-renders after a save.
   const previewSrc = $derived(`/api/invoices/${inv.id}/preview?v=${data.previewKey}#toolbar=0`);
@@ -20,8 +23,9 @@
 <svelte:head><title>{inv.status === 'draft' ? 'Kladde' : `${title} ${inv.invoiceNumber}`} · Kvit</title></svelte:head>
 
 {#if inv.status === 'draft'}
-  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} defaultTermsDays={data.defaultTermsDays} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} />
+  <InvoiceEditor invoice={inv} customers={data.customers} accounts={data.revenueAccounts} defaultTermsDays={data.defaultTermsDays} nextNumber={data.nextNumber} problems={data.problems} error={form?.error} fieldErrors={form?.fields ?? {}} time={data.time} availableTime={data.availableTime} />
 
+  <InvoiceGuide />
   <section class="layout-8-4">
     <div class="panel">
       <div class="panel__head">
@@ -244,6 +248,66 @@
     </div>
   </div>
 
+  {#if data.time.rows.length > 0}
+    {@const t = data.time.totals}
+    <section>
+      <div class="section__head">
+        <h2>Timer på fakturaen</h2>
+        <p>Den loggede tid mod det fakturerede. Afvigelse i kroner måles mod kundens timepris, da timerne blev lagt på kladden.</p>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table class="data data--dense">
+            <thead>
+              <tr>
+                <th scope="col">Tekst</th>
+                <th scope="col" class="num">Logget</th>
+                <th scope="col" class="num">Faktureret</th>
+                <th scope="col" class="num">Timepris</th>
+                <th scope="col" class="num">Beløb</th>
+                <th scope="col" class="num">Afvigelse</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.time.rows as r, i (i)}
+                {#if r.type === 'group'}
+                  <tr class="timegroup">
+                    <td class="wrap"><strong>{r.description}</strong></td>
+                    <td class="num">{formatQuantity(r.hours)}</td>
+                    <td class="num">{formatQuantity(r.invoicedHours)}</td>
+                    <td class="num">{formatOre(r.rateOre, false)}</td>
+                    <td class="num">{formatOre(r.lineTotalOre, false)}</td>
+                    <td class={neg(r.diffOre ?? 0)}>{r.diffOre === null ? '—' : plusOre(r.diffOre)}<span class="cell-sub">{plusHours(r.diffHours)} t</span></td>
+                  </tr>
+                {:else}
+                  <tr>
+                    <td class="wrap {r.indent ? 'timechild' : ''}">{r.invoicedDescription}<span class="cell-sub"><span class="mono">{formatDate(r.date)}</span> · logget: {r.description}</span></td>
+                    <td class="num">{formatQuantity(r.hours)}</td>
+                    <td class="num">{formatQuantity(r.invoicedHours)}</td>
+                    <td class="num">{r.rateOre === null ? '—' : formatOre(r.rateOre, false)}</td>
+                    <td class="num">{formatOre(r.lineTotalOre, false)}</td>
+                    <td class={neg(r.diffOre ?? 0)}>{r.diffOre === null ? '—' : plusOre(r.diffOre)}<span class="cell-sub">{plusHours(r.diffHours)} t</span></td>
+                  </tr>
+                {/if}
+              {/each}
+              <tr class="timetotal">
+                <td><strong>I alt</strong> · {t.entries} registreringer</td>
+                <td class="num">{formatQuantity(t.hours)}</td>
+                <td class="num">{formatQuantity(t.invoicedHours)}</td>
+                <td></td>
+                <td class="num">{formatOre(t.lineTotalOre, false)}</td>
+                <td class={neg(t.diffOre ?? 0)}>{t.diffOre === null ? '—' : plusOre(t.diffOre)}<span class="cell-sub">{plusHours(t.diffHours)} t</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {#if inv.status === 'credited'}
+          <div class="panel__foot"><span class="hint spacer">Fakturaen er krediteret. Timerne forbliver faktureret på denne faktura; en rettelse faktureres manuelt.</span></div>
+        {/if}
+      </div>
+    </section>
+  {/if}
+
   <section>
     <div class="section__head">
       <h2>Dokument</h2>
@@ -267,4 +331,7 @@
   .sentform { margin: 0 0 var(--space-6); }
   .pdfhint { margin: var(--space-4) 0 0; overflow-wrap: anywhere; }
   .previewactions { display: flex; gap: var(--space-2); margin: var(--space-3) 0 0; }
+  .timegroup td { background: var(--bg-surface-sunk); }
+  .timechild { padding-left: var(--space-8) !important; }
+  .timetotal td { border-top: var(--border-default-style); }
 </style>

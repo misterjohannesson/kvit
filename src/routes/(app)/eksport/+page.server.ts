@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { countRows } from '$lib/server/db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, supplier } from '$lib/server/schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, supplier, timeEntry, timeGroup } from '$lib/server/schema';
 import fs from 'node:fs';
 import path from 'node:path';
 import { FILES_DIR } from '$lib/server/env';
@@ -30,6 +30,8 @@ export const load: PageServerLoad = ({ url }) => {
       invoices: countRows(invoice),
       lines: countRows(invoiceLine),
       attachments: countRows(invoiceAttachment),
+      timeEntries: countRows(timeEntry),
+      timeGroups: countRows(timeGroup),
       customers: countRows(customer),
       suppliers: countRows(supplier),
       expenses: countRows(expense),

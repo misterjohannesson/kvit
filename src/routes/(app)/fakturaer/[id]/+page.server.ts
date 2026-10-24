@@ -12,6 +12,7 @@ import {
   validateForIssue
 } from '$lib/server/services/invoices';
 import { addAttachment, removeAttachment } from '$lib/server/services/attachments';
+import { invoiceTime, listTimeEntries } from '$lib/server/services/time';
 import { uploadFromForm } from '$lib/server/expense-form';
 import { listCustomers } from '$lib/server/services/customers';
 import { getSettings } from '$lib/server/services/settings';
@@ -34,6 +35,9 @@ export const load: PageServerLoad = ({ params }) => {
       defaultTermsDays: Number(settings.payment_terms_days) || 0,
       nextNumber: nextInvoiceNumber(),
       problems: inv.status === 'draft' ? validateForIssue(inv, settings) : [],
+      time: invoiceTime(inv.id),
+      /** Unbilled time of the draft's customer that can still be put on it. */
+      availableTime: inv.status === 'draft' ? listTimeEntries({ customerId: inv.customerId, status: 'unbilled' }) : [],
       /** Changes on every load so the draft preview iframe re-renders after a save. */
       previewKey: Date.now()
     };

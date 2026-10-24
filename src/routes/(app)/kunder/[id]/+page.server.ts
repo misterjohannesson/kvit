@@ -1,7 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { deleteCustomer, getCustomer, updateCustomer } from '$lib/server/services/customers';
-import { listInvoices } from '$lib/server/services/invoices';
+import { createDraftFromTime, listInvoices } from '$lib/server/services/invoices';
+import { listTimeEntries, unbilledSummary } from '$lib/server/services/time';
 import { errorMessage, routeId } from '$lib/server/api';
 import { HttpError } from '$lib/server/errors';
 import { customerFormToInput } from '$lib/server/customer-form';
@@ -15,7 +16,10 @@ export const load: PageServerLoad = ({ params }) => {
       today: todayIso(),
       customer: c,
       invoices: listInvoices().filter((i) => i.customerId === c.id),
-      defaultTermsDays: Number(getSettings().payment_terms_days) || 0
+      defaultTermsDays: Number(getSettings().payment_terms_days) || 0,
+      unbilled: unbilledSummary(c.id)[0] ?? null,
+      time: listTimeEntries({ customerId: c.id }).slice(0, 25),
+      timeCount: listTimeEntries({ customerId: c.id }).length
     };
   } catch (e) {
     if (e instanceof HttpError) error(e.status, e.message);
@@ -32,6 +36,17 @@ export const actions: Actions = {
       const { status, message } = errorMessage(e);
       return fail(status, { error: message });
     }
+  },
+  /** "Fakturér timer": a new draft with the customer's unbilled time. */
+  bill: async ({ params }) => {
+    let id: number;
+    try {
+      id = (await createDraftFromTime({ customerId: routeId(params) })).id;
+    } catch (e) {
+      const { status, message } = errorMessage(e);
+      return fail(status, { error: message });
+    }
+    redirect(303, `/fakturaer/${id}`);
   },
   delete: async ({ params }) => {
     try {

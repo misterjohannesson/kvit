@@ -61,12 +61,16 @@ describe('migrating a populated database', () => {
       expect(sqlite.prepare('SELECT s.name FROM expense e JOIN supplier s ON s.id = e.supplier_id WHERE e.voucher_number = 1').get()).toEqual({ name: 'S' });
       expect((sqlite.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'supplier'").get() as { n: number }).n).toBe(0);
       expect(sqlite.prepare('SELECT account_id FROM invoice_line WHERE invoice_id = 1').get()).toEqual({ account_id: 1 });
+      // 0014 marked every existing line as typed by hand and added the time tables.
+      expect(sqlite.prepare('SELECT DISTINCT kind FROM invoice_line').all()).toEqual([{ kind: 'manual' }]);
+      expect(count('time_entry')).toBe(0);
+      expect(count('time_group')).toBe(0);
       expect((sqlite.prepare("SELECT count(*) AS n FROM pragma_table_info('expense') WHERE name = 'category'").get() as { n: number }).n).toBe(0);
       expect(sqlite.pragma('foreign_keys', { simple: true })).toBe(1);
       const triggers = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as { name: string }[]).map((t) => t.name);
       const { REQUIRED_TRIGGERS } = await import('../../src/lib/server/db');
       for (const t of REQUIRED_TRIGGERS) expect(triggers).toContain(t);
-      expect(REQUIRED_TRIGGERS.length).toBe(19);
+      expect(REQUIRED_TRIGGERS.length).toBe(27);
       // Guards are live on the migrated data too.
       expect(() => sqlite.prepare('DELETE FROM invoice WHERE id = 1').run()).toThrow(/cannot be deleted/);
       expect(() => sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id = 2').run()).not.toThrow();

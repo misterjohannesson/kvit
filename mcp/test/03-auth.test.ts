@@ -12,7 +12,9 @@ const SAMPLE_ARGS: Record<string, Record<string, unknown>> = {
   create_cash_movement: { date: '2026-09-08', description: 'x', amount_ore: -100, kind: 'other' },
   reconcile_balance: { actual_bank_balance_ore: 1 },
   create_draft_invoice: { customer_id: 1, lines: [{ description: 'x', quantity: 1, unit: 'stk.', unit_price_ore: 100 }] },
-  create_expense: { date: '2026-09-08', supplier: 'x', description: 'y', account_id: 4, amount_ex_vat_ore: 100, vat_ore: 25 }
+  create_expense: { date: '2026-09-08', supplier: 'x', description: 'y', account_id: 4, amount_ex_vat_ore: 100, vat_ore: 25 },
+  log_time: { customer_id: 1, date: '2026-09-08', hours: 1, description: 'x' },
+  create_draft_from_time: { customer_id: 1 }
 };
 
 async function snapshot() {

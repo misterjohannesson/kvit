@@ -114,6 +114,26 @@ export function lineTotalOre(quantity: number, unitPriceOre: number): number {
   return roundOre((hundredths * unitPriceOre) / 100);
 }
 
+/** Logged minutes as hours with two decimals (the precision of an invoice line), e.g. 135 -> 2.25, 20 -> 0.33. */
+export function minutesToHours(minutes: number): number {
+  return Math.round((minutes / 60) * 100) / 100;
+}
+
+/** "1,5" / "1.5" -> 90, "1:30" -> 90, "45m" -> 45. Whole minutes, more than zero, at most 24 hours. */
+export function parseHoursToMinutes(input: string): number {
+  const raw = input.trim().replace(/\s/g, '').toLowerCase();
+  let minutes: number;
+  const clock = /^(\d{1,2}):([0-5]\d)$/.exec(raw);
+  const mins = /^(\d{1,4})m(in)?$/.exec(raw);
+  if (clock) minutes = Number(clock[1]) * 60 + Number(clock[2]);
+  else if (mins) minutes = Number(mins[1]);
+  else if (/^\d+([.,]\d+)?t?$/.test(raw)) minutes = Math.round(Number(raw.replace(/t$/, '').replace(',', '.')) * 60);
+  else throw new Error(`Ugyldigt antal timer: ${input} – skriv fx 1,5 eller 1:30`);
+  if (minutes <= 0) throw new Error('Tiden skal være mere end 0');
+  if (minutes > 24 * 60) throw new Error('Højst 24 timer pr. registrering');
+  return minutes;
+}
+
 /** Round to whole øre, half away from zero, so negation is exact: round(-x) === -round(x). */
 export function roundOre(n: number): number {
   return n < 0 ? -Math.round(-n) : Math.round(n);

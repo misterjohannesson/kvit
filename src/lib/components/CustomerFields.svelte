@@ -1,13 +1,16 @@
 <script lang="ts">
+  import { formatOre } from '$lib/format';
   let {
     values = {},
     defaultTermsDays
   }: {
-    values?: Partial<Record<'name' | 'address' | 'zip' | 'city' | 'country' | 'cvr' | 'email' | 'paymentTermsDays', string | number | null>>;
+    values?: Partial<Record<'name' | 'address' | 'zip' | 'city' | 'country' | 'cvr' | 'email' | 'paymentTermsDays' | 'hourlyRate' | 'hourlyRateOre', string | number | null>>;
     /** Settings default shown when the customer has no terms of their own. */
     defaultTermsDays: number;
   } = $props();
   const v = (k: keyof typeof values, fallback = '') => (values[k] === null || values[k] === undefined ? fallback : String(values[k]));
+  // A failed submit returns the typed text; a stored customer has øre.
+  const rate = () => (values.hourlyRate !== undefined && values.hourlyRate !== null ? String(values.hourlyRate) : typeof values.hourlyRateOre === 'number' ? formatOre(values.hourlyRateOre, false) : '');
 </script>
 
 <div class="form-grid">
@@ -43,5 +46,10 @@
     <label class="label" for="paymentTermsDays">Betalingsfrist, dage <span class="label__optional">(valgfri)</span></label>
     <input class="input input--num input--short" id="paymentTermsDays" name="paymentTermsDays" type="number" min="0" max="365" value={v('paymentTermsDays')} placeholder={String(defaultTermsDays)} />
     <span class="hint">Tom = standarden fra Indstillinger (<span class="mono">{defaultTermsDays}</span> dage). Sætter forfaldsdatoen på nye fakturaer.</span>
+  </div>
+  <div class="field field--span-3">
+    <label class="label" for="hourlyRate">Timepris ekskl. moms <span class="label__optional">(valgfri)</span></label>
+    <input class="input input--num input--short" id="hourlyRate" name="hourlyRate" value={rate()} inputmode="decimal" placeholder="0,00" />
+    <span class="hint">Bruges, når registreret tid lægges på en faktura. Kan rettes pr. linje på kladden.</span>
   </div>
 </div>

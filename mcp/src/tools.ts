@@ -1,5 +1,5 @@
 /**
- * The 15 tools (spec items 1-14; item 14 is two lookups). Tool names and
+ * The 18 tools (spec items 1-14, item 14 being two lookups, plus three for time registration). Tool names and
  * descriptions are English; data values stay Danish. Every amount is returned as
  * { amount_ore, amount_formatted }. Errors from the app come back as structured
  * tool errors (isError) with the HTTP status and the app's message, never as a
@@ -9,7 +9,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { FakturaClient, FakturaError, type Account, type Expense, type InvoiceDetail, type InvoiceRow } from './client.js';
+import { FakturaClient, FakturaError, type Account, type Expense, type InvoiceDetail, type InvoiceRow, type TimeEntry } from './client.js';
 import { daysBetween, isIsoDate, money, parseQuarter, quarterOf, quarterRange, todayIso, vatSettlementDate } from './format.js';
 
 const HUMAN_ONLY = 'Issuing (Udsted) and crediting (Opret kreditnota) are intentionally not possible via MCP: they consume numbers from the legal series and are irreversible, so the owner does them in the app UI.';
@@ -167,7 +167,10 @@ export const TOOL_NAMES = [
   'create_draft_invoice',
   'create_expense',
   'list_accounts',
-  'list_customers'
+  'list_customers',
+  'log_time',
+  'list_time',
+  'create_draft_from_time'
 ] as const;
 
 export function registerTools(server: McpServer, client: FakturaClient): void {
@@ -664,9 +667,143 @@ export function registerTools(server: McpServer, client: FakturaClient): void {
             country: c.country,
             cvr: c.cvr,
             email: c.email,
-            payment_terms_days: c.paymentTermsDays
+            payment_terms_days: c.paymentTermsDays,
+            hourly_rate: c.hourlyRateOre === null ? null : money(c.hourlyRateOre)
           }))
         };
       })
   );
+
+  // ------------------------------------------------------------------ time registration
+
+  server.registerTool(
+    'log_time',
+    {
+      title: 'Log time (tidsregistrering)',
+      description:
+        'Logs hours worked for a customer, to be billed later from the app (or with create_draft_from_time). Use list_customers to resolve the customer id. The response includes every entry already logged for that customer on that day, so a repeated call is visible: check possible_duplicate before logging again. Logged time cannot be edited or deleted via MCP; the owner does that in the app (Timer). Audit-logged with actor "api".',
+      inputSchema: {
+        customer_id: z.number().int().positive().describe('Customer id from list_customers.'),
+        hours: z
+          .number()
+          .positive()
+          .max(24)
+          .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, 'Max two decimals')
+          .describe('Hours worked, e.g. 1.5 for 1 h 30 min; stored as whole minutes.'),
+        description: z.string().trim().min(1).max(500).describe('What was done; data values stay Danish, e.g. "Workshop om tilgængelighed".'),
+        date: isoDate.optional().describe('The day the work was done; default today.'),
+        billable: z.boolean().optional().describe('false for time that should never be invoiced (kept for the record); default true.')
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+    },
+    async ({ customer_id, hours, description, date, billable }) =>
+      run(async () => {
+        const day = date ?? todayIso();
+        const before = await client.listTime({ customerId: customer_id, from: day, to: day });
+        const e = await client.logTime({ customerId: customer_id, date: day, hours, description, billable: billable ?? true });
+        const all = [...before, e];
+        const minutes = all.reduce((s, x) => s + x.minutes, 0);
+        const duplicate = before.find((x) => x.minutes === e.minutes && x.description.trim().toLowerCase() === e.description.trim().toLowerCase());
+        return {
+          logged: timeSummary(e),
+          day_total: { customer: e.customerName, date: day, entries: all.length, hours: Math.round((minutes / 60) * 100) / 100 },
+          same_day_entries: before.map(timeSummary),
+          possible_duplicate: duplicate ? { id: duplicate.id, note: 'An entry with the same hours and description already existed for this customer and day. If this call was a retry, tell the owner so they can delete one in the app.' } : null,
+          audit: 'logged as actor api'
+        };
+      })
+  );
+
+  server.registerTool(
+    'list_time',
+    {
+      title: 'List logged time',
+      description:
+        'Logged time (tidsregistreringer). Default: unbilled billable time, with a per-customer summary (hours and value at the customer\'s hourly rate). status: unbilled (not on any invoice), draft (on a draft invoice), billed (on an issued or credited invoice, with its number), not_billable, or all.',
+      inputSchema: {
+        customer_id: z.number().int().positive().optional().describe('Only this customer.'),
+        status: z.enum(['unbilled', 'draft', 'billed', 'not_billable', 'all']).optional().describe('Default unbilled.'),
+        from: isoDate.optional().describe('First day, inclusive.'),
+        to: isoDate.optional().describe('Last day, inclusive.')
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false }
+    },
+    async ({ customer_id, status, from, to }) =>
+      run(async () => {
+        const st = status ?? 'unbilled';
+        const rows = await client.listTime({ customerId: customer_id, status: st === 'all' ? undefined : st, from, to });
+        const minutes = rows.reduce((s, x) => s + x.minutes, 0);
+        const result: Record<string, unknown> = {
+          status: st,
+          count: rows.length,
+          hours: Math.round((minutes / 60) * 100) / 100,
+          entries: rows.map(timeSummary)
+        };
+        if (st === 'unbilled') {
+          const summary = await client.unbilledTime();
+          result.by_customer = summary
+            .filter((u) => !customer_id || u.customerId === customer_id)
+            .map((u) => ({
+              customer_id: u.customerId,
+              customer: u.customerName,
+              entries: u.entries,
+              hours: u.hours,
+              hourly_rate: u.hourlyRateOre === null ? null : money(u.hourlyRateOre),
+              value_at_rate: u.valueOre === null ? null : money(u.valueOre),
+              period: { from: u.firstDate, to: u.lastDate }
+            }));
+        }
+        return result;
+      })
+  );
+
+  server.registerTool(
+    'create_draft_from_time',
+    {
+      title: 'Create draft invoice from logged time',
+      description: `Creates a DRAFT invoice holding a customer's unbilled time: all of it, or the given entry ids. One line per entry at the customer's hourly rate; nothing legal happens and no number is assigned. The owner then rounds hours, adjusts rates and groups lines under headings on the draft in the app. Deleting that draft in the app returns the time to unbilled. ${HUMAN_ONLY} Audit-logged with actor "api".`,
+      inputSchema: {
+        customer_id: z.number().int().positive().describe('Customer id from list_customers.'),
+        entry_ids: z.array(z.number().int().positive()).min(1).max(500).optional().describe('Only these unbilled entries (ids from list_time); default all unbilled billable time of the customer.')
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+    },
+    async ({ customer_id, entry_ids }) =>
+      run(async () => {
+        const d = await client.createDraftFromTime({ customerId: customer_id, entryIds: entry_ids });
+        const missingRate = d.lines.some((l) => l.unitPriceOre === 0);
+        return {
+          created: 'draft invoice (no number assigned)',
+          draft_id: d.id,
+          customer: d.customerName,
+          lines: d.lines.length,
+          hours: Math.round(d.lines.reduce((s, l) => s + l.quantity, 0) * 100) / 100,
+          subtotal: money(d.subtotalOre),
+          vat: money(d.vatOre),
+          total: money(d.totalOre),
+          warning: missingRate ? 'The customer has no hourly rate; the lines are at 0 kr. until the owner sets a rate on the draft.' : undefined,
+          open_in_app: `/fakturaer/${d.id}`,
+          next_step: `The owner reviews the draft in the app (rounding, rates, headings) and issues it (Udsted). ${HUMAN_ONLY}`,
+          audit: 'logged as actor api'
+        };
+      })
+  );
 }
+
+function timeSummary(e: TimeEntry) {
+  return {
+    id: e.id,
+    customer: e.customerName,
+    customer_id: e.customerId,
+    date: e.date,
+    hours: e.hours,
+    minutes: e.minutes,
+    description: e.description,
+    billable: e.billable,
+    status: e.status,
+    invoice_number: e.invoiceNumber,
+    invoice_credited: e.invoiceStatus === 'credited' ? true : undefined,
+    invoiced_hours: e.invoicedHours ?? undefined
+  };
+}
+

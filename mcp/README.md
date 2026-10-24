@@ -128,7 +128,8 @@ Read:
 | `resultat` | P&L per account, accrual basis; budget/variance columns (always null until a budget exists) | `year?`, `quarter?` |
 | `budget_status` | YTD actual vs budget per account (budget_exists: false until a budget exists) | `year?` |
 | `list_accounts` | kontoplan ids for the write tools, with each account's group; archived accounts only with `include_archived` | `type?`, `include_archived?` |
-| `list_customers` | customer ids for drafts | – |
+| `list_customers` | customer ids for drafts and time, with payment terms and hourly rate | – |
+| `list_time` | logged time; default unbilled, with hours and value per customer at its hourly rate | `customer_id?`, `status?` (unbilled · draft · billed · not_billable · all), `from?`, `to?` |
 
 Write (append-only or reversible, all audit-logged as `actor = api`):
 
@@ -139,6 +140,11 @@ Write (append-only or reversible, all audit-logged as `actor = api`):
 | `reconcile_balance` | afstemning: compares the bank's figure with likvider and books a `correction` for the delta (nothing if equal) | `actual_bank_balance_ore`, `date?` |
 | `create_draft_invoice` | creates a **draft** only; the response says issuing is done by the owner in the UI | `customer_id`, `lines[]`, `issue_date?`, `due_date?`, `payment_reference?`, `vat_exempt_reason?` |
 | `create_expense` | creates the expense row (next voucher number); the bilag file is attached in the UI | `date`, `supplier`, `description`, `account_id`, `amount_ex_vat_ore`, `vat_ore`, `paid_date?` |
+| `log_time` | logs hours for a customer; returns the customer's other entries that day and `possible_duplicate` when the same hours and text were already logged | `customer_id`, `hours`, `description`, `date?` (today), `billable?` (true) |
+| `create_draft_from_time` | a **draft** with the customer's unbilled time, one line per entry at its rate; rounding, rates and headings are done on the draft in the UI | `customer_id`, `entry_ids?` |
+
+Logged time can be added but not edited or deleted over MCP, in line with the rest: the client has no PATCH or DELETE.
+The owner corrects or removes an entry under **Timer** in the app; once it is on an invoice it is locked there too.
 
 Beyond the spec's parameter lists, a few optional arguments are accepted because the app supports them: `list_accounts(type?)`,
 `create_draft_invoice(issue_date?, payment_reference?, vat_exempt_reason?)` and `create_expense(paid_date?)`. All stay

@@ -14,8 +14,11 @@ import { companyDetailsComplete, getSettings, setSettingRaw } from './settings';
 import { withIssueLock } from './issue-lock';
 import { chromiumAvailable, renderInvoicePdf } from '../pdf';
 import { defaultRevenueAccountId, requireAccountOfType } from './accounts';
+import { applyTimeRows, invoiceTime, linesFromTime, releaseDraftTime, rowsForNewDraft, timeIssueProblems, timeRowsSchema } from './time';
 
 const lineSchema = z.object({
+  /** Lines generated from time entries come back from GET with kind time/time_group; they are rebuilt, never stored from input. */
+  kind: z.enum(['manual', 'time', 'time_group']).optional(),
   description: z.string().trim().min(1, 'Beskrivelse er påkrævet').max(500),
   quantity: z.coerce
     .number({ error: 'Antal skal være et tal' })
@@ -39,7 +42,9 @@ const draftSchema = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   paymentReference: z.string().trim().max(300).default(''),
-  lines: z.array(lineSchema).max(200).default([])
+  lines: z.array(lineSchema).max(200).default([]),
+  /** The time section in print order; absent = keep what the draft has. */
+  time: timeRowsSchema.optional()
 });
 
 export const VAT_RATE_BP = 2500;
@@ -208,10 +213,12 @@ function applyDraft(id: number, data: DraftData): void {
   const cust = db.select().from(customer).where(eq(customer.id, data.customerId)).get();
   if (!cust) throw badRequest('Kunden findes ikke');
 
-  const fallbackAccount = data.lines.some((l) => l.accountId === undefined) ? defaultRevenueAccountId() : 0;
+  // Generated lines sent back by an API client are dropped: the time section is the source of those.
+  const manual = data.lines.filter((l) => l.kind === undefined || l.kind === 'manual');
+  const fallbackAccount = manual.some((l) => l.accountId === undefined) ? defaultRevenueAccountId() : 0;
   // Accounts archived since the draft was written stay usable on this draft; new choices must be active.
   const alreadyUsed = db.select({ accountId: invoiceLine.accountId }).from(invoiceLine).where(eq(invoiceLine.invoiceId, id)).all().map((r) => r.accountId);
-  const lines = data.lines.map((l) => {
+  const manualLines = manual.map((l) => {
     const accountId = l.accountId ?? fallbackAccount;
     requireAccountOfType(accountId, 'revenue', alreadyUsed);
     return {
@@ -221,9 +228,16 @@ function applyDraft(id: number, data: DraftData): void {
       unit: l.unit,
       unitPriceOre: l.unitPriceOre,
       lineTotalOre: computeLineTotalOre(l.quantity, l.unitPriceOre),
-      accountId
+      accountId,
+      kind: 'manual' as const
     };
   });
+
+  // Time first, in its own order, then the typed lines.
+  applyTimeRows(id, data.customerId, data.time);
+  const generated = linesFromTime(invoiceTime(id));
+  const timeAccount = generated.length ? defaultRevenueAccountId() : 0;
+  const lines = [...generated.map((l) => ({ ...l, invoiceId: id, accountId: timeAccount })), ...manualLines];
   const totals = computeTotals(lines, data.vatExemptReason !== null);
 
   db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
@@ -276,7 +290,8 @@ export function createDraftWithContent(input: { customerId: unknown } & Record<s
     dueDate: input.dueDate ?? addDays(issueForDefault, terms),
     paymentReference: input.paymentReference ?? '',
     vatExemptReason: input.vatExemptReason ?? null,
-    lines: input.lines ?? []
+    lines: input.lines ?? [],
+    time: input.time
   });
   return withIssueLock(async () =>
     db.transaction(() => {
@@ -290,6 +305,21 @@ export function createDraftWithContent(input: { customerId: unknown } & Record<s
       return getInvoice(row.id);
     })
   );
+}
+
+/**
+ * "Fakturér timer": a new draft for the customer holding their unbilled time (all of it, or the given entries),
+ * one line per entry at the customer's rate. Rounding, rates and headings are then done on the draft.
+ */
+export function createDraftFromTime(input: { customerId: unknown; entryIds?: unknown }): Promise<InvoiceDetail> {
+  const customerId = strictId(input.customerId, 'customerId');
+  let entryIds: number[] | undefined;
+  if (input.entryIds !== undefined && input.entryIds !== null) {
+    if (!Array.isArray(input.entryIds) || input.entryIds.length === 0) throw badRequest('entryIds skal være en liste med mindst én registrering');
+    entryIds = input.entryIds.map((v) => strictId(v, 'entryIds'));
+  }
+  const time = rowsForNewDraft(customerId, entryIds);
+  return createDraftWithContent({ customerId, time });
 }
 
 /** A positive integer id from JSON: numbers or digit strings only (no `true` -> 1, no `[5]` -> 5). */
@@ -307,9 +337,10 @@ export function deleteDraft(id: number): Promise<void> {
       if (!inv) throw notFound('Faktura findes ikke');
       assertDraft(inv);
       const attachmentFiles = detachAllForDelete(id);
+      const releasedTime = releaseDraftTime(id);
       db.delete(invoiceLine).where(eq(invoiceLine.invoiceId, id)).run();
       db.delete(invoice).where(eq(invoice.id, id)).run();
-      audit('invoice', id, 'delete_draft', { attachments: attachmentFiles.length });
+      audit('invoice', id, 'delete_draft', { attachments: attachmentFiles.length, releasedTime });
       return attachmentFiles;
     });
     for (const f of files) fs.rmSync(f, { force: true });
@@ -373,6 +404,7 @@ export function validateForIssue(inv: InvoiceDetail, settings: Record<string, st
   const problems: string[] = [];
   if (inv.lines.length === 0) problems.push('Fakturaen har ingen linjer');
   if (inv.dueDate < inv.issueDate) problems.push('Forfaldsdato ligger før fakturadatoen');
+  problems.push(...timeIssueProblems(invoiceTime(inv.id)));
   const missing = companyDetailsComplete(settings);
   if (missing.length) problems.push(`Udfyld firmaoplysninger under Indstillinger: ${missing.join(', ')}`);
   if (!settings.bank_reg || !settings.bank_account) problems.push('Udfyld bankoplysninger (reg.nr. og kontonr.) under Indstillinger; de trykkes på fakturaen');
@@ -590,7 +622,9 @@ export function creditInvoice(id: number, expectedNumber?: number): Promise<Invo
               unit: l.unit,
               unitPriceOre: l.unitPriceOre,
               lineTotalOre: l.lineTotalOre,
-              accountId: l.accountId
+              accountId: l.accountId,
+              // A heading's total is not quantity × price; the kind keeps that legible in the export.
+              kind: l.kind
             }))
           )
           .run();

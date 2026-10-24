@@ -8,6 +8,7 @@
     { group: 'Salg' },
     { href: '/fakturaer', label: 'Fakturaer', count: () => data.counts.invoices },
     { href: '/kunder', label: 'Kunder', count: () => data.counts.customers },
+    { href: '/timer', label: 'Timer', count: () => data.counts.unbilledTime },
     { group: 'Køb' },
     { href: '/udgifter', label: 'Udgifter', count: () => data.counts.expenses },
     { group: 'Rapporter' },

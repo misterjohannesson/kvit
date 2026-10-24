@@ -2,7 +2,8 @@
  * Seed: owner settings incl. opening balance, 3 customers, 5 issued invoices
  * (one VAT-exempt with reason, one credited -> credit note 1006), 8 expenses
  * with dummy files on cost accounts, and 4 cash movements (incl. one
- * vat_payment and one owner draw).
+ * vat_payment and one owner draw), plus hourly rates and six time entries (one
+ * not billable) waiting to be billed.
  *
  * Refuses to run on a database that already holds invoices, expenses or
  * movements, so it can never pollute a real bookkeeping.
@@ -14,6 +15,7 @@ import { invoice, expense, cashMovement } from '../src/lib/server/schema';
 import { sql } from 'drizzle-orm';
 import { updateSettings } from '../src/lib/server/services/settings';
 import { createCustomer } from '../src/lib/server/services/customers';
+import { createTimeEntry } from '../src/lib/server/services/time';
 import { createDraft, creditInvoice, issueInvoice, markSent, setPaidDate, updateDraft } from '../src/lib/server/services/invoices';
 import { createExpense, type UploadFile } from '../src/lib/server/services/expenses';
 import { createMovement } from '../src/lib/server/services/cash';
@@ -61,9 +63,18 @@ export const SEED = {
     opening_balance_date: '2026-01-01'
   },
   customers: [
-    { name: 'Nordhavn Arkitekter ApS', address: 'Sundkrogsgade 21', zip: '2100', city: 'København Ø', country: 'DK', cvr: '38412207', email: 'bogholderi@nordhavn-ark.dk', paymentTermsDays: 30 },
-    { name: 'Vestergaard Consulting', address: 'Åboulevarden 12', zip: '8000', city: 'Aarhus C', country: 'DK', cvr: null, email: 'mv@vestergaard.dk' },
+    { name: 'Nordhavn Arkitekter ApS', address: 'Sundkrogsgade 21', zip: '2100', city: 'København Ø', country: 'DK', cvr: '38412207', email: 'bogholderi@nordhavn-ark.dk', paymentTermsDays: 30, hourlyRateOre: 95_000 },
+    { name: 'Vestergaard Consulting', address: 'Åboulevarden 12', zip: '8000', city: 'Aarhus C', country: 'DK', cvr: null, email: 'mv@vestergaard.dk', hourlyRateOre: 85_000 },
     { name: 'Berlin Software GmbH', address: 'Friedrichstraße 100', zip: '10117', city: 'Berlin', country: 'DE', cvr: null, email: 'ap@berlinsoftware.de' }
+  ],
+  /** Unbilled time (tidsregistrering): two customers to bill, one entry not billable. */
+  time: [
+    { customer: 0, date: '2026-10-01', minutes: 150, description: 'Workshop om tilgængelighed' },
+    { customer: 0, date: '2026-10-06', minutes: 225, description: 'Gennemgang af tegningssæt, fase 2' },
+    { customer: 0, date: '2026-10-13', minutes: 50, description: 'Opfølgende møde' },
+    { customer: 0, date: '2026-10-15', minutes: 30, description: 'Intern sparring', billable: false },
+    { customer: 1, date: '2026-10-08', minutes: 360, description: 'Procesanalyse, onboarding' },
+    { customer: 1, date: '2026-10-20', minutes: 105, description: 'Rapportskrivning' }
   ],
   /** In issue order: numbers 1001..1005. Amounts in øre; `account` is the kontoplan number. */
   invoices: [
@@ -162,6 +173,8 @@ export async function seed(): Promise<void> {
   }
 
   for (const m of SEED.movements) createMovement(m);
+
+  for (const { customer, ...t } of SEED.time) createTimeEntry({ ...t, customerId: customers[customer].id });
 }
 
 const isMain = process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/seed.ts');
@@ -169,7 +182,7 @@ if (isMain) {
   seed()
     .then(async () => {
       await closeBrowser();
-      console.log('Seed gennemført: 3 kunder, 6 udstedte dokumenter (1001–1006), 8 udgifter, 4 bankbevægelser.');
+      console.log('Seed gennemført: 3 kunder, 6 udstedte dokumenter (1001–1006), 8 udgifter, 4 bankbevægelser, 6 tidsregistreringer.');
       process.exit(0);
     })
     .catch(async (e) => {

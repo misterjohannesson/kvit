@@ -7,9 +7,11 @@ import {
   formatOre,
   formatQuantity,
   invoiceStatus,
+  minutesToHours,
   monthOf,
   nextMonth,
   parseDateInput,
+  parseHoursToMinutes,
   parseKrToOre,
   parseQuantity,
   quarterOf,
@@ -106,6 +108,26 @@ describe('dates and quarters', () => {
   it('groups CVR numbers', () => {
     expect(formatCvr('12345678')).toBe('12 34 56 78');
     expect(formatCvr(null)).toBe('');
+  });
+});
+
+describe('time', () => {
+  it('parses hours as decimal, clock time or minutes', () => {
+    expect(parseHoursToMinutes('1,5')).toBe(90);
+    expect(parseHoursToMinutes('1.25')).toBe(75);
+    expect(parseHoursToMinutes('1:30')).toBe(90);
+    expect(parseHoursToMinutes('0:05')).toBe(5);
+    expect(parseHoursToMinutes('45m')).toBe(45);
+    expect(parseHoursToMinutes(' 2 t')).toBe(120);
+    expect(parseHoursToMinutes('0,33')).toBe(20);
+    for (const bad of ['', '0', '1:75', 'x', '-1', '25', '1,5,5']) expect(() => parseHoursToMinutes(bad), bad).toThrow();
+  });
+
+  it('shows minutes as hours with two decimals', () => {
+    expect(minutesToHours(90)).toBe(1.5);
+    expect(minutesToHours(20)).toBe(0.33);
+    expect(minutesToHours(50)).toBe(0.83);
+    expect(minutesToHours(425)).toBe(7.08);
   });
 });
 

@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connect, money } from './helpers.js';
 import { TOOL_NAMES } from '../src/tools.js';
+import { todayIso } from '../src/format.js';
 
 let mcp: Awaited<ReturnType<typeof connect>>;
 beforeAll(async () => {
@@ -17,7 +18,7 @@ afterAll(async () => {
 });
 
 describe('tool surface', () => {
-  it('lists exactly the 15 tools (spec items 1-14; item 14 is two lookups) with complete input schemas', async () => {
+  it('lists exactly the 18 tools with complete input schemas', async () => {
     const { tools } = await mcp.client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([...TOOL_NAMES].sort());
     for (const t of tools) {
@@ -32,9 +33,11 @@ describe('tool surface', () => {
     expect(byName.reconcile_balance.inputSchema.required).toEqual(['actual_bank_balance_ore']);
     expect(byName.create_draft_invoice.inputSchema.required).toEqual(['customer_id', 'lines']);
     expect(byName.create_expense.inputSchema.required).toEqual(['date', 'supplier', 'description', 'account_id', 'amount_ex_vat_ore', 'vat_ore']);
+    expect(byName.log_time.inputSchema.required).toEqual(['customer_id', 'hours', 'description']);
+    expect(byName.create_draft_from_time.inputSchema.required).toEqual(['customer_id']);
     // The safety model: nothing issues, credits, deletes or edits issued documents.
     for (const name of tools.map((t) => t.name)) expect(name).not.toMatch(/issue|credit_note|delete|update|edit|remove/);
-    for (const name of ['mark_invoice_paid', 'create_cash_movement', 'reconcile_balance', 'create_draft_invoice', 'create_expense']) {
+    for (const name of ['mark_invoice_paid', 'create_cash_movement', 'reconcile_balance', 'create_draft_invoice', 'create_expense', 'log_time', 'create_draft_from_time']) {
       expect(byName[name].description).toMatch(/audit-logged/i);
     }
   });
@@ -46,10 +49,12 @@ describe('read tools on seed data', () => {
     expect(r.isError).toBe(false);
     expect(r.data.count).toBe(2);
     expect(r.data.invoices.map((i) => i.number)).toEqual([1004, 1005]);
+    // Overdue is relative to today: 1004 (due 17.08.2026) always is; 1005 (due 24.09.2026) is once that date has passed.
+    const today = todayIso();
+    for (const i of r.data.invoices) expect(i.status, String(i.number)).toBe(i.due_date < today ? 'overdue' : 'open');
     expect(r.data.invoices[0].status).toBe('overdue');
-    expect(r.data.invoices[1].status).toBe('open');
     expect(r.data.total).toEqual({ amount_ore: 2_775_000, amount_formatted: '27.750,00 kr.' });
-    expect(r.data.overdue_count).toBe(1);
+    expect(r.data.overdue_count).toBe(r.data.invoices.filter((i) => i.due_date < today).length);
 
     const paid = await mcp.call<{ invoices: { number: number }[] }>('list_invoices', { status: 'paid' });
     expect(paid.data.invoices.map((i) => i.number).sort()).toEqual([1001, 1003]);

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { asc } from 'drizzle-orm';
 import { db } from '../db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, setting, supplier } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, setting, supplier, timeEntry, timeGroup } from '../schema';
 import { FILES_DIR } from '../env';
 import { audit } from '../audit';
 import { decimalToCsv, oreToCsv, toCsv } from '../../csv';
@@ -40,10 +40,10 @@ export function invoiceLinesCsv(): string {
   const accounts = accountMap();
   const rows = db.select().from(invoiceLine).orderBy(asc(invoiceLine.id)).all();
   return toCsv(
-    ['id', 'faktura_id', 'fakturanr', 'beskrivelse', 'antal', 'enhed', 'enhedspris_ekskl_moms', 'linjetotal', 'konto', 'kontonavn'],
+    ['id', 'faktura_id', 'fakturanr', 'beskrivelse', 'antal', 'enhed', 'enhedspris_ekskl_moms', 'linjetotal', 'konto', 'kontonavn', 'type'],
     rows.map((r) => [
       r.id, r.invoiceId, numbers.get(r.invoiceId), r.description, decimalToCsv(r.quantity), r.unit,
-      oreToCsv(r.unitPriceOre), oreToCsv(r.lineTotalOre), accounts.get(r.accountId)?.number, accounts.get(r.accountId)?.name
+      oreToCsv(r.unitPriceOre), oreToCsv(r.lineTotalOre), accounts.get(r.accountId)?.number, accounts.get(r.accountId)?.name, r.kind
     ])
   );
 }
@@ -59,9 +59,30 @@ export function invoiceAttachmentsCsv(): string {
 export function customersCsv(): string {
   const rows = db.select().from(customer).orderBy(asc(customer.id)).all();
   return toCsv(
-    ['id', 'navn', 'adresse', 'postnr', 'by', 'land', 'cvr', 'email', 'betalingsfrist_dage', 'oprettet'],
-    rows.map((r) => [r.id, r.name, r.address, r.zip, r.city, r.country, r.cvr, r.email, r.paymentTermsDays, r.createdAt])
+    ['id', 'navn', 'adresse', 'postnr', 'by', 'land', 'cvr', 'email', 'betalingsfrist_dage', 'timepris', 'oprettet'],
+    rows.map((r) => [r.id, r.name, r.address, r.zip, r.city, r.country, r.cvr, r.email, r.paymentTermsDays, r.hourlyRateOre === null ? null : oreToCsv(r.hourlyRateOre), r.createdAt])
   );
+}
+
+/** Logged time with its invoiced part; minutter is the logged truth, timer is the same in hours for reading. */
+export function timeEntriesCsv(): string {
+  const numbers = new Map(db.select().from(invoice).all().map((i) => [i.id, i.invoiceNumber]));
+  const custs = new Map(db.select().from(customer).all().map((c) => [c.id, c.name]));
+  const rows = db.select().from(timeEntry).orderBy(asc(timeEntry.id)).all();
+  return toCsv(
+    ['id', 'kunde_id', 'kunde', 'dato', 'minutter', 'timer', 'beskrivelse', 'fakturerbar', 'faktura_id', 'fakturanr', 'overskrift_id', 'position', 'fakt_timer', 'fakt_beskrivelse', 'timepris', 'standard_timepris', 'oprettet'],
+    rows.map((r) => [
+      r.id, r.customerId, custs.get(r.customerId) ?? '', r.date, r.minutes, decimalToCsv(Math.round((r.minutes / 60) * 100) / 100), r.description, r.billable ? 'ja' : 'nej',
+      r.invoiceId, r.invoiceId === null ? null : numbers.get(r.invoiceId), r.groupId, r.position, r.invoicedHours === null ? null : decimalToCsv(r.invoicedHours), r.invoicedDescription,
+      r.rateOre === null ? null : oreToCsv(r.rateOre), r.standardRateOre === null ? null : oreToCsv(r.standardRateOre), r.createdAt
+    ])
+  );
+}
+
+/** Headings on invoices that time entries are grouped under. */
+export function timeGroupsCsv(): string {
+  const rows = db.select().from(timeGroup).orderBy(asc(timeGroup.id)).all();
+  return toCsv(['id', 'faktura_id', 'position', 'beskrivelse', 'oprettet'], rows.map((r) => [r.id, r.invoiceId, r.position, r.description, r.createdAt]));
 }
 
 export function suppliersCsv(): string {
@@ -117,6 +138,8 @@ export const CSV_FILES: Record<string, () => string> = {
   'invoices.csv': invoicesCsv,
   'invoice_lines.csv': invoiceLinesCsv,
   'invoice_attachments.csv': invoiceAttachmentsCsv,
+  'time_entries.csv': timeEntriesCsv,
+  'time_groups.csv': timeGroupsCsv,
   'customers.csv': customersCsv,
   'suppliers.csv': suppliersCsv,
   'expenses.csv': expensesCsv,
@@ -129,7 +152,7 @@ export const CSV_FILES: Record<string, () => string> = {
 
 export const CSV_FILE_NAMES = Object.keys(CSV_FILES);
 
-/** Zip with the eleven CSVs and every file under /data/files/. Streams to the returned readable. */
+/** Zip with the thirteen CSVs and every file under /data/files/. Streams to the returned readable. */
 export function exportZipStream(): PassThrough {
   const out = new PassThrough();
   const zip = new ZipArchive({ zlib: { level: 6 } });

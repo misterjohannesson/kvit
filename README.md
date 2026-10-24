@@ -101,7 +101,7 @@ MCP client over an in-memory transport; `tests/install/` needs Docker and is run
 ## Project layout
 
 ```
-src/lib/server/services/   business rules: invoices (numbering, issue, credit), expenses, suppliers, finance (resultat, cashflow, balance,
+src/lib/server/services/   business rules: invoices (numbering, issue, credit), time (logging, billing onto drafts), expenses, suppliers, finance (resultat, cashflow, balance,
                            expense report, kontoudtog ledger), cash, accounts (+ CSV), attachments, journal (derived
                            posteringer.csv), export, restore (export zip -> data set, with data.bakNN copies)
 src/lib/server/db.ts       database bootstrap, migrations, REQUIRED_TRIGGERS assertion, pre-migration copies
@@ -149,7 +149,7 @@ The brand mark and favicon are in `static/`.
 
 ## MCP server
 
-`mcp/` is a separate package: a thin HTTP client over the app's JSON API with a bearer token, exposing 15 tools over stdio
+`mcp/` is a separate package: a thin HTTP client over the app's JSON API with a bearer token, exposing 18 tools over stdio
 and streamable HTTP. It never opens the database. Issuing and crediting invoices are intentionally not possible through
 it. `npm run mcp` starts it over stdio and reads `mcp/.env` (or falls back to `API_TOKEN` and `PORT` from the root
 `.env`); see [mcp/README.md](mcp/README.md).

@@ -56,6 +56,37 @@ export interface InvoiceDetail extends InvoiceRow {
   attachments: { id: number; name: string; pages: number; sizeBytes: number }[];
 }
 
+/** A time registration (tidsregistrering). status: unbilled | draft | billed | not_billable. */
+export interface TimeEntry {
+  id: number;
+  customerId: number;
+  customerName: string;
+  date: string;
+  minutes: number;
+  hours: number;
+  description: string;
+  billable: boolean;
+  status: 'unbilled' | 'draft' | 'billed' | 'not_billable';
+  invoiceId: number | null;
+  invoiceNumber: number | null;
+  invoiceStatus: 'draft' | 'issued' | 'credited' | null;
+  invoicedHours: number | null;
+  invoicedDescription: string | null;
+  rateOre: number | null;
+}
+
+export interface UnbilledTime {
+  customerId: number;
+  customerName: string;
+  hourlyRateOre: number | null;
+  entries: number;
+  minutes: number;
+  hours: number;
+  valueOre: number | null;
+  firstDate: string;
+  lastDate: string;
+}
+
 export interface Customer {
   id: number;
   name: string;
@@ -66,6 +97,7 @@ export interface Customer {
   cvr: string | null;
   email: string;
   paymentTermsDays: number | null;
+  hourlyRateOre: number | null;
 }
 
 export interface Account {
@@ -305,5 +337,27 @@ export class FakturaClient {
     paidDate?: string | null;
   }): Promise<Expense> {
     return this.post<Expense>('/api/expenses', body);
+  }
+
+  listTime(params: { customerId?: number; status?: string; from?: string; to?: string } = {}): Promise<TimeEntry[]> {
+    const q = new URLSearchParams();
+    if (params.customerId) q.set('customerId', String(params.customerId));
+    if (params.status) q.set('status', params.status);
+    if (params.from) q.set('from', params.from);
+    if (params.to) q.set('to', params.to);
+    const qs = q.toString();
+    return this.get<TimeEntry[]>(`/api/time${qs ? '?' + qs : ''}`);
+  }
+
+  unbilledTime(): Promise<UnbilledTime[]> {
+    return this.get<UnbilledTime[]>('/api/time/unbilled');
+  }
+
+  logTime(body: { customerId: number; date: string; hours: number; description: string; billable: boolean }): Promise<TimeEntry> {
+    return this.post<TimeEntry>('/api/time', body);
+  }
+
+  createDraftFromTime(body: { customerId: number; entryIds?: number[] }): Promise<InvoiceDetail> {
+    return this.post<InvoiceDetail>('/api/invoices/from-time', body);
   }
 }

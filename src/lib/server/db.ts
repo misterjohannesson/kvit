@@ -43,7 +43,15 @@ export const REQUIRED_TRIGGERS = [
   'invoice_sent_once',
   'invoice_attachment_no_insert_issued',
   'invoice_attachment_no_update_issued',
-  'invoice_attachment_no_delete_issued'
+  'invoice_attachment_no_delete_issued',
+  'time_entry_logged_locked',
+  'time_entry_no_update_issued',
+  'time_entry_no_attach_issued',
+  'time_entry_no_insert_issued',
+  'time_entry_no_delete_billed',
+  'time_group_no_insert_issued',
+  'time_group_no_update_issued',
+  'time_group_no_delete_issued'
 ] as const;
 
 // Migrations that rebuild a table drop and re-create it while other tables (and

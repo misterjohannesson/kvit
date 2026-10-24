@@ -12,6 +12,8 @@ export const customer = sqliteTable('customer', {
   email: text('email').notNull().default(''),
   /** Days from invoice date to due date for this customer; null = the default under settings. */
   paymentTermsDays: integer('payment_terms_days'),
+  /** Hourly rate ex VAT in øre, the default rate when this customer's logged time is put on a draft; null = none agreed. */
+  hourlyRateOre: integer('hourly_rate_ore'),
   createdAt: text('created_at').notNull()
 });
 
@@ -84,9 +86,64 @@ export const invoiceLine = sqliteTable(
     accountId: integer('account_id')
       .notNull()
       .default(1)
-      .references(() => account.id)
+      .references(() => account.id),
+    /**
+     * manual = typed in the editor; time = generated from one time entry; time_group = a heading generated from its
+     * time entries (quantity and total are their sums, the unit price is total / quantity rounded to whole øre, so
+     * quantity × price may differ from the total by the rounding). Generated lines are rebuilt on every draft save.
+     */
+    kind: text('kind', { enum: ['manual', 'time', 'time_group'] }).notNull().default('manual')
   },
   (t) => [index('invoice_line_invoice_idx').on(t.invoiceId), index('invoice_line_account_idx').on(t.accountId)]
+);
+
+/** A heading on a draft that time entries are indented under; it becomes one invoice line. Frozen with the invoice. */
+export const timeGroup = sqliteTable(
+  'time_group',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    invoiceId: integer('invoice_id')
+      .notNull()
+      .references(() => invoice.id),
+    position: integer('position').notNull(),
+    description: text('description').notNull(),
+    createdAt: text('created_at').notNull()
+  },
+  (t) => [index('time_group_invoice_idx').on(t.invoiceId)]
+);
+
+/**
+ * Logged time (tidsregistrering). The logged part (customer, date, minutes, description, billable) is locked once the
+ * entry is on an invoice. The invoiced part (hours, description, rate) is filled when the entry is put on a draft,
+ * editable while the invoice is a draft, and frozen at issue. standard_rate_ore is the customer's rate at that moment,
+ * kept so the value of a write-up or write-down stays visible. Deleting the draft releases the entry; a credit note
+ * does not.
+ */
+export const timeEntry = sqliteTable(
+  'time_entry',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    customerId: integer('customer_id')
+      .notNull()
+      .references(() => customer.id),
+    date: text('date').notNull(),
+    minutes: integer('minutes').notNull(),
+    description: text('description').notNull(),
+    billable: integer('billable', { mode: 'boolean' }).notNull().default(true),
+    invoiceId: integer('invoice_id').references(() => invoice.id),
+    groupId: integer('group_id').references(() => timeGroup.id),
+    position: integer('position'),
+    invoicedHours: real('invoiced_hours'),
+    invoicedDescription: text('invoiced_description'),
+    rateOre: integer('rate_ore'),
+    standardRateOre: integer('standard_rate_ore'),
+    createdAt: text('created_at').notNull()
+  },
+  (t) => [
+    index('time_entry_customer_idx').on(t.customerId),
+    index('time_entry_invoice_idx').on(t.invoiceId),
+    index('time_entry_date_idx').on(t.date)
+  ]
 );
 
 /** Suppliers (leverandører): created from the expense form's "new supplier" text, then picked from a list. Name only. */
@@ -182,7 +239,9 @@ export const setting = sqliteTable('setting', {
   value: text('value').notNull()
 });
 
-export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement | typeof invoiceAttachment | typeof supplier;
+export type AnyTable = typeof customer | typeof invoice | typeof invoiceLine | typeof expense | typeof auditLog | typeof account | typeof cashMovement | typeof invoiceAttachment | typeof supplier | typeof timeEntry | typeof timeGroup;
+export type TimeEntry = typeof timeEntry.$inferSelect;
+export type TimeGroup = typeof timeGroup.$inferSelect;
 export type Customer = typeof customer.$inferSelect;
 export type Supplier = typeof supplier.$inferSelect;
 export type Account = typeof account.$inferSelect;

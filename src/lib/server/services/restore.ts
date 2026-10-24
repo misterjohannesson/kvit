@@ -21,7 +21,7 @@ import { withIssueLock } from './issue-lock';
 import { computeTotals, VAT_RATE_BP } from './invoices';
 import { DEFAULT_SETTINGS, SETTING_KEYS } from './settings-defaults';
 import { countRows } from '../db';
-import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, supplier } from '../schema';
+import { account, auditLog, cashMovement, customer, expense, invoice, invoiceAttachment, invoiceLine, supplier, timeEntry, timeGroup } from '../schema';
 
 export const RESTORE_DIR = path.join(DATA_DIR, 'restore');
 /** A staged upload that is not confirmed within this window is removed. */
@@ -31,13 +31,18 @@ export const RESTORE_MAX_BYTES = 512 * 1024 * 1024;
 // ------------------------------------------------------------------------------------------------ parsed rows
 
 interface AccountRow { id: number; number: number; name: string; type: 'revenue' | 'cost'; group: string; archived: number }
-interface CustomerRow { id: number; name: string; address: string; zip: string; city: string; country: string; cvr: string | null; email: string; paymentTermsDays: number | null; createdAt: string }
+interface CustomerRow { id: number; name: string; address: string; zip: string; city: string; country: string; cvr: string | null; email: string; paymentTermsDays: number | null; hourlyRateOre: number | null; createdAt: string }
 interface InvoiceRow {
   id: number; invoiceNumber: number | null; status: 'draft' | 'issued' | 'credited'; customerId: number; issueDate: string; dueDate: string; currency: string;
   subtotalOre: number; vatOre: number; totalOre: number; vatRateBp: number; vatExemptReason: string | null; paymentReference: string; paidDate: string | null;
   sentAt: string | null; pdfPath: string | null; creditedByInvoiceId: number | null; createdAt: string;
 }
-interface LineRow { id: number; invoiceId: number; description: string; quantity: number; unit: string; unitPriceOre: number; lineTotalOre: number; accountId: number }
+interface LineRow { id: number; invoiceId: number; description: string; quantity: number; unit: string; unitPriceOre: number; lineTotalOre: number; accountId: number; kind: 'manual' | 'time' | 'time_group' }
+interface TimeGroupRow { id: number; invoiceId: number; position: number; description: string; createdAt: string }
+interface TimeEntryRow {
+  id: number; customerId: number; date: string; minutes: number; description: string; billable: number; invoiceId: number | null; groupId: number | null; position: number | null;
+  invoicedHours: number | null; invoicedDescription: string | null; rateOre: number | null; standardRateOre: number | null; createdAt: string;
+}
 interface AttachmentRow { id: number; invoiceId: number; position: number; name: string; filePath: string; pages: number; sizeBytes: number; createdAt: string }
 interface SupplierRow { id: number; name: string; createdAt: string }
 interface ExpenseRow { id: number; voucherNumber: number; date: string; supplierId: number; description: string; accountId: number; amountExVatOre: number; vatOre: number; amountInclOre: number; paidDate: string | null; filePath: string | null; createdAt: string }
@@ -51,6 +56,8 @@ export interface RestoreData {
   invoices: InvoiceRow[];
   lines: LineRow[];
   attachments: AttachmentRow[];
+  timeGroups: TimeGroupRow[];
+  timeEntries: TimeEntryRow[];
   expenses: ExpenseRow[];
   movements: MovementRow[];
   audit: AuditRow[];
@@ -240,6 +247,7 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
         cvr: P.optText(r.get('cvr')),
         email: r.get('email'),
         paymentTermsDays: P.optInt(r.get('betalingsfrist_dage')),
+        hourlyRateOre: r.get('timepris') === '' ? null : P.ore(r.get('timepris')),
         createdAt: r.get('oprettet') || new Date().toISOString()
       },
       r.line
@@ -331,9 +339,10 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
     const quantity = P.decimal(r.get('antal'));
     const unitPriceOre = P.ore(r.get('enhedspris_ekskl_moms'));
     const total = P.ore(r.get('linjetotal'));
+    const kind = P.enumOf(r.get('type') || 'manual', ['manual', 'time', 'time_group'] as const, 'type');
     const expected = lineTotalOre(quantity, unitPriceOre);
-    if (total !== expected) throw new Error(`linjetotal ${r.get('linjetotal')} passer ikke til antal × enhedspris (${(expected / 100).toFixed(2).replace('.', ',')})`);
-    return remember({ id: P.int(r.get('id')), invoiceId: P.int(r.get('faktura_id')), description: r.get('beskrivelse'), quantity, unit: r.get('enhed'), unitPriceOre, lineTotalOre: total, accountId: acc.id }, r.line);
+    if (kind !== 'time_group' && total !== expected) throw new Error(`linjetotal ${r.get('linjetotal')} passer ikke til antal × enhedspris (${(expected / 100).toFixed(2).replace('.', ',')})`);
+    return remember({ id: P.int(r.get('id')), invoiceId: P.int(r.get('faktura_id')), description: r.get('beskrivelse'), quantity, unit: r.get('enhed'), unitPriceOre, lineTotalOre: total, accountId: acc.id, kind }, r.line);
   });
   unique(lines, (l) => l.id, 'invoice_lines.csv', 'id', errors, lineOf);
   const linesByInvoice = new Map<number, LineRow[]>();
@@ -347,6 +356,54 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
     const t = computeTotals(linesByInvoice.get(i.id) ?? [], i.vatExemptReason !== null);
     if (t.subtotalOre !== i.subtotalOre || t.vatOre !== i.vatOre || t.totalOre !== i.totalOre) {
       errors.add('invoices.csv', lineOf(i), `beløbene på faktura ${i.invoiceNumber} passer ikke til linjerne (beregnet ${fmt(t.subtotalOre)} + moms ${fmt(t.vatOre)} = ${fmt(t.totalOre)})`);
+    }
+  }
+
+  // time (optional files: older exports have none)
+  const groupRows = table(zip, 'time_groups.csv', ['id', 'faktura_id', 'position', 'beskrivelse'], errors, true);
+  const timeGroups = each(groupRows ?? [], 'time_groups.csv', errors, (r): TimeGroupRow =>
+    remember({ id: P.int(r.get('id')), invoiceId: P.int(r.get('faktura_id')), position: P.int(r.get('position')), description: r.get('beskrivelse'), createdAt: r.get('oprettet') || new Date().toISOString() }, r.line)
+  );
+  unique(timeGroups, (g) => g.id, 'time_groups.csv', 'id', errors, lineOf);
+  for (const g of timeGroups) if (!invoiceById.has(g.invoiceId)) errors.add('time_groups.csv', lineOf(g), `faktura_id ${g.invoiceId} findes ikke i invoices.csv`);
+  const groupById = new Map(timeGroups.map((g) => [g.id, g]));
+  const entryRows = table(zip, 'time_entries.csv', ['id', 'kunde_id', 'dato', 'minutter', 'beskrivelse'], errors, true);
+  if (entryRows === null) warnings.push('time_entries.csv mangler (ældre eksport); der genskabes ingen tidsregistreringer');
+  const timeEntries = each(entryRows ?? [], 'time_entries.csv', errors, (r): TimeEntryRow => {
+    const minutes = P.int(r.get('minutter'));
+    if (minutes <= 0) throw new Error('minutter skal være mere end 0');
+    const billable = r.get('fakturerbar').toLowerCase();
+    const optOre = (v: string) => (v === '' ? null : P.ore(v));
+    return remember(
+      {
+        id: P.int(r.get('id')),
+        customerId: P.int(r.get('kunde_id')),
+        date: P.date(r.get('dato')),
+        minutes,
+        description: r.get('beskrivelse') || (() => { throw new Error('beskrivelse er tom'); })(),
+        billable: billable === 'nej' || billable === 'false' || billable === '0' ? 0 : 1,
+        invoiceId: P.optInt(r.get('faktura_id')),
+        groupId: P.optInt(r.get('overskrift_id')),
+        position: P.optInt(r.get('position')),
+        invoicedHours: r.get('fakt_timer') === '' ? null : P.decimal(r.get('fakt_timer')),
+        invoicedDescription: P.optText(r.get('fakt_beskrivelse')),
+        rateOre: optOre(r.get('timepris')),
+        standardRateOre: optOre(r.get('standard_timepris')),
+        createdAt: r.get('oprettet') || new Date().toISOString()
+      },
+      r.line
+    );
+  });
+  unique(timeEntries, (e) => e.id, 'time_entries.csv', 'id', errors, lineOf);
+  for (const e of timeEntries) {
+    if (!customerIds.has(e.customerId)) errors.add('time_entries.csv', lineOf(e), `kunde_id ${e.customerId} findes ikke i customers.csv`);
+    const inv = e.invoiceId === null ? undefined : invoiceById.get(e.invoiceId);
+    if (e.invoiceId !== null && !inv) errors.add('time_entries.csv', lineOf(e), `faktura_id ${e.invoiceId} findes ikke i invoices.csv`);
+    else if (inv && inv.customerId !== e.customerId) errors.add('time_entries.csv', lineOf(e), `faktura ${inv.invoiceNumber ?? inv.id} er til en anden kunde`);
+    if (e.groupId !== null) {
+      const g = groupById.get(e.groupId);
+      if (!g) errors.add('time_entries.csv', lineOf(e), `overskrift_id ${e.groupId} findes ikke i time_groups.csv`);
+      else if (g.invoiceId !== e.invoiceId) errors.add('time_entries.csv', lineOf(e), `overskrift_id ${e.groupId} hører til en anden faktura`);
     }
   }
 
@@ -448,7 +505,7 @@ export function parseRestoreZip(zip: AdmZip): RestoreData {
   if (missing.length > 20) warnings.push(`og ${missing.length - 20} filer til mangler`);
 
   errors.throwIfAny();
-  return { accounts, customers, suppliers, invoices, lines, attachments, expenses, movements, audit: auditParsed, settings, files, warnings };
+  return { accounts, customers, suppliers, invoices, lines, attachments, timeGroups, timeEntries, expenses, movements, audit: auditParsed, settings, files, warnings };
 }
 
 function fmt(ore: number): string {
@@ -465,6 +522,7 @@ function currentCounts(): Record<string, number> {
     invoices: countRows(invoice),
     lines: countRows(invoiceLine),
     attachments: countRows(invoiceAttachment),
+    timeEntries: countRows(timeEntry),
     expenses: countRows(expense),
     movements: countRows(cashMovement),
     audit: countRows(auditLog)
@@ -504,6 +562,7 @@ function summarize(id: string, fileName: string, sizeBytes: number, data: Restor
       invoices: { file: data.invoices.length, current: cur.invoices },
       lines: { file: data.lines.length, current: cur.lines },
       attachments: { file: data.attachments.length, current: cur.attachments },
+      timeEntries: { file: data.timeEntries.length, current: cur.timeEntries },
       expenses: { file: data.expenses.length, current: cur.expenses },
       movements: { file: data.movements.length, current: cur.movements },
       audit: { file: data.audit.length, current: cur.audit }
@@ -579,8 +638,8 @@ export interface RestoreResult {
   warnings: string[];
 }
 
-const TABLE_ORDER_DELETE = ['invoice_attachment', 'invoice_line', 'invoice', 'expense', 'supplier', 'cash_movement', 'audit_log', 'customer', 'account', 'setting'] as const;
-const SEQUENCE_TABLES = ['account', 'customer', 'supplier', 'invoice', 'invoice_line', 'invoice_attachment', 'expense', 'cash_movement', 'audit_log'] as const;
+const TABLE_ORDER_DELETE = ['time_entry', 'time_group', 'invoice_attachment', 'invoice_line', 'invoice', 'expense', 'supplier', 'cash_movement', 'audit_log', 'customer', 'account', 'setting'] as const;
+const SEQUENCE_TABLES = ['account', 'customer', 'supplier', 'invoice', 'invoice_line', 'invoice_attachment', 'time_group', 'time_entry', 'expense', 'cash_movement', 'audit_log'] as const;
 
 /** Step 2: back up, rebuild every table from the staged zip in one transaction, swap files/. */
 export function applyRestore(id: string): Promise<RestoreResult> {
@@ -619,16 +678,22 @@ export function applyRestore(id: string): Promise<RestoreResult> {
       const ins = (sql: string) => sqlite.prepare(sql);
       const accIns = ins('INSERT INTO account (id, number, name, type, group_name, archived) VALUES (?, ?, ?, ?, ?, ?)');
       for (const a of data.accounts) accIns.run(a.id, a.number, a.name, a.type, a.group, a.archived);
-      const custIns = ins('INSERT INTO customer (id, name, address, zip, city, country, cvr, email, payment_terms_days, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-      for (const c of data.customers) custIns.run(c.id, c.name, c.address, c.zip, c.city, c.country, c.cvr, c.email, c.paymentTermsDays, c.createdAt);
+      const custIns = ins('INSERT INTO customer (id, name, address, zip, city, country, cvr, email, payment_terms_days, hourly_rate_ore, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      for (const c of data.customers) custIns.run(c.id, c.name, c.address, c.zip, c.city, c.country, c.cvr, c.email, c.paymentTermsDays, c.hourlyRateOre, c.createdAt);
       const invIns = ins(
         'INSERT INTO invoice (id, invoice_number, status, customer_id, issue_date, due_date, currency, subtotal_ore, vat_ore, total_ore, vat_rate_bp, vat_exempt_reason, payment_reference, paid_date, pdf_path, sent_at, credited_by_invoice_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)'
       );
       for (const i of data.invoices) invIns.run(i.id, i.invoiceNumber, i.status, i.customerId, i.issueDate, i.dueDate, i.currency, i.subtotalOre, i.vatOre, i.totalOre, i.vatRateBp, i.vatExemptReason, i.paymentReference, i.paidDate, i.pdfPath, i.sentAt, i.createdAt);
       const credIns = ins('UPDATE invoice SET credited_by_invoice_id = ? WHERE id = ?');
       for (const i of data.invoices) if (i.creditedByInvoiceId !== null) credIns.run(i.creditedByInvoiceId, i.id);
-      const lineIns = ins('INSERT INTO invoice_line (id, invoice_id, description, quantity, unit, unit_price_ore, line_total_ore, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-      for (const l of data.lines) lineIns.run(l.id, l.invoiceId, l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre, l.accountId);
+      const lineIns = ins('INSERT INTO invoice_line (id, invoice_id, description, quantity, unit, unit_price_ore, line_total_ore, account_id, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      for (const l of data.lines) lineIns.run(l.id, l.invoiceId, l.description, l.quantity, l.unit, l.unitPriceOre, l.lineTotalOre, l.accountId, l.kind);
+      const groupIns = ins('INSERT INTO time_group (id, invoice_id, position, description, created_at) VALUES (?, ?, ?, ?, ?)');
+      for (const g of data.timeGroups) groupIns.run(g.id, g.invoiceId, g.position, g.description, g.createdAt);
+      const timeIns = ins(
+        'INSERT INTO time_entry (id, customer_id, date, minutes, description, billable, invoice_id, group_id, position, invoiced_hours, invoiced_description, rate_ore, standard_rate_ore, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      );
+      for (const e of data.timeEntries) timeIns.run(e.id, e.customerId, e.date, e.minutes, e.description, e.billable, e.invoiceId, e.groupId, e.position, e.invoicedHours, e.invoicedDescription, e.rateOre, e.standardRateOre, e.createdAt);
       const attIns = ins('INSERT INTO invoice_attachment (id, invoice_id, position, name, file_path, pages, size_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
       for (const a of data.attachments) attIns.run(a.id, a.invoiceId, a.position, a.name, a.filePath, a.pages, a.sizeBytes, a.createdAt);
       const supIns = ins('INSERT INTO supplier (id, name, created_at) VALUES (?, ?, ?)');

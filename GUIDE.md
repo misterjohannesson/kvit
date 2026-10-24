@@ -83,6 +83,25 @@ når pengene er sendt tilbage.
 **Markér som sendt.** Udstedte dokumenter, der ikke er markeret som sendt til kunden, får en tydelig advarsel på
 Overblik og i listen. Send PDF'en, og markér den sendt med dato.
 
+**Timer.** Under **Timer** registrerer du tid pr. kunde: dato, timer (skriv 1,5 eller 1:30) og hvad du lavede. Tid,
+der aldrig skal faktureres, markerer du *ikke fakturerbar*; den bliver stående som dokumentation. Kundens timepris
+sætter du på kundesiden.
+
+**Fakturér timer.** Tryk *Fakturér* ud for kunden under Timer eller på kundesiden. Du får en kladde med kundens
+ufakturerede timer, én linje pr. registrering til kundens timepris. Fra nu af er den loggede tid låst. På kladden
+retter du det, der skal stå på fakturaen: timer (din egen afrunding, op eller ned), tekst og timepris. Under beløbet
+står afvigelsen fra den loggede tid i kroner og timer, så du kan se, hvad afrundingen er værd. Flere timer lægger du
+på under *Tilføj registreret tid*, og ✕ sender en linje tilbage som ufaktureret.
+
+**Overskrifter.** Skal flere registreringer stå som én linje på fakturaen, tilføjer du en overskrift og rykker
+linjerne ind under den med ⇥ (eller *Saml* for alle linjer nedenfor). Overskriften trykkes med summen af timer og
+beløb, og kun dens tekst kan rettes. Timeprisen på linjen er beløbet delt med timerne, så registreringer med forskellig
+timepris kan stå under samme overskrift.
+
+**Hvornår er timer faktureret?** Når fakturaen er udstedt; så kan de hverken rettes eller slettes. Sletter du
+kladden, bliver timerne ufaktureret igen. Krediterer du fakturaen, forbliver timerne faktureret på den, og rettelsen
+laver du selv på en ny faktura.
+
 ---
 
 ## 3. Udgifter
@@ -219,6 +238,9 @@ behøver den ikke, når du bruger `http`-varianten på samme maskine eller over 
 - »Registrér min saldo: 84.250 kr« – assistenten kører afstemningen og bogfører forskellen som korrektion.
 - »Bogfør bankgebyret på 45 kr fra i går.«
 - »Lav en kladde til Nordhavn Arkitekter: 12 timer rådgivning à 950 kr.«
+- »Log 2,5 timer hos Nordhavn i dag: workshop om tilgængelighed.«
+- »Hvor mange ufakturerede timer har jeg, og hvad er de værd?«
+- »Lav en kladde med Vestergaards timer fra oktober.«
 - »Opret en udgift: Hetzner, serverhosting september, 380 kr uden moms, konto 2000.«
 
 Alt, assistenten skriver, står i revisionssporet med afsender *api* (`audit_log.csv` i eksport-zippen, se afsnit 8),
@@ -228,7 +250,7 @@ så du altid kan se, hvad der kom fra AI'en.
 
 - **udstede fakturaer** – den kan lave kladden, men *Udsted* trykker du selv i programmet,
 - **oprette kreditnotaer**,
-- **slette noget**.
+- **slette noget** – heller ikke en tidsregistrering; en forkert registrering retter eller sletter du under Timer.
 
 Udstedelse og kreditering tager numre fra den lovpligtige nummerserie og er uigenkaldelige, og sletning hører ikke til
 i et bogholderi; derfor er de tre handlinger bevidst umulige via MCP – ikke en manglende funktion, men selve
@@ -239,7 +261,7 @@ sikkerhedsmodellen.
 ## 8. Eksport og revisor
 
 **Eksport-zippen.** Under **Eksport** henter du én zip med `invoices.csv`, `invoice_lines.csv`,
-`invoice_attachments.csv`, `customers.csv`, `expenses.csv`, `cash_movements.csv`, `accounts.csv`, `settings.csv`,
+`invoice_attachments.csv`, `time_entries.csv`, `time_groups.csv`, `customers.csv`, `expenses.csv`, `cash_movements.csv`, `accounts.csv`, `settings.csv`,
 `audit_log.csv` og `posteringer.csv` (UTF-8, semikolon, dansk decimalkomma) plus alle PDF'er og bilag. Det er pakken
 til revisor: »her er alt«.
 

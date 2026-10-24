@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { customer, invoice, type Customer } from '../schema';
+import { customer, invoice, timeEntry, type Customer } from '../schema';
 import { audit } from '../audit';
 import { badRequest, conflict, notFound } from '../errors';
 
@@ -25,6 +25,11 @@ const customerSchema = z.object({
   /** Days from invoice date to due date; null = the default under settings. */
   paymentTermsDays: z
     .union([z.null(), z.literal(''), z.coerce.number({ error: 'Betalingsfrist skal være et tal' }).int('Betalingsfrist skal være hele dage').min(0, 'Betalingsfrist kan ikke være negativ').max(365, 'Betalingsfrist kan højst være 365 dage')])
+    .optional()
+    .transform((v) => (v === '' || v === undefined ? null : v)),
+  /** Hourly rate ex VAT in øre for logged time; null = none agreed (set it on the draft). */
+  hourlyRateOre: z
+    .union([z.null(), z.literal(''), z.coerce.number({ error: 'Timepris skal være et tal' }).int('Timepris skal være hele øre').min(0, 'Timepris kan ikke være negativ').max(1e9, 'Timepris er for stor')])
     .optional()
     .transform((v) => (v === '' || v === undefined ? null : v))
 });
@@ -78,6 +83,8 @@ export function deleteCustomer(id: number): void {
       .where(eq(invoice.customerId, id))
       .get();
     if ((used?.n ?? 0) > 0) throw conflict('Kunden har fakturaer og kan ikke slettes');
+    const logged = db.select({ n: sql<number>`count(*)` }).from(timeEntry).where(eq(timeEntry.customerId, id)).get();
+    if ((logged?.n ?? 0) > 0) throw conflict('Kunden har registreret tid og kan ikke slettes');
     db.delete(customer).where(eq(customer.id, id)).run();
     audit('customer', id, 'delete', {});
   });
